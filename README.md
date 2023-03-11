@@ -27,14 +27,11 @@ Library | Version | License
 ## How to build
 
 1. Build the third-party libraries and place the them in a common directory
-1. Open *CMakeLists.txt* in a text-editor
-1. Update the *EXT_LIB_DIR* variable with the path to where you placed the the third-party libraries
-1. You will also need the [dirent](https://github.com/tronkko/dirent/raw/master/include/dirent.h) header if you are building on Windows
-    - Update the *DIRENT_DIR* variable with the path to where you placed *dirent.h*
+1. You will also need the [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) header if you are building on Windows
 1. Make sure you have [cmake](https://cmake.org/download/) installed
 1. Open a command prompt or terminal
 1. Create a *build* directory `mkdir build` and enter it `cd build`
-1. Run the command `cmake ..`
+1. Run the command `cmake .. -D EXT_LIB_DIR="/path/to/libs" -D DIRENT_DIR="/path/to/dirent"`
 1. The *build* directory will now contain a *makefile* or a *Visual Studio* solution
 
 > The *test* project currently only has UI components for Windows using [Win32 Controls](https://learn.microsoft.com/en-us/windows/win32/controls/individual-control-info)
