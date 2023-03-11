@@ -5,6 +5,7 @@
 *.vcxproj*
 
 .vs
+build
 CMakeCache.txt
 CMakeFiles
 Debug
