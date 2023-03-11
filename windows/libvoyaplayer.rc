@@ -1,0 +1,27 @@
+#include <windows.h>
+
+1 VERSIONINFO
+FILEVERSION    1,0,0
+PRODUCTVERSION 1,0,0
+FILEOS         VOS_NT
+FILETYPE       VFT_DLL
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904E4"
+		BEGIN
+			VALUE "CompanyName",      "Adam A. Jammary (Jammary Studio)"
+			VALUE "LegalCopyright",   "(c) 2021 Adam A. Jammary (Jammary Studio)"
+			VALUE "ProductName",      "libvoyaplayer"
+			VALUE "FileDescription",  "libvoyaplayer"
+			VALUE "FileVersion",      "1.0.0"
+			VALUE "ProductVersion",   "1.0.0"
+			VALUE "InternalName",     "libvoyaplayer.dll"
+			VALUE "OriginalFilename", "libvoyaplayer.dll"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x409, 1252
+	END
+END
