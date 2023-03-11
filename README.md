@@ -33,7 +33,7 @@ Library | Version | License
     - Update the *DIRENT_DIR* variable with the path to where you placed *dirent.h*
 1. Make sure you have [cmake](https://cmake.org/download/) installed
 1. Open a command prompt or terminal
-1. Enter the *build* directory
+1. Create a *build* directory `mkdir build` and enter it `cd build`
 1. Run the command `cmake ..`
 1. The *build* directory will now contain a *makefile* or a *Visual Studio* solution
 
