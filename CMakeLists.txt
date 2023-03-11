@@ -6,7 +6,7 @@ project (libvoyaplayer)
 # Voya Player library depends on the following third-party libraries:
 # - sdl2, sdl2_ttf, ffmpeg, libaom, zlib
 
-set(EXT_LIB_DIR "")
+set(EXT_LIB_DIR "${EXT_LIB_DIR}")
 set(INC_DIR     "${EXT_LIB_DIR}/include")
 set(LIB_DIR     "${EXT_LIB_DIR}/lib")
 set(CPP_VERSION "20")
@@ -17,7 +17,7 @@ elseif (UNIX)
     set(OS "_linux")
 elseif (WIN32)
     set(OS         "_windows")
-    set(DIRENT_DIR "")
+    set(DIRENT_DIR "${DIRENT_DIR}")
     set(RC         "windows/libvoyaplayer.rc")
 
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT testvoyaplayer)
