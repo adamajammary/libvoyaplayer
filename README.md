@@ -34,4 +34,10 @@ Library | Version | License
 1. Run the command `cmake .. -D EXT_LIB_DIR="/path/to/libs" -D DIRENT_DIR="/path/to/dirent"`
 1. The *build* directory will now contain a *makefile* or a *Visual Studio* solution
 
-> The *test* project currently only has UI components for Windows using [Win32 Controls](https://learn.microsoft.com/en-us/windows/win32/controls/individual-control-info)
+### Test project
+
+> The *test* project currently only has UI components for Windows using [Win32 Controls](https://learn.microsoft.com/en-us/windows/win32/controls/individual-control-info).
+
+### LVP_Initialize
+
+> You must call *LVP_Initialize* with your callback handlers before using other *LVP_\** methods, see the *test* project for examples.
