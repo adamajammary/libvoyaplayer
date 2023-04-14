@@ -16,11 +16,12 @@ private:
 private:
     static SDL_Texture* texture;
     static SDL_Surface* videoFrame;
+    static bool         videoIsAvailable;
     static std::mutex   videoLock;
+    static bool         useHardwareRenderer;
 
 public:
-    static void Init();
-    static bool IsActive();
+    static void Init(SDL_Renderer* renderer = nullptr, const void* data = nullptr);
     static void Quit();
     static void Render(SDL_Renderer* renderer, const SDL_Rect &destination);
     static void SeekBack();
@@ -34,7 +35,7 @@ public:
 private:
     static void freeResources();
     static void handleError(const std::string &errorMessage, const void* data);
-    static void handleEvent(LVP_EventType eventType, const void* data);
+    static void handleEvent(LVP_EventType type, const void* data);
     static void handleVideoIsAvailable(SDL_Surface* videoFrame, const void* data);
 
 };

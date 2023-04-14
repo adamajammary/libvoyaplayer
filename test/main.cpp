@@ -42,16 +42,6 @@ void handleSetAudioDevice(unsigned short id, Menu menu, MenuItem firstItem)
         TestWindow::ToggleMenuChecked(id, menu, firstItem);
 }
 
-void handleSetAudioDriver(unsigned short id, Menu menu, MenuItem firstItem)
-{
-    auto driver = TestWindow::GetMenuLabel(id, menu);
-
-    if (LVP_SetAudioDriver(driver))
-        TestWindow::ToggleMenuChecked(id, menu, firstItem);
-
-    TestWindow::ToggleMenuChecked(MENU_ITEM_AUDIO_DEVICE1, MENU_AUDIO_DEVICE, MENU_ITEM_AUDIO_DEVICE1);
-}
-
 void handleSetPlaybackSpeed(unsigned short id)
 {
     auto speedLabel = TestWindow::GetMenuLabel(id, MENU_PLAYBACK_SPEED);
@@ -91,7 +81,7 @@ void handleDropFileEvent(const SDL_Event &event)
 
 void handleKeyDownEvent(const SDL_KeyboardEvent &event)
 {
-    if (!TestPlayer::IsActive())
+    if (LVP_IsStopped())
         return;
 
     switch (event.keysym.sym) {
@@ -139,7 +129,7 @@ void handleKeyUpEvent(const SDL_KeyboardEvent &event)
         return;
     }
 
-    if (!TestPlayer::IsActive())
+    if (LVP_IsStopped())
         return;
 
     switch (event.keysym.sym) {
@@ -159,7 +149,7 @@ void handleKeyUpEvent(const SDL_KeyboardEvent &event)
 
 void handleMouseScrollEvent(const SDL_MouseWheelEvent &event)
 {
-    if (!TestPlayer::IsActive())
+    if (LVP_IsStopped())
         return;
 
     int scrollDirection = (event.direction == SDL_MOUSEWHEEL_FLIPPED ? event.y * -1 : event.y);
@@ -213,8 +203,6 @@ void handleSystemCommandEvent(SDL_SysWMmsg* msg)
             handleSetTrack(TestWindow::GetSubtitleTrack(id), id, MENU_SUBTITLE_TRACK, MENU_ITEM_SUBTITLE_TRACK1);
         else if (id >= MENU_ITEM_AUDIO_TRACK1)
             handleSetTrack(TestWindow::GetAudioTrack(id), id, MENU_AUDIO_TRACK, MENU_ITEM_AUDIO_TRACK1);
-        else if (id >= MENU_ITEM_AUDIO_DRIVER1)
-            handleSetAudioDriver(id, MENU_AUDIO_DRIVER, MENU_ITEM_AUDIO_DRIVER1);
         else if (id >= MENU_ITEM_AUDIO_DEVICE1)
             handleSetAudioDevice(id, MENU_AUDIO_DEVICE, MENU_ITEM_AUDIO_DEVICE1);
         else if (id >= MENU_ITEM_PLAYBACK_SPEED_050X)
@@ -303,6 +291,7 @@ void handleWindowEvent(const SDL_WindowEvent &event)
             break;
         case SDL_WINDOWEVENT_MOVED: case SDL_WINDOWEVENT_SIZE_CHANGED:
             TestWindow::Resize();
+            LVP_Resize();
             break;
 		default:
             break;
@@ -344,10 +333,9 @@ void handleEvents()
 
 void init() {
     TestWindow::Init(800, 600);
-    TestPlayer::Init();
+    TestPlayer::Init(TestWindow::GetRenderer());
 
     TestWindow::InitSubMenuItems(LVP_GetAudioDevices(), MENU_AUDIO_DEVICE, MENU_ITEM_AUDIO_DEVICE1, MENU_LABEL_AUDIO_DEVICE_DEFAULT);
-    TestWindow::InitSubMenuItems(LVP_GetAudioDrivers(), MENU_AUDIO_DRIVER, MENU_ITEM_AUDIO_DRIVER1, MENU_LABEL_AUDIO_DRIVER_DEFAULT);
 }
 
 void quit() {
@@ -357,20 +345,22 @@ void quit() {
 
 void render()
 {
-    auto     renderer = TestWindow::GetRenderer();
-    auto     window   = TestWindow::GetDimensions();
-    SDL_Rect player   = { 0, 0, window.w, window.h - PLAYER_CONTROLS_PANEL_HEIGHT };
+    bool     isPlayerActive = !LVP_IsStopped();
+    auto     renderer       = TestWindow::GetRenderer();
+    auto     window         = TestWindow::GetDimensions();
+    SDL_Rect player         = { 0, 0, window.w, window.h - PLAYER_CONTROLS_PANEL_HEIGHT };
 
     SDL_SetRenderTarget(renderer, nullptr);
 
-    if (TestPlayer::IsActive())
+    if (isPlayerActive)
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
     else
         SDL_SetRenderDrawColor(renderer, 32, 32, 32, 0xFF);
 
     SDL_RenderClear(renderer);
 
-    TestPlayer::Render(renderer, player);
+    if (isPlayerActive)
+        TestPlayer::Render(renderer, player);
 
     SDL_RenderPresent(renderer);
 }
@@ -392,15 +382,20 @@ int SDL_main(int argc, char* argv[])
         return 1;
     }
 
+    const int MS_PER_FRAME_FPS60 = (1000 / 60);
+    const int MS_PER_FRAME_IDLE  = 200;
+
     auto startTime = SDL_GetTicks();
 
     while (!QUIT)
     {
+        auto frameStart = SDL_GetTicks();
+
         handleEvents();
 
         auto deltaTime = (SDL_GetTicks() - startTime);
 
-        TestWindow::UpdateUI(LVP_GetState(), TestPlayer::IsActive(), deltaTime);
+        TestWindow::UpdateUI(deltaTime);
 
         if (deltaTime >= UI_UDPATE_RATE_MS)
             startTime = SDL_GetTicks();
@@ -410,7 +405,13 @@ int SDL_main(int argc, char* argv[])
 
         render();
 
-        SDL_Delay(15);
+        auto timeToRenderFrame = (SDL_GetTicks() - frameStart);
+        bool use60FPS          = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
+        auto timePerFrame      = (use60FPS ? MS_PER_FRAME_FPS60 : MS_PER_FRAME_IDLE);
+        auto sleepTime         = (int)(timePerFrame - (int)timeToRenderFrame);
+
+        if (sleepTime > 0)
+            SDL_Delay(sleepTime);
     }
 
     quit();

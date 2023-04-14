@@ -53,7 +53,7 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubFill(uint16
 		subFill->textureData = new Graphics::LVP_Texture(surface, renderer);
 		FREE_SURFACE(surface);
 
-		if (subFill->textureData->data == NULL) {
+		if (!IS_VALID_TEXTURE(subFill->textureData)) {
 			DELETE_POINTER(subFill);
 			return NULL;
 		}
@@ -103,7 +103,7 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubOutline(Gra
 
 	FREE_SURFACE(surface);
 
-	if (subOutline->textureData->data == NULL)
+	if (!IS_VALID_TEXTURE(subOutline->textureData))
 		return NULL;
 
 	// Scale texture in X/Y dimensions
@@ -157,7 +157,7 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 
 	FREE_SURFACE(surface);
 
-	if (subShadow->textureData->data == NULL)
+	if (!IS_VALID_TEXTURE(subShadow->textureData))
 		return NULL;
 
 	// Scale texture in X/Y dimensions

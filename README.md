@@ -41,3 +41,5 @@ Library | Version | License
 ### LVP_Initialize
 
 > You must call *LVP_Initialize* with your callback handlers before using other *LVP_\** methods, see the *test* project for examples.
+
+> To use hardware rendering set the *hardwareRenderer* parameter to an instance of *SDL_Renderer\**.

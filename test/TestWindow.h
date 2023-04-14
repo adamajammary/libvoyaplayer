@@ -21,7 +21,7 @@ extern "C" {
     #include <Commdlg.h> // GetOpenFileNameA(x)
 #endif
 
-#include <libvoyaplayer_events.h>
+#include <libvoyaplayer.h>
 
 const enum Bitmap
 {
@@ -61,7 +61,6 @@ const enum Menu
     MENU,
     MENU_AUDIO,
     MENU_AUDIO_DEVICE,
-    MENU_AUDIO_DRIVER,
     MENU_AUDIO_TRACK,
     MENU_FILE,
     MENU_PLAYBACK,
@@ -93,17 +92,14 @@ const enum MenuItem
     MENU_ITEM_PLAYBACK_SPEED_175X,
     MENU_ITEM_PLAYBACK_SPEED_200X,
     MENU_ITEM_AUDIO_DEVICE1 = 3000,
-    MENU_ITEM_AUDIO_DRIVER1 = 4000,
-    MENU_ITEM_AUDIO_TRACK1 = 5000,
-    MENU_ITEM_SUBTITLE_TRACK1 = 6000,
-    MENU_ITEM_PLAYBACK_CHAPTER1 = 7000
+    MENU_ITEM_AUDIO_TRACK1 = 4000,
+    MENU_ITEM_SUBTITLE_TRACK1 = 5000,
+    MENU_ITEM_PLAYBACK_CHAPTER1 = 6000
 };
 
 const char MENU_LABEL_AUDIO[] = "Audio";
 const char MENU_LABEL_AUDIO_DEVICE[] = "Audio Device";
 const char MENU_LABEL_AUDIO_DEVICE_DEFAULT[] = "Default";
-const char MENU_LABEL_AUDIO_DRIVER[] = "Audio Driver";
-const char MENU_LABEL_AUDIO_DRIVER_DEFAULT[] = "Automatic";
 const char MENU_LABEL_AUDIO_MUTE[] = "Mute\tM";
 const char MENU_LABEL_AUDIO_TRACK[] = "Audio Track";
 const char MENU_LABEL_AUDIO_UNMUTE[] = "Unmute\tM";
@@ -177,11 +173,11 @@ public:
     static LVP_MediaTrack   GetSubtitleTrack(unsigned short id);
     static unsigned short   GetSubtitleTrackId(int track);
     static LVP_MediaChapter GetChapter(unsigned short id);
+    static double           GetControlSliderClickPosition(Control control);
     static SDL_Rect         GetDimensions();
     static unsigned short   GetMenuIdPlaybackSpeed(double speed);
     static std::string      GetMenuLabel(unsigned short id, Menu menu);
     static SDL_Renderer*    GetRenderer();
-    static double           GetControlSliderClickPosition(Control control);
     static void             Init(int width, int height);
     static void             InitSubMenuAudioTracks(const std::vector<LVP_MediaTrack> &tracks);
     static void             InitSubMenuSubtitleTracks(const std::vector<LVP_MediaTrack> &tracks);
@@ -191,7 +187,7 @@ public:
     static void             Resize();
     static void             ShowAbout();
     static void             ToggleMenuChecked(unsigned short id, Menu menu, MenuItem firstItem);
-    static void             UpdateUI(const LVP_State &state, bool isActive, uint32_t deltaTime);
+    static void             UpdateUI(uint32_t deltaTime);
 
     #if defined _windows
         static ControlItem  GetControlId(HWND handle);

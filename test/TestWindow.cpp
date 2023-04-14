@@ -286,7 +286,6 @@ void TestWindow::initMenu(const SDL_SysWMinfo &sysInfo)
 
 	TestWindow::menus[MENU_AUDIO]            = CreatePopupMenu();
 	TestWindow::menus[MENU_AUDIO_DEVICE]     = CreatePopupMenu();
-	TestWindow::menus[MENU_AUDIO_DRIVER]     = CreatePopupMenu();
 	TestWindow::menus[MENU_AUDIO_TRACK]      = CreatePopupMenu();
 	TestWindow::menus[MENU_FILE]             = CreatePopupMenu();
 	TestWindow::menus[MENU_PLAYBACK]         = CreatePopupMenu();
@@ -332,9 +331,8 @@ void TestWindow::initMenu(const SDL_SysWMinfo &sysInfo)
 
 	// AUDIO
 
-	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_POPUP, (UINT_PTR)TestWindow::menus[MENU_AUDIO_TRACK],  MENU_LABEL_AUDIO_TRACK);
+	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_POPUP | MF_DISABLED, (UINT_PTR)TestWindow::menus[MENU_AUDIO_TRACK],  MENU_LABEL_AUDIO_TRACK);
 	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_POPUP, (UINT_PTR)TestWindow::menus[MENU_AUDIO_DEVICE], MENU_LABEL_AUDIO_DEVICE);
-	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_POPUP, (UINT_PTR)TestWindow::menus[MENU_AUDIO_DRIVER], MENU_LABEL_AUDIO_DRIVER);
 	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_SEPARATOR, NULL, NULL);
 	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_STRING | MF_DISABLED, MENU_ITEM_AUDIO_VOLUME_UP,   MENU_LABEL_AUDIO_VOLUME_UP);
 	AppendMenuA(TestWindow::menus[MENU_AUDIO], MF_STRING | MF_DISABLED, MENU_ITEM_AUDIO_VOLUME_DOWN, MENU_LABEL_AUDIO_VOLUME_DOWN);
@@ -342,7 +340,7 @@ void TestWindow::initMenu(const SDL_SysWMinfo &sysInfo)
 
 	// SUBTITLE
 
-	AppendMenuA(TestWindow::menus[MENU_SUBTITLE], MF_POPUP, (UINT_PTR)TestWindow::menus[MENU_SUBTITLE_TRACK], MENU_LABEL_SUBTITLE_TRACK);
+	AppendMenuA(TestWindow::menus[MENU_SUBTITLE], MF_POPUP | MF_DISABLED, (UINT_PTR)TestWindow::menus[MENU_SUBTITLE_TRACK], MENU_LABEL_SUBTITLE_TRACK);
 
 	// HELP
 
@@ -575,7 +573,7 @@ void TestWindow::Resize()
 void TestWindow::ShowAbout()
 {
 	#if defined _windows
-		MessageBoxA(nullptr, TestWindow::about.c_str(), TestWindow::title.c_str(), MB_OK);
+		MessageBoxA(nullptr, TestWindow::about.c_str(), "About", MB_OK);
 	#endif
 }
 
@@ -720,29 +718,33 @@ void TestWindow::updateToggleMenuItem(Menu menu, MenuItem item, const std::strin
 	#endif
 }
 
-void TestWindow::UpdateUI(const LVP_State &state, bool isActive, uint32_t deltaTime)
+void TestWindow::UpdateUI(uint32_t deltaTime)
 {
-	bool isEnabled = (isActive && !state.filePath.empty());
+	auto duration       = LVP_GetDuration();
+	auto isMuted        = LVP_IsMuted();
+	auto isPaused       = LVP_IsPaused();
+	bool isPlayerActive = !LVP_IsStopped();
+	auto progress       = LVP_GetProgress();
 
-	if (isEnabled)
-		TestWindow::updateControlsSlider(CONTROL_SEEK, (state.progress * 100 / state.duration));
+	if (isPlayerActive)
+		TestWindow::updateControlsSlider(CONTROL_SEEK, (progress * 100 / duration));
 
-	TestWindow::updateControlsSlider(CONTROL_VOLUME, (int64_t)(state.volume * 100));
+	TestWindow::updateControlsSlider(CONTROL_VOLUME, (int64_t)(LVP_GetVolume() * 100));
 
-	TestWindow::updateControlsText(CONTROL_SPEED, std::format("[{:.2f}x]", state.playbackSpeed));
+	TestWindow::updateControlsText(CONTROL_SPEED, std::format("[{:.2f}x]", LVP_GetPlaybackSpeed()));
 
-	TestWindow::toggleControlsEnabled(isEnabled);
-	TestWindow::toggleBitmapsEnabled(isEnabled, state.isPaused, state.isMuted);
-	TestWindow::toggleMenuEnabled(isEnabled, state.isPaused, state.isMuted);
+	TestWindow::toggleControlsEnabled(isPlayerActive);
+	TestWindow::toggleBitmapsEnabled(isPlayerActive, isPaused, isMuted);
+	TestWindow::toggleMenuEnabled(isPlayerActive, isPaused, isMuted);
 
 	if (deltaTime < UI_UDPATE_RATE_MS)
 		return;
 
-	if (isEnabled)
-		TestWindow::updateChapters(state.progress);
+	if (isPlayerActive)
+		TestWindow::updateChapters(progress);
 	else
 		TestWindow::updateControlsSlider(CONTROL_SEEK, 0);
 
-	TestWindow::updateProgress(isEnabled, state.progress, state.duration);
-	TestWindow::updateTitle(isEnabled, state.filePath);
+	TestWindow::updateProgress(isPlayerActive, progress, duration);
+	TestWindow::updateTitle(isPlayerActive, LVP_GetFilePath());
 }

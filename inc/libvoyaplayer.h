@@ -13,23 +13,14 @@
 
 /**
  * @brief Tries to initialize the library and other dependencies.
- * @param videoCB  Called every time a new video frame is available.
- * @param errorCB  Called every time an error occurs.
- * @param eventsCB Called every time an event of type LVP_EventType occurs.
- * @param data     Custom data context, will be available in all callbacks.
  * @throws exception
  */
-DLLEXPORT void DLL LVP_Initialize(LVP_VideoCallback videoCB, LVP_ErrorCallback errorCB, LVP_EventsCallback eventsCB, const void* data = nullptr);
+DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext &callbackContext);
 
 /**
  * @returns a list of available audio devices.
  */
 DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
-
-/**
- * @returns a list of available audio drivers.
- */
-DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDrivers();
 
 /**
  * @returns a list of chapters in the currently loaded media.
@@ -68,6 +59,12 @@ DLLEXPORT std::string DLL LVP_GetFilePath();
 DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta();
 
 /**
+ * @returns the media type for the currently loaded media.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaType DLL LVP_GetMediaType();
+
+/**
  * @returns the current playback speed as a percent between 0.5 and 2.0.
  * @throws exception
  */
@@ -78,12 +75,6 @@ DLLEXPORT double DLL LVP_GetPlaybackSpeed();
  * @throws exception
 */
 DLLEXPORT int64_t DLL LVP_GetProgress();
-
-/**
- * @returns the current state of the player.
- * @throws exception
- */
-DLLEXPORT LVP_State DLL LVP_GetState();
 
 /**
  * @returns the current subtitle track index number.
@@ -122,6 +113,18 @@ DLLEXPORT bool DLL LVP_IsMuted();
 DLLEXPORT bool DLL LVP_IsPaused();
 
 /**
+ * @returns true if playback is playing (not paused and not stopped).
+ * @throws exception
+ */
+DLLEXPORT bool DLL LVP_IsPlaying();
+
+/**
+ * @returns true if playback is stopped.
+ * @throws exception
+ */
+DLLEXPORT bool DLL LVP_IsStopped();
+
+/**
  * @brief Tries to open and play the given media file.
  * @param filePath Full path to the media file.
  * @throws exception
@@ -142,6 +145,19 @@ DLLEXPORT void DLL LVP_Open(const std::wstring &filePath);
 DLLEXPORT void DLL LVP_Quit();
 
 /**
+ * @brief Generates and renders a video frame.
+ *        If hardware rendering is used, it will copy the texture to the renderer.
+ *        If software rendering is used, it will generate a LVP_VideoCallback with a SDL_Surface.
+ * @param destination Optional clipping/scaling region used by the hardware renderer.
+ */
+DLLEXPORT void DLL LVP_Render(const SDL_Rect* destination = nullptr);
+
+/**
+ * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
+ */
+DLLEXPORT void DLL LVP_Resize();
+
+/**
  * @brief Seeks to the given position as a percent between 0 and 1.
  * @param percent [0.0-1.0]
  * @throws exception
@@ -154,13 +170,6 @@ DLLEXPORT void DLL LVP_SeekTo(double percent);
  * @returns true if the audio device is successfully set.
  */
 DLLEXPORT bool DLL LVP_SetAudioDevice(const std::string &device);
-
-/**
- * @brief Tries to set the given audio driver as the current output if valid.
- * @param device Name of the audio driver.
- * @returns true if the audio driver is successfully set.
- */
-DLLEXPORT bool DLL LVP_SetAudioDriver(const std::string &driver);
 
 /**
  * @brief Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.

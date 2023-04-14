@@ -62,7 +62,7 @@ namespace LibVoyaPlayer
 			bool                isAlignedMiddle();
 			bool                isAlignedRight();
 			bool                isAlignedTop();
-			bool                isExpired(double progress);
+			bool                isExpired(double presentTime, double progress);
 
 		private:
 			LVP_SubAlignment getAlignment();
