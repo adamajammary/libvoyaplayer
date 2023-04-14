@@ -143,10 +143,10 @@ bool MediaPlayer::LVP_Subtitle::isAlignedTop()
 	return ((a == SUB_ALIGN_TOP_LEFT) || (a == SUB_ALIGN_TOP_RIGHT) || (a == SUB_ALIGN_TOP_CENTER));
 }
 
-bool MediaPlayer::LVP_Subtitle::isExpired(double progress)
+bool MediaPlayer::LVP_Subtitle::isExpired(double presentTime, double progress)
 {
-	auto start = (this->pts.start - DELAY_TIME_ONE_MS);
-	auto end   = (this->pts.end   - DELAY_TIME_SUB_RENDER);
+	bool hasEnded = (presentTime >= (this->pts.end - 0.01));
+	bool isSeeked = (fabs(this->pts.start - progress) > MAX_SUB_DURATION);
 
-	return ((progress > end) || (progress < start));
+	return (hasEnded || isSeeked);
 }

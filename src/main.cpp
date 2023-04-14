@@ -2,16 +2,10 @@
 
 #include "LVP_Global.h"
 
+const char ERROR_NO_INIT[] = "libvoyaplayer has not been initialized.";
+
 bool isInitialized = false;
 
-void callbackNoInit()
-{
-	MediaPlayer::LVP_Player::CallbackError("libvoyaplayer has not been initialized.");
-}
-
-/**
- * @throws exception
- */
 void initLibraries()
 {
 	#if defined _android
@@ -51,23 +45,25 @@ void initLibraries()
 	}
 }
 
-void LVP_Initialize(LVP_VideoCallback videoCB, LVP_ErrorCallback errorCB, LVP_EventsCallback eventsCB, const void* data)
+void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 {
-	try {
-		initLibraries();
+	try
+	{
+		if (isInitialized)
+			LVP_Quit();
 
-		LVP_CallbackContext callbackContext = {
-			.data     = data,
-			.errorCB  = errorCB,
-			.eventsCB = eventsCB,
-			.videoCB  = videoCB
-		};
+		initLibraries();
 
 		MediaPlayer::LVP_Player::Init(callbackContext);
 
 		isInitialized = true;
-	} catch (const std::exception &e) {
-		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to initialize libvoyaplayer:\n- {}", e.what()));
+	}
+	catch (const std::exception &e)
+	{
+		if (callbackContext.errorCB != nullptr)
+			callbackContext.errorCB(std::format("Failed to initialize libvoyaplayer:\n- {}", e.what()), callbackContext.data);
+		else
+			throw e;
 	}
 }
 
@@ -76,167 +72,146 @@ Strings LVP_GetAudioDevices()
 	return MediaPlayer::LVP_Player::GetAudioDevices();
 }
 
-Strings LVP_GetAudioDrivers()
-{
-	return MediaPlayer::LVP_Player::GetAudioDrivers();
-}
-
 int LVP_GetAudioTrack()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return -1;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetAudioTrack();
 }
 
 std::vector<LVP_MediaTrack> LVP_GetAudioTracks()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return {};
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetAudioTracks();
 }
 
 std::vector<LVP_MediaChapter> LVP_GetChapters()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return {};
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetChapters();
 }
 
 int64_t LVP_GetDuration()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return 0;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetDuration();
 }
 
 std::string LVP_GetFilePath()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return "";
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetFilePath();
 }
 
 LVP_MediaMeta LVP_GetMediaMeta()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return {};
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetMediaMeta();
 }
 
+LVP_MediaType LVP_GetMediaType()
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetMediaType();
+}
+
 double LVP_GetPlaybackSpeed()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return 0.0;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetPlaybackSpeed();
 }
 
 int64_t LVP_GetProgress()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return 0;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetProgress();
 }
 
-LVP_State LVP_GetState()
-{
-	if (!isInitialized) {
-		callbackNoInit();
-		return {};
-	}
-
-	return MediaPlayer::LVP_Player::GetState();
-}
-
 int LVP_GetSubtitleTrack()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return -1;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetSubtitleTrack();
 }
 
 std::vector<LVP_MediaTrack> LVP_GetSubtitleTracks()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return {};
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetSubtitleTracks();
 }
 
 std::vector<LVP_MediaTrack> LVP_GetVideoTracks()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return {};
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetVideoTracks();
 }
 
 double LVP_GetVolume()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return 0.0;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::GetVolume();
 }
 
 bool LVP_IsMuted()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return false;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::IsMuted();
 }
 
 bool LVP_IsPaused()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return false;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	return MediaPlayer::LVP_Player::IsPaused();
 }
 
+bool LVP_IsPlaying()
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::IsPlaying();
+}
+
+bool LVP_IsStopped()
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::IsStopped();
+}
+
 void LVP_Open(const std::string &filePath)
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	try {
 		MediaPlayer::LVP_Player::Open(filePath);
@@ -247,10 +222,8 @@ void LVP_Open(const std::string &filePath)
 
 void LVP_Open(const std::wstring &filePath)
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	try {
 		auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
@@ -265,10 +238,8 @@ void LVP_Open(const std::wstring &filePath)
 
 void LVP_Quit()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::Close();
 
@@ -280,12 +251,26 @@ void LVP_Quit()
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
+void LVP_Render(const SDL_Rect* destination)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Render(destination);
+}
+
+void LVP_Resize()
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Resize();
+}
+
 void LVP_SeekTo(double percent)
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::SeekTo(percent);
 }
@@ -295,71 +280,50 @@ bool LVP_SetAudioDevice(const std::string &device)
 	return MediaPlayer::LVP_Player::SetAudioDevice(device);
 }
 
-bool LVP_SetAudioDriver(const std::string &driver)
-{
-	return MediaPlayer::LVP_Player::SetAudioDriver(driver);
-}
-
 void LVP_SetVolume(double percent)
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::SetVolume(percent);
 }
 
 void LVP_SetPlaybackSpeed(double speed)
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::SetPlaybackSpeed(speed);
 }
 
 void LVP_SetTrack(const LVP_MediaTrack &track)
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
-	try {
-		MediaPlayer::LVP_Player::SetTrack(track);
-	} catch (const std::exception &e) {
-		MediaPlayer::LVP_Player::CallbackError(e.what());
-	}
+	MediaPlayer::LVP_Player::SetTrack(track);
 }
 
 void LVP_Stop()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::Close();
 }
 
 void LVP_ToggleMute()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::ToggleMute();
 }
 
 void LVP_TogglePause()
 {
-	if (!isInitialized) {
-		callbackNoInit();
-		return;
-	}
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::TogglePause();
 }

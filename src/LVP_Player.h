@@ -68,6 +68,7 @@ namespace LibVoyaPlayer
 			LibFFmpeg::SwsContext* scaleContextSub;
 			LibFFmpeg::SwsContext* scaleContextVideo;
 			SDL_Surface*           surface;
+			SDL_Texture*           texture;
 
 			void reset()
 			{
@@ -75,6 +76,7 @@ namespace LibVoyaPlayer
 				this->scaleContextSub   = NULL;
 				this->scaleContextVideo = NULL;
 				this->surface           = NULL;
+				this->texture           = NULL;
 			}
 		};
 
@@ -98,7 +100,6 @@ namespace LibVoyaPlayer
 			static int64_t                     seekPosition;
 			static LVP_PlayerState             state;
 			static LVP_SubtitleContext         subContext;
-			static bool                        subIsUpdated;
 			static System::LVP_TimeOut*        timeOut;
 			static LVP_VideoContext            videoContext;
 
@@ -106,16 +107,15 @@ namespace LibVoyaPlayer
 			static void                          CallbackError(const std::string &errorMessage);
 			static void                          Close();
 			static Strings                       GetAudioDevices();
-			static Strings                       GetAudioDrivers();
 			static int                           GetAudioTrack();
 			static std::vector<LVP_MediaTrack>   GetAudioTracks();
 			static std::vector<LVP_MediaChapter> GetChapters();
 			static std::string                   GetFilePath();
 			static int64_t                       GetDuration();
 			static LVP_MediaMeta                 GetMediaMeta();
+			static LVP_MediaType                 GetMediaType();
 			static double                        GetPlaybackSpeed();
 			static int64_t                       GetProgress();
-			static LVP_State                     GetState();
 			static int                           GetSubtitleTrack();
 			static std::vector<LVP_MediaTrack>   GetSubtitleTracks();
 			static std::vector<LVP_MediaTrack>   GetVideoTracks();
@@ -123,10 +123,13 @@ namespace LibVoyaPlayer
 			static void                          Init(const LVP_CallbackContext &callbackContext);
 			static bool                          IsMuted();
 			static bool                          IsPaused();
+			static bool                          IsPlaying();
+			static bool                          IsStopped();
 			static void                          Open(const std::string &filePath);
+			static void                          Render(const SDL_Rect* destination = NULL);
+			static void                          Resize();
 			static void                          SeekTo(double percent);
 			static bool                          SetAudioDevice(const std::string &device = "");
-			static bool                          SetAudioDriver(const std::string &driver);
 			static void                          SetPlaybackSpeed(double speed);
 			static void                          SetTrack(const LVP_MediaTrack &track);
 			static void                          SetVolume(double percent);
@@ -136,6 +139,8 @@ namespace LibVoyaPlayer
 		private:
 			static void                        callbackEvents(LVP_EventType type);
 			static void                        callbackVideoIsAvailable(SDL_Surface* surface);
+			static void                        clearSubTexture(SDL_Texture* texture);
+			static void                        clearSubs();
 			static void                        closeAudio();
 			static void                        closePackets();
 			static void                        closeStream(LibFFmpeg::AVMediaType streamType);
@@ -147,10 +152,12 @@ namespace LibVoyaPlayer
 			static LVP_FontFaceMap             getFontFaces(LibFFmpeg::AVFormatContext* formatContext);
 			static std::vector<LVP_MediaTrack> getMediaTracks(LibFFmpeg::AVMediaType mediaType);
 			static std::vector<LVP_MediaTrack> getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, bool isSubsExternal = false);
+			static SDL_Rect*                   getScaledVideoDestination(const SDL_Rect* destination);
 			static SDL_YUV_CONVERSION_MODE     getSdlYuvConversionMode(LibFFmpeg::AVFrame* frame);
 			static uint32_t                    getVideoPixelFormat(LibFFmpeg::AVPixelFormat pixelFormat);
 			static LibFFmpeg::AVPixelFormat    getVideoPixelFormat(uint32_t pixelFormat);
 			static void                        handleSeek();
+			static void                        initSubTextures();
 			static bool                        isPacketQueueFull();
 			static bool                        isPacketQueueFull(LibFFmpeg::AVMediaType streamType);
 			static bool                        isYUV(LibFFmpeg::AVPixelFormat pixelFormat);
@@ -168,11 +175,14 @@ namespace LibVoyaPlayer
 			static void                        packetsClear(LVP_MediaContext &mediaContext);
 			static void                        pause();
 			static void                        play();
+			static void                        present();
+			static void                        presentSoftwareRenderer();
+			static void                        removeExpiredSubs();
+			static void                        renderHardwareRenderer(const SDL_Rect* destination);
 			static void                        renderSubs();
 			static void                        renderSubsBitmap();
 			static void                        renderSubsText();
 			static void                        renderVideo();
-			static void                        renderVideoAndSubs();
 			static void                        reset();
 			static void                        seekToPosition(int64_t position);
 			static void                        stop(const std::string &errorMessage = "");

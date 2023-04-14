@@ -86,7 +86,6 @@ namespace LibVoyaPlayer
 
 	#define FREE_AVFORMAT(f) if (f != NULL) { LibFFmpeg::avformat_close_input(&f); LibFFmpeg::avformat_free_context(f); f = NULL; }
 	#define FREE_POINTER(p)  if (p != NULL) { free(p); p = NULL; }
-	#define FREE_RENDERER(r) if (r != NULL) { SDL_DestroyRenderer(r); r = NULL; }
 
 	#define LVP_COLOR_BLACK Graphics::LVP_Color(0, 0, 0, 0xFF)
     #define LVP_COLOR_WHITE Graphics::LVP_Color(0xFF, 0xFF, 0xFF, 0xFF)
@@ -146,6 +145,7 @@ namespace LibVoyaPlayer
 		#define FREE_AVPOINTER(p)      if (p != NULL) { LibFFmpeg::av_free(p); p = NULL; }
 		#define FREE_AVPACKET(p)       if (p != NULL) { LibFFmpeg::av_packet_free(&p); LibFFmpeg::av_free(p); p = NULL; }
 		#define FREE_AVSTREAM(s)       if (s != NULL) { s->discard = LibFFmpeg::AVDISCARD_ALL; s = NULL; }
+		#define FREE_RENDERER(r)       if (r != NULL) { SDL_DestroyRenderer(r); r = NULL; }
 		#define FREE_SWR(s)            if (s != NULL) { LibFFmpeg::swr_free(&s); s = NULL; }
 		#define FREE_SWS(s)            if (s != NULL) { LibFFmpeg::sws_freeContext(s); s = NULL; }
 		#define FREE_SUB_FRAME(f)      if (f.num_rects > 0) { LibFFmpeg::avsubtitle_free(&f); f = { 0, 0, 0, 0 }; }
@@ -155,11 +155,12 @@ namespace LibVoyaPlayer
 		#define FREE_THREAD_COND(c)    if (c != NULL) { SDL_DestroyCond(c);c = NULL; }
 		#define FREE_THREAD_MUTEX(m)   if (m != NULL) { SDL_DestroyMutex(m); m = NULL; }
 
-		#define IS_ATTACHMENT(t) (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
-		#define IS_AUDIO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
-		#define IS_SUB(t)        (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
-		#define IS_SUB_TEXT(t)   ((t == LibFFmpeg::SUBTITLE_ASS) || (t == LibFFmpeg::SUBTITLE_TEXT))
-		#define IS_VIDEO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
+		#define IS_ATTACHMENT(t)    (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
+		#define IS_AUDIO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
+		#define IS_SUB(t)           (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
+		#define IS_SUB_TEXT(t)      ((t == LibFFmpeg::SUBTITLE_ASS) || (t == LibFFmpeg::SUBTITLE_TEXT))
+		#define IS_VALID_TEXTURE(t) ((t != NULL) && (t->data != NULL))
+		#define IS_VIDEO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
 
 		#if defined _windows
 			#define FONT_NAME(f, s) std::format(L"{}_{}", f, s)
@@ -179,7 +180,6 @@ namespace LibVoyaPlayer
 		const int    DELAY_TIME_BACKGROUND = 200;
 		const int    DELAY_TIME_DEFAULT    = 15;
 		const int    DELAY_TIME_ONE_MS     = 1;
-		const double DELAY_TIME_SUB_RENDER = 0.1;
 		
 		const double FONT_DPI_SCALE = (76.0 / 96.0);
 
@@ -189,9 +189,10 @@ namespace LibVoyaPlayer
 			const char FONT_ARIAL[] = "Arial";
 		#endif
 
-		const int    MAX_ERRORS       = 100;
-		const int    MAX_FONT_SIZE    = 200;
-		const double MAX_SUB_DURATION = 20.0; // 20 seconds
+		const int    MAX_ERRORS          = 100;
+		const int    MAX_FONT_SIZE       = 200;
+		const double MAX_SUB_DURATION    = 20.0;
+		const int    MAX_SUB_DURATION_MS = 20000;
 
 		const float MIN_FLOAT_ZERO        = 0.01f;
 		const int   MIN_PACKET_QUEUE_SIZE = 25;
@@ -303,7 +304,7 @@ namespace LibVoyaPlayer
 				this->bufferSize        = AUDIO_BUFFER_SIZE;
 				this->decodeFrame       = true;
 				this->device            = "";
-				this->deviceID          = -1;
+				this->deviceID          = 0;
 				this->deviceSpecs       = {};
 				this->deviceSpecsWanted = {};
 				this->filter            = {};
@@ -324,6 +325,9 @@ namespace LibVoyaPlayer
 			Strings                     external;
 			LVP_FontFaceMap             fontFaces;
 			LibFFmpeg::AVFormatContext* formatContext;
+			bool                        isReadyForRender;
+			bool                        isReadyForPresent;
+			double                      presentTime;
 			SDL_FPoint                  scale;
 			SDL_Point                   size;
 			std::vector<LVP_SubStyle*>  styles;
@@ -331,7 +335,8 @@ namespace LibVoyaPlayer
 			LVP_Subtitles               subs;
 			SDL_cond*                   subsCondition;
 			SDL_mutex*                  subsMutex;
-			Graphics::LVP_Texture*      texture;
+			Graphics::LVP_Texture*      textureCurrent;
+			Graphics::LVP_Texture*      textureNext;
 			SDL_Thread*                 thread;
 			LibFFmpeg::AVSubtitleType   type;
 			SDL_Rect                    videoDimensions;
@@ -343,16 +348,20 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
-				this->available       = true;
-				this->formatContext   = NULL;
-				this->scale           = { 1.0f, 1.0f };
-				this->size            = {};
-				this->subsCondition   = NULL;
-				this->subsMutex       = NULL;
-				this->texture         = NULL;
-				this->thread          = NULL;
-				this->type            = LibFFmpeg::SUBTITLE_NONE;
-				this->videoDimensions = {};
+				this->available         = true;
+				this->formatContext     = NULL;
+				this->isReadyForRender  = false;
+				this->isReadyForPresent = false;
+				this->presentTime       = 0.0;
+				this->scale             = { 1.0f, 1.0f };
+				this->size              = {};
+				this->subsCondition     = NULL;
+				this->subsMutex         = NULL;
+				this->textureCurrent    = NULL;
+				this->textureNext       = NULL;
+				this->thread            = NULL;
+				this->type              = LibFFmpeg::SUBTITLE_NONE;
+				this->videoDimensions   = {};
 
 				this->external.clear();
 			}
@@ -362,6 +371,9 @@ namespace LibVoyaPlayer
 		{
 			LibFFmpeg::AVFrame*    frame;
 			LibFFmpeg::AVFrame*    frameEncoded;
+			double                 frameRate;
+			bool                   isReadyForRender;
+			bool                   isReadyForPresent;
 			double                 pts;
 			Graphics::LVP_Texture* texture;
 			SDL_Thread*            thread;
@@ -373,11 +385,14 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
-				this->frame         = NULL;
-				this->frameEncoded  = NULL;
-				this->pts           = 0.0;
-				this->texture       = NULL;
-				this->thread        = NULL;
+				this->frame             = NULL;
+				this->frameEncoded      = NULL;
+				this->frameRate         = 0.0;
+				this->isReadyForRender  = false;
+				this->isReadyForPresent = false;
+				this->pts               = 0.0;
+				this->texture           = NULL;
+				this->thread            = NULL;
 			}
 		};
 

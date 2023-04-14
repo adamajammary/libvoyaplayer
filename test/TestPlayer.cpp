@@ -1,8 +1,10 @@
 #include "TestPlayer.h"
 
-SDL_Texture* TestPlayer::texture    = nullptr;
+SDL_Texture* TestPlayer::texture = nullptr;
 SDL_Surface* TestPlayer::videoFrame = nullptr;
+bool         TestPlayer::videoIsAvailable = false;
 std::mutex   TestPlayer::videoLock;
+bool         TestPlayer::useHardwareRenderer = true;
 
 void TestPlayer::freeResources()
 {
@@ -36,6 +38,9 @@ void TestPlayer::handleEvent(LVP_EventType type, const void* data)
 		break;
 	case LVP_EVENT_AUDIO_UNMUTED:
 		printf("LVP_EVENT_AUDIO_UNMUTED\n");
+		break;
+	case LVP_EVENT_AUDIO_VOLUME_CHANGED:
+		printf("LVP_EVENT_AUDIO_VOLUME_CHANGED\n");
 		break;
 	case LVP_EVENT_MEDIA_COMPLETED:
 		printf("LVP_EVENT_MEDIA_COMPLETED\n");
@@ -76,24 +81,31 @@ void TestPlayer::handleEvent(LVP_EventType type, const void* data)
 
 void TestPlayer::handleVideoIsAvailable(SDL_Surface* videoFrame, const void* data)
 {
+	if (TestPlayer::useHardwareRenderer)
+		return;
+
 	TestPlayer::videoLock.lock();
 
 	if (TestPlayer::videoFrame)
 		SDL_FreeSurface(TestPlayer::videoFrame);
 
 	TestPlayer::videoFrame = videoFrame;
+	TestPlayer::videoIsAvailable = true;
 
 	TestPlayer::videoLock.unlock();
 }
 
-void TestPlayer::Init()
+void TestPlayer::Init(SDL_Renderer* renderer, const void* data)
 {
-	LVP_Initialize(handleVideoIsAvailable, handleError, handleEvent);
-}
+	LVP_CallbackContext callbackContext = {
+		.errorCB = handleError,
+		.eventsCB = handleEvent,
+		.videoCB = handleVideoIsAvailable,
+		.data = data,
+		.hardwareRenderer = (TestPlayer::useHardwareRenderer ? renderer : nullptr)
+	};
 
-bool TestPlayer::IsActive()
-{
-	return (TestPlayer::videoFrame && TestPlayer::texture);
+	LVP_Initialize(callbackContext);
 }
 
 void TestPlayer::Quit()
@@ -105,6 +117,15 @@ void TestPlayer::Quit()
 
 void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect &destination)
 {
+	// HARDWARE RENDERER
+	if (TestPlayer::useHardwareRenderer) {
+		LVP_Render(&destination);
+		return;
+	}
+
+	// SOFTWARE RENDERER
+	LVP_Render();
+
 	if (!renderer || !TestPlayer::videoFrame)
 		return;
 
@@ -124,7 +145,10 @@ void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect &destination)
 			fprintf(stderr, "%s\n", SDL_GetError());
 	}
 
-	if (TestPlayer::texture && TestPlayer::videoFrame) {
+	if (TestPlayer::videoIsAvailable && TestPlayer::texture && TestPlayer::videoFrame)
+	{
+		TestPlayer::videoIsAvailable = false;
+
 		if (SDL_UpdateTexture(TestPlayer::texture, nullptr, TestPlayer::videoFrame->pixels, TestPlayer::videoFrame->pitch) < 0)
 			fprintf(stderr, "%s\n", SDL_GetError());
 	}

@@ -35,17 +35,18 @@ file(GLOB SOURCES_CPP "src/*.cpp")
 file(GLOB TEST_H      "test/*.h")
 file(GLOB TEST_CPP    "test/*.cpp")
 
-add_compile_definitions(${OS} "MAKEDLL")
-
-include_directories("inc" ${INC_DIR} ${DIRENT_DIR})
-link_directories(${LIB_DIR})
-
 add_library(libvoyaplayer SHARED ${SOURCES_CPP} ${SOURCES_H} ${INC_H} ${RC})
-target_link_libraries(libvoyaplayer ${LIBS})
+target_compile_definitions(libvoyaplayer PRIVATE ${OS} _CRT_SECURE_NO_WARNINGS MAKEDLL)
+target_include_directories(libvoyaplayer PRIVATE "inc" ${INC_DIR} ${DIRENT_DIR})
+target_link_directories(libvoyaplayer PRIVATE ${LIB_DIR})
+target_link_libraries(libvoyaplayer PRIVATE ${LIBS})
 set_property(TARGET libvoyaplayer PROPERTY CXX_STANDARD ${CPP_VERSION})
 
 add_executable(testvoyaplayer ${TEST_CPP} ${TEST_H} ${INC_H})
-target_link_libraries(testvoyaplayer libvoyaplayer SDL2.lib)
+target_compile_definitions(testvoyaplayer PRIVATE ${OS})
+target_include_directories(testvoyaplayer PRIVATE "inc" ${INC_DIR})
+target_link_directories(testvoyaplayer PRIVATE ${LIB_DIR})
+target_link_libraries(testvoyaplayer PRIVATE libvoyaplayer SDL2.lib)
 set_property(TARGET testvoyaplayer PROPERTY CXX_STANDARD ${CPP_VERSION})
 
 set(BUILD_DIR "${CMAKE_BINARY_DIR}")
