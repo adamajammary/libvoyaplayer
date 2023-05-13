@@ -721,7 +721,7 @@ void MediaPlayer::LVP_Player::Open(const std::string &filePath)
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
-	if (!System::LVP_FileSystem::IsMediaFile(filePath))
+	if (System::LVP_FileSystem::IsSystemFile(filePath))
 		throw std::exception(std::format("Invalid media file: {}", filePath).c_str());
 
 	if (!LVP_Player::state.isStopped)
@@ -1457,7 +1457,7 @@ void MediaPlayer::LVP_Player::renderSubsText()
 	LVP_Player::clearSubTexture(LVP_Player::subContext.textureNext->data);
 
 	if (!LVP_Player::subContext.subs.empty())
-		LVP_SubTextRenderer::Render(LVP_Player::renderContext.renderer, LVP_Player::subContext, LVP_Player::state.progress);
+		LVP_SubTextRenderer::Render(LVP_Player::renderContext.renderer, LVP_Player::subContext);
 	else
 		LVP_Player::subContext.isReadyForPresent = true;
 
