@@ -457,6 +457,16 @@ LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 	return (LVP_MediaType)LVP_Player::state.mediaType;
 }
 
+LVP_MediaType MediaPlayer::LVP_Player::GetMediaType(const std::string &filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto mediaType     = LVP_Media::GetMediaType(formatContext);
+
+	FREE_AVFORMAT(formatContext);
+
+	return (LVP_MediaType)mediaType;
+}
+
 double MediaPlayer::LVP_Player::GetPlaybackSpeed()
 {
 	return LVP_Player::state.playbackSpeed;
@@ -589,13 +599,11 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 		LVP_Player::closePackets();
 
-		AVCODEC_FLUSH(LVP_Player::subContext.codec);
-
 		LVP_Player::audioContext.bufferOffset    = 0;
 		LVP_Player::audioContext.bufferRemaining = 0;
 		LVP_Player::audioContext.writtenToStream = 0;
 		LVP_Player::audioContext.decodeFrame     = true;
-		LVP_Player::audioContext.lastPogress     = 0;
+		LVP_Player::audioContext.lastPogress     = 0.0;
 		LVP_Player::videoContext.pts             = 0.0;
 
 		if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
@@ -1750,8 +1758,6 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		if (!isPaused)
 			SDL_PauseAudioDevice(LVP_Player::audioContext.deviceID, 0);
 
-		AVCODEC_FLUSH(LVP_Player::audioContext.codec);
-
 		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
 
 		break;
@@ -1766,8 +1772,6 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 
 		LVP_Player::openThreadSub();
 		LVP_Player::SeekTo(lastProgress);
-
-		AVCODEC_FLUSH(LVP_Player::subContext.codec);
 
 		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
 

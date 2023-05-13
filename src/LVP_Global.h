@@ -137,7 +137,6 @@ namespace LibVoyaPlayer
 
 		#define AV_SEEK_FLAGS(i)    (((i->flags & AVFMT_TS_DISCONT) || !i->read_seek) ? AVSEEK_FLAG_BYTE : 0)
 		#define AV_SEEK_BYTES(i, s) ((AV_SEEK_FLAGS(i) == AVSEEK_FLAG_BYTE) && (s > 0))
-		#define AVCODEC_FLUSH(s)    if (s != NULL) { LibFFmpeg::avcodec_flush_buffers(s); }
 		#define AVFRAME_IS_VALID(f) ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
 
 		#define FREE_AVCODEC(c)        if (c != NULL) { LibFFmpeg::avcodec_free_context(&c); c = NULL; }

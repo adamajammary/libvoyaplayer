@@ -127,6 +127,27 @@ LVP_MediaType LVP_GetMediaType()
 	return MediaPlayer::LVP_Player::GetMediaType();
 }
 
+LVP_MediaType LVP_GetMediaType(const std::string &filePath)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetMediaType(filePath);
+}
+
+LVP_MediaType LVP_GetMediaType(const std::wstring &filePath)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+	auto mediaType    = MediaPlayer::LVP_Player::GetMediaType(filePathUTF8);
+
+	SDL_free(filePathUTF8);
+
+	return mediaType;
+}
+
 double LVP_GetPlaybackSpeed()
 {
 	if (!isInitialized)

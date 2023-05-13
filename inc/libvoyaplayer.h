@@ -59,10 +59,24 @@ DLLEXPORT std::string DLL LVP_GetFilePath();
 DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta();
 
 /**
- * @returns the media type for the currently loaded media.
+ * @returns the media type of the currently loaded media.
  * @throws exception
  */
 DLLEXPORT LVP_MediaType DLL LVP_GetMediaType();
+
+/**
+ * @returns the media type of the given media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaType DLL LVP_GetMediaType(const std::string &filePath);
+
+/**
+ * @returns the media type of the given media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaType DLL LVP_GetMediaType(const std::wstring &filePath);
 
 /**
  * @returns the current playback speed as a percent between 0.5 and 2.0.

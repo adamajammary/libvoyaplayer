@@ -114,6 +114,7 @@ namespace LibVoyaPlayer
 			static int64_t                       GetDuration();
 			static LVP_MediaMeta                 GetMediaMeta();
 			static LVP_MediaType                 GetMediaType();
+			static LVP_MediaType                 GetMediaType(const std::string &filePath);
 			static double                        GetPlaybackSpeed();
 			static int64_t                       GetProgress();
 			static int                           GetSubtitleTrack();
