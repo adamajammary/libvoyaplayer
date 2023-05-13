@@ -4,6 +4,7 @@
 #include <chrono>
 #include <format>
 #include <list>
+#include <map>
 #include <queue>
 #include <sstream> // stringstream, to_string(x)
 #include <thread>
@@ -136,6 +137,7 @@ namespace LibVoyaPlayer
 
 		#define AV_SEEK_FLAGS(i)    (((i->flags & AVFMT_TS_DISCONT) || !i->read_seek) ? AVSEEK_FLAG_BYTE : 0)
 		#define AV_SEEK_BYTES(i, s) ((AV_SEEK_FLAGS(i) == AVSEEK_FLAG_BYTE) && (s > 0))
+		#define AVCODEC_FLUSH(s)    if (s != NULL) { LibFFmpeg::avcodec_flush_buffers(s); }
 		#define AVFRAME_IS_VALID(f) ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
 
 		#define FREE_AVCODEC(c)        if (c != NULL) { LibFFmpeg::avcodec_free_context(&c); c = NULL; }
@@ -327,7 +329,7 @@ namespace LibVoyaPlayer
 			LibFFmpeg::AVFormatContext* formatContext;
 			bool                        isReadyForRender;
 			bool                        isReadyForPresent;
-			double                      presentTime;
+			double                      pts;
 			SDL_FPoint                  scale;
 			SDL_Point                   size;
 			std::vector<LVP_SubStyle*>  styles;
@@ -338,6 +340,7 @@ namespace LibVoyaPlayer
 			Graphics::LVP_Texture*      textureCurrent;
 			Graphics::LVP_Texture*      textureNext;
 			SDL_Thread*                 thread;
+			double                      timeToSleep;
 			LibFFmpeg::AVSubtitleType   type;
 			SDL_Rect                    videoDimensions;
 
@@ -352,7 +355,7 @@ namespace LibVoyaPlayer
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
-				this->presentTime       = 0.0;
+				this->pts               = 0.0;
 				this->scale             = { 1.0f, 1.0f };
 				this->size              = {};
 				this->subsCondition     = NULL;
@@ -361,6 +364,7 @@ namespace LibVoyaPlayer
 				this->textureNext       = NULL;
 				this->thread            = NULL;
 				this->type              = LibFFmpeg::SUBTITLE_NONE;
+				this->timeToSleep       = 0.0;
 				this->videoDimensions   = {};
 
 				this->external.clear();

@@ -62,7 +62,8 @@ namespace LibVoyaPlayer
 			bool                isAlignedMiddle();
 			bool                isAlignedRight();
 			bool                isAlignedTop();
-			bool                isExpired(double presentTime, double progress);
+			bool                isExpired(const LVP_SubtitleContext &subContext, double progress);
+			bool                overlaps(LVP_Subtitle* subtitle);
 
 		private:
 			LVP_SubAlignment getAlignment();

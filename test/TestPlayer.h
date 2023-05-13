@@ -18,7 +18,6 @@ private:
     static SDL_Surface* videoFrame;
     static bool         videoIsAvailable;
     static std::mutex   videoLock;
-    static bool         useHardwareRenderer;
 
 public:
     static void Init(SDL_Renderer* renderer = nullptr, const void* data = nullptr);

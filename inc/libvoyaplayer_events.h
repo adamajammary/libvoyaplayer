@@ -2,8 +2,8 @@
 #define LIBVOYAPLAYER_EVENTS_H
 
 #include <functional>
+#include <map>
 #include <mutex>
-#include <unordered_map>
 
 #ifndef LIB_SDL2_H
 #define LIB_SDL2_H
@@ -25,7 +25,8 @@ enum LVP_EventType
 	LVP_EVENT_MEDIA_STOPPED,
 	LVP_EVENT_MEDIA_STOPPING,
 	LVP_EVENT_MEDIA_TRACKS_UPDATED,
-	LVP_EVENT_METADATA_UPDATED
+	LVP_EVENT_METADATA_UPDATED,
+	LVP_EVENT_PLAYBACK_SPEED_CHANGED
 };
 
 enum LVP_MediaType
@@ -101,12 +102,12 @@ struct LVP_MediaTrack
 	/**
 	 * @brief Track metadata, like title, language etc.
 	 */
-	std::unordered_map<std::string, std::string> meta;
+	std::map<std::string, std::string> meta;
 
 	/**
 	 * @brief Codec specs, like codec_name, bit_rate etc.
 	 */
-	std::unordered_map<std::string, std::string> codec;
+	std::map<std::string, std::string> codec;
 };
 
 struct LVP_MediaMeta
@@ -115,7 +116,7 @@ struct LVP_MediaMeta
 	std::vector<LVP_MediaTrack> subtitleTracks;
 	std::vector<LVP_MediaTrack> videoTracks;
 
-	std::unordered_map<std::string, std::string> meta;
+	std::map<std::string, std::string> meta;
 };
 
 #endif

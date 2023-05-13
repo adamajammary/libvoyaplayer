@@ -22,8 +22,7 @@ void initLibraries()
 
 	if ((SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) ||
 		(SDL_AudioInit(NULL) < 0) ||
-		(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) ||
-		(SDL_InitSubSystem(SDL_INIT_TIMER) < 0))
+		(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0))
 	{
 		throw std::exception(std::format("Failed to initialize SDL: {}", SDL_GetError()).c_str());
 	}
@@ -61,7 +60,7 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	catch (const std::exception &e)
 	{
 		if (callbackContext.errorCB != nullptr)
-			callbackContext.errorCB(std::format("Failed to initialize libvoyaplayer:\n- {}", e.what()), callbackContext.data);
+			callbackContext.errorCB(std::format("Failed to initialize libvoyaplayer:\n{}", e.what()), callbackContext.data);
 		else
 			throw e;
 	}
@@ -216,7 +215,7 @@ void LVP_Open(const std::string &filePath)
 	try {
 		MediaPlayer::LVP_Player::Open(filePath);
 	} catch (const std::exception &e) {
-		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to open media file:\n- {}", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to open media file:\n{}", e.what()));
 	}
 }
 
@@ -232,7 +231,7 @@ void LVP_Open(const std::wstring &filePath)
 
 		SDL_free(filePathUTF8);
 	} catch (const std::exception &e) {
-		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to open media file:\n- {}", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to open media file:\n{}", e.what()));
 	}
 }
 

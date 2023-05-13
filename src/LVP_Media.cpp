@@ -24,9 +24,9 @@ double MediaPlayer::LVP_Media::GetAudioPTS(const LVP_AudioContext &audioContext)
 	return pts;
 }
 
-std::unordered_map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(LibFFmpeg::AVStream* stream)
+std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(LibFFmpeg::AVStream* stream)
 {
-	std::unordered_map<std::string, std::string> meta;
+	std::map<std::string, std::string> meta;
 
 	if ((stream == NULL) || (stream->codecpar == NULL))
 		return meta;
@@ -139,7 +139,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 			file.append(fileParts[i] + "|");
 
 		if (chdir(fileParts[0].c_str()) != 0)
-			throw std::invalid_argument("Failed to change directory.");
+			throw std::invalid_argument(std::format("Failed to change directory: {}", fileParts[0]));
 	}
 
 	if (timeOut != NULL) {
@@ -154,14 +154,14 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	if ((result < 0) || (formatContext == NULL)) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception(std::format("Failed to open input: {}", result).c_str());
+		throw std::exception(std::format("[{}] Failed to open input: {}", result, file).c_str());
 	}
 
 	result = formatContext->probe_score;
 
 	if (result < AVPROBE_SCORE_RETRY) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception(std::format("Invalid probe score: {}", result).c_str());
+		throw std::exception(std::format("[{}] Invalid probe score: {}", result, file).c_str());
 	}
 
 	if (LVP_Media::isDRM(formatContext->metadata)) {
@@ -197,7 +197,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	if ((result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL)) < 0) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception(std::format("Failed to find stream info: {}", result).c_str());
+		throw std::exception(std::format("[{}] Failed to find stream info: {}", result, file).c_str());
 	}
 
 	#if defined _DEBUG
@@ -237,7 +237,7 @@ double MediaPlayer::LVP_Media::GetMediaFrameRate(LibFFmpeg::AVStream* stream)
 	return LibFFmpeg::av_q2d(stream->avg_frame_rate);
 }
 
-std::unordered_map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaMeta(LibFFmpeg::AVFormatContext* formatContext)
+std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaMeta(LibFFmpeg::AVFormatContext* formatContext)
 {
 	return LVP_Media::getMeta(formatContext != NULL ? formatContext->metadata : NULL);
 }
@@ -274,7 +274,7 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 	return streamCount;
 }
 
-std::unordered_map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaTrackMeta(LibFFmpeg::AVStream* stream)
+std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaTrackMeta(LibFFmpeg::AVStream* stream)
 {
 	return LVP_Media::getMeta(stream != NULL ? stream->metadata : NULL);
 }
@@ -299,9 +299,9 @@ LibFFmpeg::AVMediaType MediaPlayer::LVP_Media::GetMediaType(LibFFmpeg::AVFormatC
 }
 
 // http://wiki.multimedia.cx/index.php?title=FFmpeg_Metadata
-std::unordered_map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AVDictionary* metadata)
+std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AVDictionary* metadata)
 {
-	std::unordered_map<std::string, std::string> meta;
+	std::map<std::string, std::string> meta;
 
 	if (metadata == NULL)
 		return meta;
@@ -311,7 +311,7 @@ std::unordered_map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(Lib
 	while ((entry = LibFFmpeg::av_dict_get(metadata, "", entry, AV_DICT_IGNORE_SUFFIX)) != NULL)
 	{
 		if (strcmp(entry->value, "und") != 0)
-			meta[entry->key] = entry->value;
+			meta[System::LVP_Text::ToLower(entry->key)] = entry->value;
 	}
 
 	return meta;
