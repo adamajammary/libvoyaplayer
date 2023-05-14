@@ -269,9 +269,11 @@ int MediaPlayer::LVP_Player::GetAudioTrack()
 	return LVP_Player::audioContext.index;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks()
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks(LibFFmpeg::AVFormatContext* formatContext)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto context = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
+
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO, context);
 }
 
 std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
@@ -381,8 +383,7 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
 	if (LVP_Player::state.isStopped)
 		return {};
 
-	return
-	{
+	return {
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
 		.videoTracks    = LVP_Player::GetVideoTracks(),
@@ -390,13 +391,29 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
 	};
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType)
+LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta(const std::string &filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+
+	LVP_MediaMeta meta = {
+		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
+		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
+		.videoTracks    = LVP_Player::GetVideoTracks(formatContext),
+		.meta           = LVP_Media::GetMediaMeta(formatContext)
+	};
+
+	FREE_AVFORMAT(formatContext);
+
+	return meta;
+}
+
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
 {
 	std::vector<LVP_MediaTrack> tracks;
 
 	// DISABLE SUBS
 
-	if (IS_SUB(mediaType) && LVP_Media::HasSubtitleTracks(LVP_Player::formatContext, LVP_Player::formatContextExternal))
+	if (IS_SUB(mediaType) && LVP_Media::HasSubtitleTracks(formatContext, formatContextExternal))
 	{
 		std::map<std::string, std::string> trackMeta;
 
@@ -411,7 +428,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::A
 
 	// MEDIA TRACKS
 
-	auto mediaTracks = LVP_Player::getMediaTracksMeta(LVP_Player::formatContext, mediaType);
+	auto mediaTracks = LVP_Player::getMediaTracksMeta(formatContext, mediaType);
 
 	tracks.insert(tracks.end(), mediaTracks.begin(), mediaTracks.end());
 
@@ -419,7 +436,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::A
 
 	if (IS_SUB(mediaType))
 	{
-		auto externalSubTracks = LVP_Player::getMediaTracksMeta(LVP_Player::formatContextExternal, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, true);
+		auto externalSubTracks = LVP_Player::getMediaTracksMeta(formatContextExternal, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, true);
 
 		tracks.insert(tracks.end(), externalSubTracks.begin(), externalSubTracks.end());
 	}
@@ -534,14 +551,19 @@ int MediaPlayer::LVP_Player::GetSubtitleTrack()
 	return LVP_Player::subContext.index;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks()
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+	auto context       = (formatContext         != NULL ? formatContext         : LVP_Player::formatContext);
+	auto extSubContext = (formatContextExternal != NULL ? formatContextExternal : LVP_Player::formatContextExternal);
+
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, context, extSubContext);
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks()
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO);
+	auto context = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
+
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO, context);
 }
 
 uint32_t MediaPlayer::LVP_Player::getVideoPixelFormat(LibFFmpeg::AVPixelFormat pixelFormat)

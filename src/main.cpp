@@ -119,6 +119,27 @@ LVP_MediaMeta LVP_GetMediaMeta()
 	return MediaPlayer::LVP_Player::GetMediaMeta();
 }
 
+LVP_MediaMeta LVP_GetMediaMeta(const std::string &filePath)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetMediaMeta(filePath);
+}
+
+LVP_MediaMeta LVP_GetMediaMeta(const std::wstring &filePath)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+	auto mediaMeta    = MediaPlayer::LVP_Player::GetMediaMeta(filePathUTF8);
+
+	SDL_free(filePathUTF8);
+
+	return mediaMeta;
+}
+
 LVP_MediaType LVP_GetMediaType()
 {
 	if (!isInitialized)

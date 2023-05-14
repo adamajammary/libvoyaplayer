@@ -53,10 +53,24 @@ DLLEXPORT int64_t DLL LVP_GetDuration();
 DLLEXPORT std::string DLL LVP_GetFilePath();
 
 /**
- * @returns metadata for the currently loaded media including all tracks.
+ * @returns metadata including all tracks of the currently loaded media.
  * @throws exception
  */
 DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta();
+
+/**
+ * @returns metadata including all tracks of the given media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta(const std::string& filePath);
+
+/**
+ * @returns metadata including all tracks of the given media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta(const std::wstring& filePath);
 
 /**
  * @returns the media type of the currently loaded media.
