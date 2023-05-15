@@ -169,9 +169,6 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		throw std::exception("Media is DRM encrypted.");
 	}
 
-	if (!parseStreams)
-		return formatContext;
-
 	// Try to fix MP3 files with invalid header and codec type
 	if (System::LVP_FileSystem::GetFileExtension(file, true) == "MP3")
 	{
@@ -190,6 +187,17 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		}
 	}
 
+	if (isConcat)
+	{
+		int64_t duration = std::atoll(fileParts[fileParts.size() - 4].c_str());
+
+		if (duration > 0)
+			formatContext->duration = duration;
+	}
+
+	if (!parseStreams && (formatContext->duration > 0))
+		return formatContext;
+
 	if (formatContext->nb_streams == 0) {
 		formatContext->max_analyze_duration = (int64_t)(15 * AV_TIME_BASE);
 		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
@@ -203,14 +211,6 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	#if defined _DEBUG
 		LibFFmpeg::av_dump_format(formatContext, -1, file.c_str(), 0);
 	#endif
-
-	if (isConcat)
-	{
-		int64_t duration = std::atoll(fileParts[fileParts.size() - 4].c_str());
-
-		if (duration > 0)
-			formatContext->duration = duration;
-	}
 
 	return formatContext;
 }
