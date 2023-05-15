@@ -242,6 +242,21 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaMeta(LibFFmpe
 	return LVP_Media::getMeta(formatContext != NULL ? formatContext->metadata : NULL);
 }
 
+LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType)
+{
+	if ((formatContext == NULL) || (formatContext->nb_streams == 0))
+		return NULL;
+
+	int  index   = LibFFmpeg::av_find_best_stream(formatContext, mediaType, -1, -1, NULL, 0);
+	bool isValid = ((index >= 0) && (index < (int)formatContext->nb_streams));
+	auto stream  = (isValid ? formatContext->streams[index] : NULL);
+
+	if ((stream == NULL) || (stream->codecpar == NULL) || (stream->codecpar->codec_id == LibFFmpeg::AV_CODEC_ID_NONE))
+		return NULL;
+
+	return stream;
+}
+
 size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType)
 {
 	if (formatContext == NULL)

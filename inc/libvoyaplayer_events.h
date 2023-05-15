@@ -112,11 +112,19 @@ struct LVP_MediaTrack
 
 struct LVP_MediaMeta
 {
+	/**
+	 * @brief Media duration in seconds.
+	 */
+	int64_t duration;
+
+	/**
+	 * @brief General media metadata like title, artist, album, genre etc.
+	 */
+	std::map<std::string, std::string> meta;
+
 	std::vector<LVP_MediaTrack> audioTracks;
 	std::vector<LVP_MediaTrack> subtitleTracks;
 	std::vector<LVP_MediaTrack> videoTracks;
-
-	std::map<std::string, std::string> meta;
 };
 
 #endif

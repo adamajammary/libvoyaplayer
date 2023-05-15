@@ -41,7 +41,7 @@ DLLEXPORT int DLL LVP_GetAudioTrack();
 DLLEXPORT std::vector<LVP_MediaTrack> DLL LVP_GetAudioTracks();
 
 /**
- * @returns the media duration as milliseconds (one thousandth of a second).
+ * @returns the media duration in milliseconds (one thousandth of a second).
  * @throws exception
 */
 DLLEXPORT int64_t DLL LVP_GetDuration();
@@ -99,7 +99,7 @@ DLLEXPORT LVP_MediaType DLL LVP_GetMediaType(const std::wstring &filePath);
 DLLEXPORT double DLL LVP_GetPlaybackSpeed();
 
 /**
- * @returns the media playback progress as milliseconds (one thousandth of a second).
+ * @returns the media playback progress in milliseconds (one thousandth of a second).
  * @throws exception
 */
 DLLEXPORT int64_t DLL LVP_GetProgress();

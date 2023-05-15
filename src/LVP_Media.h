@@ -23,6 +23,7 @@ namespace LibVoyaPlayer
 			static LibFFmpeg::AVFormatContext*        GetMediaFormatContext(const std::string &filePath, bool parseStreams, System::LVP_TimeOut* timeOut = NULL);
 			static double                             GetMediaFrameRate(LibFFmpeg::AVStream* stream);
 			static std::map<std::string, std::string> GetMediaMeta(LibFFmpeg::AVFormatContext* formatContext);
+			static LibFFmpeg::AVStream*               GetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
 			static std::map<std::string, std::string> GetMediaTrackMeta(LibFFmpeg::AVStream* stream);
 			static LibFFmpeg::AVMediaType             GetMediaType(LibFFmpeg::AVFormatContext* formatContext);
 			static LVP_SubPTS                         GetSubtitlePTS(LibFFmpeg::AVPacket* packet, LibFFmpeg::AVSubtitle &frame, const LibFFmpeg::AVRational &timeBase, int64_t startTime);

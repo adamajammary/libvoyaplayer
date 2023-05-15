@@ -384,22 +384,25 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
 		return {};
 
 	return {
+		.duration       = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext.stream),
+		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
-		.videoTracks    = LVP_Player::GetVideoTracks(),
-		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext)
+		.videoTracks    = LVP_Player::GetVideoTracks()
 	};
 }
 
 LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta(const std::string &filePath)
 {
 	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto audioStream   = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
 
 	LVP_MediaMeta meta = {
+		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
+		.meta           = LVP_Media::GetMediaMeta(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
-		.videoTracks    = LVP_Player::GetVideoTracks(formatContext),
-		.meta           = LVP_Media::GetMediaMeta(formatContext)
+		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
 	};
 
 	FREE_AVFORMAT(formatContext);
