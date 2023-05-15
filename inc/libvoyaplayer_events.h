@@ -110,7 +110,7 @@ struct LVP_MediaTrack
 	std::map<std::string, std::string> codec;
 };
 
-struct LVP_MediaMeta
+struct LVP_MediaDetails
 {
 	/**
 	 * @brief Media duration in seconds.

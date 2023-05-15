@@ -378,7 +378,7 @@ MediaPlayer::LVP_FontFaceMap MediaPlayer::LVP_Player::getFontFaces(LibFFmpeg::AV
 	return fontFaces;
 }
 
-LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
+LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 {
 	if (LVP_Player::state.isStopped)
 		return {};
@@ -395,12 +395,12 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
 	};
 }
 
-LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta(const std::string &filePath)
+LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &filePath)
 {
 	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
 	auto audioStream   = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
 
-	LVP_MediaMeta meta =
+	LVP_MediaDetails details =
 	{
 		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
 		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
@@ -413,7 +413,7 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta(const std::string &filePath)
 
 	FREE_AVFORMAT(formatContext);
 
-	return meta;
+	return details;
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
@@ -481,16 +481,6 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpe
 LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 {
 	return (LVP_MediaType)LVP_Player::state.mediaType;
-}
-
-LVP_MediaType MediaPlayer::LVP_Player::GetMediaType(const std::string &filePath)
-{
-	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
-	auto mediaType     = LVP_Media::GetMediaType(formatContext);
-
-	FREE_AVFORMAT(formatContext);
-
-	return (LVP_MediaType)mediaType;
 }
 
 double MediaPlayer::LVP_Player::GetPlaybackSpeed()
