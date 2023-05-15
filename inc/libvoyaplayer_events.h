@@ -115,10 +115,20 @@ struct LVP_MediaMeta
 	/**
 	 * @brief Media duration in seconds.
 	 */
-	int64_t duration;
+	int64_t duration = 0;
 
 	/**
-	 * @brief General media metadata like title, artist, album, genre etc.
+	 * @brief File size in bytes.
+	 */
+	size_t fileSize = 0;
+
+	/**
+	 * @brief Media type, like video (0), audio (1) or subtitle (3).
+	 */
+	LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN;
+
+	/**
+	 * @brief Media metadata like title, artist, album, genre etc.
 	 */
 	std::map<std::string, std::string> meta;
 

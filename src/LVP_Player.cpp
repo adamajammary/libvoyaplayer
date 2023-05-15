@@ -383,8 +383,11 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
 	if (LVP_Player::state.isStopped)
 		return {};
 
-	return {
+	return
+	{
 		.duration       = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext.stream),
+		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::formatContext->url),
+		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
 		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
@@ -397,8 +400,11 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta(const std::string &filePath)
 	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
 	auto audioStream   = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
 
-	LVP_MediaMeta meta = {
+	LVP_MediaMeta meta =
+	{
 		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
+		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
+		.mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext),
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
