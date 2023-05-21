@@ -153,10 +153,12 @@ bool MediaPlayer::LVP_Subtitle::isExpired(const LVP_SubtitleContext &subContext,
 
 bool MediaPlayer::LVP_Subtitle::overlaps(LVP_Subtitle* subtitle)
 {
-	return !(
+	bool overlaps = !(
 		(this->pts.end < subtitle->pts.start) ||
 		!ARE_DIFFERENT_DOUBLES(this->pts.end, subtitle->pts.start) ||
 		(this->pts.start > subtitle->pts.end) ||
 		!ARE_DIFFERENT_DOUBLES(this->pts.start, subtitle->pts.end)
 	);
+
+	return overlaps;
 }

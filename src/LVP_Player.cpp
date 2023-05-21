@@ -2344,6 +2344,14 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_CondSignal(LVP_Player::subContext.subsCondition);
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
+		bool isNextPTS = (pts.start > LVP_Player::subContext.pts + 0.001);
+
+		while (LVP_Player::subContext.isReadyForPresent && isNextPTS && !LVP_Player::seekRequested && !LVP_Player::state.quit)
+			SDL_Delay(1);
+
+		if (LVP_Player::seekRequested || LVP_Player::state.quit)
+			continue;
+
 		LVP_Player::subContext.pts         = pts.start;
 		LVP_Player::subContext.timeToSleep = (pts.start - LVP_Player::state.progress);
 
@@ -2351,7 +2359,14 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 
 		// Sub is ahead of audio, skip or speed up.
 		if (timeToSleepMs < 0)
+		{
+			if (!isNextPTS) {
+				LVP_Player::subContext.isReadyForRender  = true;
+				LVP_Player::subContext.isReadyForPresent = true;
+			}
+
 			continue;
+		}
 
 		LVP_Player::subContext.isReadyForRender = true;
 
@@ -2367,9 +2382,6 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 
 		// Make the subs available for rendering
 		LVP_Player::subContext.isReadyForPresent = true;
-
-		while (LVP_Player::subContext.isReadyForPresent && !LVP_Player::seekRequested && !LVP_Player::state.quit)
-			SDL_Delay(1);
 	}
 
 	FREE_SUB_FRAME(subFrame);
