@@ -265,7 +265,6 @@ void LVP_Quit()
 
 	TTF_Quit();
 
-	SDL_QuitSubSystem(SDL_INIT_TIMER);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	SDL_AudioQuit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);

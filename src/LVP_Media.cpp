@@ -195,7 +195,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 			formatContext->duration = duration;
 	}
 
-	if (!parseStreams && (formatContext->duration > 0))
+	if (!parseStreams)
 		return formatContext;
 
 	if (formatContext->nb_streams == 0) {
@@ -247,7 +247,18 @@ LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackBest(LibFFmpeg::AVForm
 	if ((formatContext == NULL) || (formatContext->nb_streams == 0))
 		return NULL;
 
-	int  index   = LibFFmpeg::av_find_best_stream(formatContext, mediaType, -1, -1, NULL, 0);
+	auto index = LibFFmpeg::av_find_best_stream(formatContext, mediaType, -1, -1, NULL, 0);
+
+	if (index < 0)
+	{
+		for (uint32_t i = 0; i < formatContext->nb_streams; i++) {
+			if (formatContext->streams[i]->codecpar->codec_type == mediaType) {
+				index = i;
+				break;
+			}
+		}
+	}
+
 	bool isValid = ((index >= 0) && (index < (int)formatContext->nb_streams));
 	auto stream  = (isValid ? formatContext->streams[index] : NULL);
 
@@ -272,12 +283,13 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 
 	for (uint32_t i = 0; i < formatContext->nb_streams; i++)
 	{
-		LibFFmpeg::AVStream* stream = formatContext->streams[i];
+		auto stream = formatContext->streams[i];
 
 		if ((stream == NULL) ||
 			(stream->codecpar == NULL) ||
 			(stream->codecpar->codec_id == LibFFmpeg::AV_CODEC_ID_NONE) ||
-			(IS_VIDEO(mediaType) && (stream->attached_pic.size > 0))) // AUDIO COVER
+			(IS_VIDEO(mediaType) && (stream->disposition & AV_DISPOSITION_ATTACHED_PIC))) // AUDIO COVER
+			//(IS_VIDEO(mediaType) && (stream->attached_pic.size > 0))) // AUDIO COVER
 		{
 			continue;
 		}
@@ -299,9 +311,9 @@ LibFFmpeg::AVMediaType MediaPlayer::LVP_Media::GetMediaType(LibFFmpeg::AVFormatC
 	if (formatContext == NULL)
 		return LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
 
-	size_t audioStreamCount = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
-	size_t subStreamCount   = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
-	size_t videoStreamCount = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_VIDEO);
+	auto audioStreamCount = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto subStreamCount   = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+	auto videoStreamCount = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_VIDEO);
 
 	if ((audioStreamCount > 0) && (videoStreamCount == 0) && (subStreamCount == 0))
 		return LibFFmpeg::AVMEDIA_TYPE_AUDIO;
@@ -413,6 +425,25 @@ void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* forma
 	if (formatContext == NULL)
 		return;
 
+	// stream->disposition
+	// AV_DISPOSITION_DEFAULT
+	// AV_DISPOSITION_DUB
+	// AV_DISPOSITION_ORIGINAL
+	// AV_DISPOSITION_COMMENT
+	// AV_DISPOSITION_LYRICS
+	// AV_DISPOSITION_KARAOKE
+	// AV_DISPOSITION_FORCED
+	// AV_DISPOSITION_HEARING_IMPAIRED
+	// AV_DISPOSITION_VISUAL_IMPAIRED
+	// AV_DISPOSITION_CLEAN_EFFECTS
+	// AV_DISPOSITION_ATTACHED_PIC
+	// AV_DISPOSITION_TIMED_THUMBNAILS
+	// AV_DISPOSITION_NON_DIEGETIC
+	// AV_DISPOSITION_CAPTIONS
+	// AV_DISPOSITION_DESCRIPTIONS
+	// AV_DISPOSITION_METADATA
+	// AV_DISPOSITION_DEPENDENT
+	// AV_DISPOSITION_STILL_IMAGE
 	int index = LibFFmpeg::av_find_best_stream(formatContext, mediaType, -1, -1, NULL, 0);
 
 	if (index >= 0)
