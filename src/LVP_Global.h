@@ -320,6 +320,29 @@ namespace LibVoyaPlayer
 			}
 		};
 
+		struct LVP_SubPTS
+		{
+			double start, end;
+
+			LVP_SubPTS()
+			{
+				this->start = 0.0;
+				this->end   = 0.0;
+			}
+
+			LVP_SubPTS(double start, double end)
+			{
+				this->start = start;
+				this->end   = end;
+			}
+
+			LVP_SubPTS(const LVP_SubPTS &pts)
+			{
+				this->start = pts.start;
+				this->end   = pts.end;
+			}
+		};
+
 		struct LVP_SubtitleContext : LVP_MediaContext
 		{
 			bool                        available;
@@ -328,7 +351,7 @@ namespace LibVoyaPlayer
 			LibFFmpeg::AVFormatContext* formatContext;
 			bool                        isReadyForRender;
 			bool                        isReadyForPresent;
-			double                      pts;
+			LVP_SubPTS                  pts;
 			SDL_FPoint                  scale;
 			SDL_Point                   size;
 			std::vector<LVP_SubStyle*>  styles;
@@ -354,7 +377,7 @@ namespace LibVoyaPlayer
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
-				this->pts               = 0.0;
+				this->pts               = {};
 				this->scale             = { 1.0f, 1.0f };
 				this->size              = {};
 				this->subsCondition     = NULL;
@@ -396,29 +419,6 @@ namespace LibVoyaPlayer
 				this->pts               = 0.0;
 				this->texture           = NULL;
 				this->thread            = NULL;
-			}
-		};
-
-		struct LVP_SubPTS
-		{
-			double start, end;
-
-			LVP_SubPTS()
-			{
-				this->start = 0.0;
-				this->end   = 0.0;
-			}
-
-			LVP_SubPTS(double start, double end)
-			{
-				this->start = start;
-				this->end   = end;
-			}
-
-			LVP_SubPTS(const LVP_SubPTS &pts)
-			{
-				this->start = pts.start;
-				this->end   = pts.end;
 			}
 		};
 	}

@@ -289,7 +289,6 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 			(stream->codecpar == NULL) ||
 			(stream->codecpar->codec_id == LibFFmpeg::AV_CODEC_ID_NONE) ||
 			(IS_VIDEO(mediaType) && (stream->disposition & AV_DISPOSITION_ATTACHED_PIC))) // AUDIO COVER
-			//(IS_VIDEO(mediaType) && (stream->attached_pic.size > 0))) // AUDIO COVER
 		{
 			continue;
 		}

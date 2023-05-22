@@ -2344,7 +2344,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_CondSignal(LVP_Player::subContext.subsCondition);
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
-		bool isNextPTS = (pts.start > LVP_Player::subContext.pts + 0.001);
+		bool isNextPTS = (pts.end > LVP_Player::subContext.pts.end);
 
 		while (LVP_Player::subContext.isReadyForPresent && isNextPTS && !LVP_Player::seekRequested && !LVP_Player::state.quit)
 			SDL_Delay(1);
@@ -2352,7 +2352,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		if (LVP_Player::seekRequested || LVP_Player::state.quit)
 			continue;
 
-		LVP_Player::subContext.pts         = pts.start;
+		LVP_Player::subContext.pts         = pts;
 		LVP_Player::subContext.timeToSleep = (pts.start - LVP_Player::state.progress);
 
 		auto timeToSleepMs = (int)(LVP_Player::subContext.timeToSleep * (double)ONE_SECOND_MS);
@@ -2368,7 +2368,8 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 			continue;
 		}
 
-		LVP_Player::subContext.isReadyForRender = true;
+		LVP_Player::subContext.isReadyForPresent = false;
+		LVP_Player::subContext.isReadyForRender  = true;
 
 		// Sub is behind audio, wait or slow down.
 		SDL_Delay(min(timeToSleepMs, MAX_SUB_DURATION_MS));
