@@ -145,8 +145,9 @@ bool MediaPlayer::LVP_Subtitle::isAlignedTop()
 
 bool MediaPlayer::LVP_Subtitle::isExpired(const LVP_SubtitleContext &subContext, double progress)
 {
-	bool hasEnded = ((this->pts.end <= subContext.pts.start) || (this->pts.end <= progress));
-	bool isSeeked = ((this->pts.start - progress) > subContext.timeToSleep);
+	auto ptsEnd   = (this->pts.end - 0.001);
+	bool hasEnded = ((ptsEnd <= subContext.pts.start) || (ptsEnd <= progress));
+	bool isSeeked = ((subContext.timeToSleep > 0.0) && ((this->pts.start - progress) > subContext.timeToSleep));
 
 	return (hasEnded || isSeeked);
 }

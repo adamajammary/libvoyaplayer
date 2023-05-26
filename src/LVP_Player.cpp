@@ -1519,15 +1519,18 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 		// SUB SCALING RELATIVE TO VIDEO
 
+		auto videoWidth  = (frame->width  > 0 ? frame->width  : LVP_Player::videoContext.stream->codecpar->width);
+		auto videoHeight = (frame->height > 0 ? frame->height : LVP_Player::videoContext.stream->codecpar->height);
+
 		if ((LVP_Player::subContext.size.x > 0) && (LVP_Player::subContext.size.y > 0))
 		{
 			LVP_Player::subContext.scale = {
-				(float)((float)frame->width  / (float)LVP_Player::subContext.size.x),
-				(float)((float)frame->height / (float)LVP_Player::subContext.size.y)
+				(float)((float)videoWidth  / (float)LVP_Player::subContext.size.x),
+				(float)((float)videoHeight / (float)LVP_Player::subContext.size.y)
 			};
 		}
 
-		LVP_Player::subContext.videoDimensions = { 0, 0, frame->width, frame->height };
+		LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
 
 		if ((pixelFormat == LibFFmpeg::AV_PIX_FMT_YUV420P) || !IS_VALID_TEXTURE(texture))
 			return;
@@ -2344,7 +2347,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_CondSignal(LVP_Player::subContext.subsCondition);
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
-		bool isNextPTS = (pts.end > LVP_Player::subContext.pts.end);
+		bool isNextPTS = ((pts.start >= LVP_Player::subContext.pts.end) && (pts.end > LVP_Player::subContext.pts.end));
 
 		while (LVP_Player::subContext.isReadyForPresent && isNextPTS && !LVP_Player::seekRequested && !LVP_Player::state.quit)
 			SDL_Delay(1);
