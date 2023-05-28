@@ -35,6 +35,8 @@ namespace LibVoyaPlayer
 			static void                               SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext &mediaContext, bool isSubsExternal = false);
 
 		private:
+			static const LibFFmpeg::AVCodecHWConfig*  getHardwareConfig(const LibFFmpeg::AVCodec* decoder);
+			static LibFFmpeg::AVPixelFormat           getHardwarePixelFormat(LibFFmpeg::AVCodecContext* codec, const LibFFmpeg::AVPixelFormat* pixelFormats);
 			static size_t                             getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
 			static std::map<std::string, std::string> getMeta(LibFFmpeg::AVDictionary* metadata);
 			static bool                               isDRM(LibFFmpeg::AVDictionary* metaData);

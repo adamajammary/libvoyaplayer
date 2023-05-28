@@ -24,6 +24,19 @@ double MediaPlayer::LVP_Media::GetAudioPTS(const LVP_AudioContext &audioContext)
 	return pts;
 }
 
+const LibFFmpeg::AVCodecHWConfig* MediaPlayer::LVP_Media::getHardwareConfig(const LibFFmpeg::AVCodec* decoder)
+{
+	const LibFFmpeg::AVCodecHWConfig* hardwareConfig = NULL;
+
+	for (int i = 0; (hardwareConfig = LibFFmpeg::avcodec_get_hw_config(decoder, i)) != NULL; i++)
+	{
+		if (hardwareConfig->methods & LibFFmpeg::AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+			return hardwareConfig;
+	}
+
+	return NULL;
+}
+
 std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(LibFFmpeg::AVStream* stream)
 {
 	std::map<std::string, std::string> meta;
@@ -449,6 +462,19 @@ void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* forma
 		LVP_Media::SetMediaTrackByIndex(formatContext, index, mediaContext);
 }
 
+LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Media::getHardwarePixelFormat(LibFFmpeg::AVCodecContext* codec, const LibFFmpeg::AVPixelFormat* pixelFormats)
+{
+	const LibFFmpeg::AVPixelFormat* pixelFormat;
+
+	for (pixelFormat = pixelFormats; *pixelFormat != LibFFmpeg::AV_PIX_FMT_NONE; pixelFormat++)
+	{
+		if (*pixelFormat == LVP_Player::GetPixelFormatHardware())
+			return *pixelFormat;
+	}
+
+	return codec->sw_pix_fmt;
+}
+
 void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext &mediaContext, bool isSubsExternal)
 {
 	if ((formatContext == NULL) || (formatContext->nb_streams == 0))
@@ -484,9 +510,26 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 	codec->codec_id = decoder->id;
 
 	// Multi-threading must be disabled for some music cover/thumb types like PNG
-	auto codecID = codec->codec_id;
-	bool isPNG   = (codecID == LibFFmpeg::AV_CODEC_ID_PNG);
-	auto threads = (!isPNG ? "auto" : "1");
+	bool isPNG   = (codec->codec_id == LibFFmpeg::AV_CODEC_ID_PNG);
+	auto threads = (isPNG ? "1" : "auto");
+
+	if (IS_VIDEO(stream->codecpar->codec_type))
+	{
+		auto hardwareConfig = LVP_Media::getHardwareConfig(decoder);
+
+		if (hardwareConfig != NULL)
+		{
+			LibFFmpeg::AVBufferRef* hardwareDeviceContext = NULL;
+
+			if (LibFFmpeg::av_hwdevice_ctx_create(&hardwareDeviceContext, hardwareConfig->device_type, "auto", NULL, 0) == 0)
+			{
+				codec->get_format    = LVP_Media::getHardwarePixelFormat;
+				codec->hw_device_ctx = LibFFmpeg::av_buffer_ref(hardwareDeviceContext);
+
+				mediaContext.pixelFormatHardware = hardwareConfig->pix_fmt;
+			}
+		}
+	}
 
 	LibFFmpeg::AVDictionary* options = NULL;
 	LibFFmpeg::av_dict_set(&options, "threads", threads, 0);

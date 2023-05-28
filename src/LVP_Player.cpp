@@ -205,7 +205,8 @@ void MediaPlayer::LVP_Player::closeVideo()
 	if ((LVP_Player::videoContext.index < 0) || (LVP_Player::videoContext.stream == NULL))
 		return;
 
-	FREE_AVFRAME(LVP_Player::videoContext.frame);
+	FREE_AVFRAME(LVP_Player::videoContext.frameSoftware);
+	FREE_AVFRAME(LVP_Player::videoContext.frameHardware);
 	FREE_AVFRAME(LVP_Player::videoContext.frameEncoded);
 	DELETE_POINTER(LVP_Player::videoContext.texture);
 	FREE_SWS(LVP_Player::renderContext.scaleContextVideo);
@@ -483,6 +484,11 @@ LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 	return (LVP_MediaType)LVP_Player::state.mediaType;
 }
 
+LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
+{
+	return LVP_Player::videoContext.pixelFormatHardware;
+}
+
 double MediaPlayer::LVP_Player::GetPlaybackSpeed()
 {
 	return LVP_Player::state.playbackSpeed;
@@ -649,19 +655,24 @@ void MediaPlayer::LVP_Player::initSubTextures()
 	DELETE_POINTER(LVP_Player::subContext.textureCurrent);
 	DELETE_POINTER(LVP_Player::subContext.textureNext);
 
+	auto& frame = LVP_Player::videoContext.frame;
+
+	auto videoWidth  = (frame != NULL && frame->width  > 0 ? frame->width  : LVP_Player::videoContext.stream->codecpar->width);
+	auto videoHeight = (frame != NULL && frame->height > 0 ? frame->height : LVP_Player::videoContext.stream->codecpar->height);
+
 	LVP_Player::subContext.textureCurrent = new Graphics::LVP_Texture(
 		SUB_PIXEL_FORMAT_SDL,
 		SDL_TEXTUREACCESS_TARGET,
-		LVP_Player::videoContext.frame->width,
-		LVP_Player::videoContext.frame->height,
+		videoWidth,
+		videoHeight,
 		LVP_Player::renderContext.renderer
 	);
 
 	LVP_Player::subContext.textureNext = new Graphics::LVP_Texture(
 		SUB_PIXEL_FORMAT_SDL,
 		SDL_TEXTUREACCESS_TARGET,
-		LVP_Player::videoContext.frame->width,
-		LVP_Player::videoContext.frame->height,
+		videoWidth,
+		videoHeight,
 		LVP_Player::renderContext.renderer
 	);
 
@@ -1168,11 +1179,16 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 		videoHeight
 	);
 
-	LVP_Player::videoContext.frame     = LibFFmpeg::av_frame_alloc();
-	LVP_Player::videoContext.frameRate = (1.0 / LVP_Media::GetMediaFrameRate(LVP_Player::videoContext.stream));
+	LVP_Player::videoContext.frameHardware = LibFFmpeg::av_frame_alloc();
+	LVP_Player::videoContext.frameSoftware = LibFFmpeg::av_frame_alloc();
+	LVP_Player::videoContext.frameRate     = (1.0 / LVP_Media::GetMediaFrameRate(LVP_Player::videoContext.stream));
 
-	if ((LVP_Player::videoContext.frame == NULL) || (LVP_Player::videoContext.frameRate <= 0))
+	if ((LVP_Player::videoContext.frameHardware == NULL) ||
+		(LVP_Player::videoContext.frameSoftware == NULL) ||
+		(LVP_Player::videoContext.frameRate <= 0))
+	{
 		throw std::exception("Failed to allocate a video context frame.");
+	}
 
 	if (LVP_Player::videoContext.frameEncoded != NULL)
 		LVP_Player::videoContext.frameEncoded->linesize[0] = 0;
@@ -1502,7 +1518,10 @@ void MediaPlayer::LVP_Player::renderVideo()
 	auto& frameEncoded = LVP_Player::videoContext.frameEncoded;
 	auto& texture      = LVP_Player::videoContext.texture;
 
-	auto pixelFormat = LVP_Player::videoContext.codec->pix_fmt;
+	if (frame == NULL)
+		return;
+
+	auto pixelFormat = (LibFFmpeg::AVPixelFormat)frame->format;
 
 	if (!IS_VALID_TEXTURE(texture))
 	{
@@ -2404,8 +2423,11 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 
 int MediaPlayer::LVP_Player::threadVideo(void* userData)
 {
-	auto& videoFrame     = LVP_Player::videoContext.frame;
-	auto  videoStream    = LVP_Player::videoContext.stream;
+	auto& videoFrame         = LVP_Player::videoContext.frame;
+	auto& videoFrameHardware = LVP_Player::videoContext.frameHardware;
+	auto& videoFrameSoftware = LVP_Player::videoContext.frameSoftware;
+
+	auto videoStream = LVP_Player::videoContext.stream;
 
 	int  errorCount                  = 0;
 	auto videoFrameDuration2x        = (int)(LVP_Player::videoContext.frameRate * 2.0 * (double)ONE_SECOND_MS);
@@ -2435,12 +2457,24 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 		}
 
 		// Get decoded frame
-		result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext.codec, videoFrame);
+		result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext.codec, videoFrameHardware);
 
 		FREE_AVPACKET(packet);
 
 		if (LVP_Player::state.quit)
 			break;
+
+		if ((LibFFmpeg::AVPixelFormat)videoFrameHardware->format == LVP_Player::videoContext.pixelFormatHardware)
+		{
+			result = LibFFmpeg::av_hwframe_transfer_data(videoFrameSoftware, videoFrameHardware, 0);
+
+			videoFrameSoftware->best_effort_timestamp = videoFrameHardware->best_effort_timestamp;
+
+			videoFrame = videoFrameSoftware;
+
+		} else {
+			videoFrame = videoFrameHardware;
+		}
 
 		if ((result < 0) || !AVFRAME_IS_VALID(videoFrame))
 		{
@@ -2461,7 +2495,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 			errorCount++;
 
 			if (LVP_Player::state.progress > 1.0) {
-				av_frame_unref(videoFrame);
+				LibFFmpeg::av_frame_unref(videoFrame);
 				videoFrame = LibFFmpeg::av_frame_alloc();
 			}
 

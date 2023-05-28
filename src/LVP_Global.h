@@ -253,6 +253,7 @@ namespace LibVoyaPlayer
 			SDL_mutex*                 mutex;
 			LVP_Packets                packets;
 			bool                       packetsAvailable;
+			LibFFmpeg::AVPixelFormat   pixelFormatHardware;
 			LibFFmpeg::AVStream*       stream;
 
 			LVP_MediaContext()
@@ -262,12 +263,13 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
-				this->codec            = NULL;
-				this->condition        = NULL;
-				this->index            = -1;
-				this->mutex            = NULL;
-				this->packetsAvailable = true;
-				this->stream           = NULL;
+				this->codec               = NULL;
+				this->condition           = NULL;
+				this->index               = -1;
+				this->mutex               = NULL;
+				this->packetsAvailable    = true;
+				this->pixelFormatHardware = LibFFmpeg::AV_PIX_FMT_NONE;
+				this->stream              = NULL;
 			}
 		};
 
@@ -397,6 +399,8 @@ namespace LibVoyaPlayer
 		{
 			LibFFmpeg::AVFrame*    frame;
 			LibFFmpeg::AVFrame*    frameEncoded;
+			LibFFmpeg::AVFrame*    frameHardware;
+			LibFFmpeg::AVFrame*    frameSoftware;
 			double                 frameRate;
 			bool                   isReadyForRender;
 			bool                   isReadyForPresent;
@@ -413,6 +417,8 @@ namespace LibVoyaPlayer
 			{
 				this->frame             = NULL;
 				this->frameEncoded      = NULL;
+				this->frameHardware     = NULL;
+				this->frameSoftware     = NULL;
 				this->frameRate         = 0.0;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
