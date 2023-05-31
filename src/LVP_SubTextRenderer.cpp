@@ -245,18 +245,21 @@ void MediaPlayer::LVP_SubTextRenderer::formatDrawCommand(
 	// Custom draw operation (fill rect)
 	if (subText.find("\\p1") != std::string::npos)
 	{
-		LVP_SubStyle* style    = LVP_SubTextRenderer::getSubStyle(subContext.styles, subSplit);
-		SDL_Rect      drawRect = LVP_SubTextRenderer::getDrawRect(subText, style);
+		auto defaultStyle = LVP_SubTextRenderer::getSubStyle(subContext.styles, subSplit);
+		auto style        = (defaultStyle != NULL ? new LVP_SubStyle(*defaultStyle) : NULL);
+		auto drawRect     = LVP_SubTextRenderer::getDrawRect(subText, style);
 
 		if (!SDL_RectEmpty(&drawRect))
 		{
-			LVP_Subtitle* sub = new LVP_Subtitle();
+			auto sub = new LVP_Subtitle();
 
 			sub->id       = subID;
 			sub->drawRect = drawRect;
-			sub->style    = new LVP_SubStyle(*style);
+			sub->style    = style;
 
 			subs.push_back(sub);
+		} else {
+			DELETE_POINTER(style);
 		}
 	}
 }
@@ -741,9 +744,17 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 		}
 	}
 
-	LVP_SubAlignment alignment  = (style != NULL ? style->alignment : SUB_ALIGN_TOP_LEFT);
-	SDL_FPoint       fontScale  = (style != NULL ? style->fontScale : SDL_FPoint { 1.0f, 1.0f });
-	Strings          styleProps = System::LVP_Text::Split(subLine, "\\");
+	drawRect.x = minDrawPosition.x;
+	drawRect.y = minDrawPosition.y;
+	drawRect.w = (max(maxDrawPosition.x, drawRect.x) - drawRect.x);
+	drawRect.h = (max(maxDrawPosition.y, drawRect.y) - drawRect.y);
+
+	if (style == NULL)
+		return drawRect;
+
+	auto alignment  = style->alignment;
+	auto fontScale  = style->fontScale;
+	auto styleProps = System::LVP_Text::Split(subLine, "\\");
 
 	// {\pos(0,0)\an7\1c&HD9F0F5&\p1}m 1494 212 l 1494 398 383 411 374 209{\p0}
 	for (const auto &prop : styleProps)
@@ -788,13 +799,6 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 		drawRect.y = (startPosition.y + minDrawPosition.y);
 		drawRect.w = (max(startPosition.x + maxDrawPosition.x, drawRect.x) - drawRect.x);
 		drawRect.h = (max(startPosition.y + maxDrawPosition.y, drawRect.y) - drawRect.y);
-	}
-	else
-	{
-		drawRect.x = minDrawPosition.x;
-		drawRect.y = minDrawPosition.y;
-		drawRect.w = (max(maxDrawPosition.x, drawRect.x) - drawRect.x);
-		drawRect.h = (max(maxDrawPosition.y, drawRect.y) - drawRect.y);
 	}
 
 	if (fontScale.x > MIN_FLOAT_ZERO)
@@ -1693,7 +1697,7 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByWidth(const Stri
 	return subStrings16;
 }
 
-// http://docs.aegisub.org/3.2/ASS_Tags/
+// https://aegi.vmoe.info/docs/3.0/ASS_Tags/
 // https://en.wikipedia.org/wiki/SubStation_Alpha
 MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(const Strings &subTexts, LVP_SubtitleContext &subContext)
 {
@@ -1716,12 +1720,12 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 		if (dialogueSplit.size() < SUB_DIALOGUE_TEXT)
 			continue;
 
-		auto subStyle = LVP_SubTextRenderer::getSubStyle(subContext.styles, dialogueSplit);
-		auto subText  = LVP_SubTextRenderer::getSubText(dialogueLine, subContext.styles.size());
-		auto subID    = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
+		auto defaultStyle = LVP_SubTextRenderer::getSubStyle(subContext.styles, dialogueSplit);
+		auto subText      = LVP_SubTextRenderer::getSubText(dialogueLine, subContext.styles.size());
+		auto subID        = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
 
 		// Split by partial formatting ({\f1}t1{\f2}t2)
-		Strings subLines = LVP_SubTextRenderer::formatSplitStyling(subText, subStyle, subContext);
+		Strings subLines = LVP_SubTextRenderer::formatSplitStyling(subText, defaultStyle, subContext);
 
 		for (auto &subLine : subLines)
 		{
@@ -1748,7 +1752,7 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 				subLine = subLine.substr(0, subLine.size() - 1);
 
 			// Set sub style
-			sub->style = new LVP_SubStyle(*subStyle);
+			sub->style = new LVP_SubStyle(*defaultStyle);
 
 			// Set sub rotation from style
 			sub->rotation = sub->style->rotation;

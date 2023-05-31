@@ -2536,14 +2536,11 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 
 		auto sleepTime = (int)((LVP_Player::videoContext.pts - LVP_Player::state.progress) * (double)ONE_SECOND_MS);
 
-		// Video is ahead of audio, skip or speed up.
-		if (sleepTime < 0)
-			continue;
-
 		LVP_Player::videoContext.isReadyForRender = true;
 
 		// Video is behind audio, wait or slow down.
-		SDL_Delay(min(sleepTime, videoFrameDuration2x));
+		if (sleepTime > 0)
+			SDL_Delay(min(sleepTime, videoFrameDuration2x));
 
 		LVP_Player::videoContext.isReadyForPresent = true;
 	}
