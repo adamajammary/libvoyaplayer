@@ -631,6 +631,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 		LVP_Player::audioContext.writtenToStream = 0;
 		LVP_Player::audioContext.decodeFrame     = true;
 		LVP_Player::audioContext.lastPogress     = 0.0;
+		LVP_Player::subContext.pts               = {};
 		LVP_Player::videoContext.pts             = 0.0;
 
 		if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
@@ -1339,11 +1340,17 @@ void MediaPlayer::LVP_Player::presentSoftwareRenderer()
 
 void MediaPlayer::LVP_Player::removeExpiredSubs()
 {
+	bool isReadyForRender  = false;
+	bool isReadyForPresent = false;
+
 	for (auto subIter = LVP_Player::subContext.subs.begin(); subIter != LVP_Player::subContext.subs.end();)
 	{
 		auto sub = *subIter;
 		
-		if (!sub->isExpired(LVP_Player::subContext, LVP_Player::state.progress)) {
+		bool isExpired = sub->isExpiredPTS(LVP_Player::subContext, LVP_Player::state.progress);
+		bool isSeeked  = sub->isSeekedPTS(LVP_Player::subContext);
+
+		if (!isExpired && !isSeeked) {
 			subIter++;
 			continue;
 		}
@@ -1353,7 +1360,28 @@ void MediaPlayer::LVP_Player::removeExpiredSubs()
 
 		subIter = LVP_Player::subContext.subs.erase(subIter);
 
+		isReadyForRender = true;
+
+		if (isSeeked)
+			isReadyForPresent = true;
+	}
+
+	if (isReadyForRender)
 		LVP_Player::subContext.isReadyForRender = true;
+
+	if (isReadyForPresent && LVP_Player::subContext.subs.empty())
+	{
+		auto renderTarget = SDL_GetRenderTarget(LVP_Player::renderContext.renderer);
+
+		if (IS_VALID_TEXTURE(LVP_Player::subContext.textureCurrent))
+			LVP_Player::clearSubTexture(LVP_Player::subContext.textureCurrent->data);
+
+		if (IS_VALID_TEXTURE(LVP_Player::subContext.textureNext))
+			LVP_Player::clearSubTexture(LVP_Player::subContext.textureNext->data);
+
+		SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
+
+		LVP_Player::subContext.isReadyForPresent = true;
 	}
 }
 
@@ -2374,10 +2402,10 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		if (LVP_Player::seekRequested || LVP_Player::state.quit)
 			continue;
 
-		LVP_Player::subContext.pts         = pts;
-		LVP_Player::subContext.timeToSleep = (pts.start - LVP_Player::state.progress);
+		LVP_Player::subContext.pts = pts;
 
-		auto timeToSleepMs = (int)(LVP_Player::subContext.timeToSleep * (double)ONE_SECOND_MS);
+		auto timeToSleep   = (pts.start - LVP_Player::state.progress);
+		auto timeToSleepMs = (int)(timeToSleep * (double)ONE_SECOND_MS);
 
 		// Sub is ahead of audio, skip or speed up.
 		if (timeToSleepMs < 0)

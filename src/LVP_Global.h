@@ -364,7 +364,6 @@ namespace LibVoyaPlayer
 			Graphics::LVP_Texture*      textureCurrent;
 			Graphics::LVP_Texture*      textureNext;
 			SDL_Thread*                 thread;
-			double                      timeToSleep;
 			LibFFmpeg::AVSubtitleType   type;
 			SDL_Rect                    videoDimensions;
 
@@ -388,7 +387,6 @@ namespace LibVoyaPlayer
 				this->textureNext       = NULL;
 				this->thread            = NULL;
 				this->type              = LibFFmpeg::SUBTITLE_NONE;
-				this->timeToSleep       = 0.0;
 				this->videoDimensions   = {};
 
 				this->external.clear();
