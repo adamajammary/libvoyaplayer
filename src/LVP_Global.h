@@ -205,6 +205,9 @@ namespace LibVoyaPlayer
 		const uint32_t SUB_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_ARGB8888;
 		const int      SUB_STREAM_EXTERNAL     = 1000;
 
+		const auto     VIDEO_PIXEL_FORMAT_FFMPEG = LibFFmpeg::AV_PIX_FMT_YUV420P;
+		const uint32_t VIDEO_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_YV12;
+
 		class LVP_Subtitle;
 		class LVP_SubStyle;
 

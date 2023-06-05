@@ -156,13 +156,10 @@ namespace LibVoyaPlayer
 			static std::vector<LVP_MediaTrack> getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, bool isSubsExternal = false);
 			static SDL_Rect*                   getScaledVideoDestination(const SDL_Rect* destination);
 			static SDL_YUV_CONVERSION_MODE     getSdlYuvConversionMode(LibFFmpeg::AVFrame* frame);
-			static uint32_t                    getVideoPixelFormat(LibFFmpeg::AVPixelFormat pixelFormat);
-			static LibFFmpeg::AVPixelFormat    getVideoPixelFormat(uint32_t pixelFormat);
 			static void                        handleSeek();
 			static void                        initSubTextures();
 			static bool                        isPacketQueueFull();
 			static bool                        isPacketQueueFull(LibFFmpeg::AVMediaType streamType);
-			static bool                        isYUV(LibFFmpeg::AVPixelFormat pixelFormat);
 			static void                        openAudioDevice(const SDL_AudioSpec &wantedSpecs);
 			static void                        openFormatContext(const std::string &filePath);
 			static void                        openStreams();

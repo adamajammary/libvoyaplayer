@@ -571,45 +571,6 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks(LibFFmpeg::A
 	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO, context);
 }
 
-uint32_t MediaPlayer::LVP_Player::getVideoPixelFormat(LibFFmpeg::AVPixelFormat pixelFormat)
-{
-	// https://wiki.videolan.org/YUV/
-	switch (pixelFormat) {
-	case LibFFmpeg::AV_PIX_FMT_YUV420P:
-	case LibFFmpeg::AV_PIX_FMT_YUVJ420P:
-		return SDL_PIXELFORMAT_YV12;
-	case LibFFmpeg::AV_PIX_FMT_YUYV422:
-		return SDL_PIXELFORMAT_YUY2;
-	case LibFFmpeg::AV_PIX_FMT_UYVY422:
-		return SDL_PIXELFORMAT_UYVY;
-	case LibFFmpeg::AV_PIX_FMT_YVYU422:
-		return SDL_PIXELFORMAT_YVYU;
-	case LibFFmpeg::AV_PIX_FMT_NV12:
-		return SDL_PIXELFORMAT_NV12;
-	case LibFFmpeg::AV_PIX_FMT_NV21:
-		return SDL_PIXELFORMAT_NV21;
-	default:
-		break;
-	}
-
-	return SDL_PIXELFORMAT_YV12;
-}
-
-LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::getVideoPixelFormat(uint32_t pixelFormat)
-{
-	switch (pixelFormat) {
-		case SDL_PIXELFORMAT_YV12: return LibFFmpeg::AV_PIX_FMT_YUV420P;
-		case SDL_PIXELFORMAT_YUY2: return LibFFmpeg::AV_PIX_FMT_YUYV422;
-		case SDL_PIXELFORMAT_UYVY: return LibFFmpeg::AV_PIX_FMT_UYVY422;
-		case SDL_PIXELFORMAT_YVYU: return LibFFmpeg::AV_PIX_FMT_YVYU422;
-		case SDL_PIXELFORMAT_NV12: return LibFFmpeg::AV_PIX_FMT_NV12;
-		case SDL_PIXELFORMAT_NV21: return LibFFmpeg::AV_PIX_FMT_NV21;
-		default: break;
-	}
-
-	return LibFFmpeg::AV_PIX_FMT_YUV420P;
-}
-
 double MediaPlayer::LVP_Player::GetVolume()
 {
 	return (double)((double)LVP_Player::audioContext.volume / (double)SDL_MIX_MAXVOLUME);
@@ -733,24 +694,6 @@ bool MediaPlayer::LVP_Player::isPacketQueueFull(LibFFmpeg::AVMediaType streamTyp
 bool MediaPlayer::LVP_Player::IsStopped()
 {
 	return LVP_Player::state.isStopped;
-}
-
-bool MediaPlayer::LVP_Player::isYUV(LibFFmpeg::AVPixelFormat pixelFormat)
-{
-	switch (pixelFormat) {
-	case LibFFmpeg::AV_PIX_FMT_YUV420P:
-	case LibFFmpeg::AV_PIX_FMT_YUVJ420P:
-	case LibFFmpeg::AV_PIX_FMT_YUYV422:
-	case LibFFmpeg::AV_PIX_FMT_UYVY422:
-	case LibFFmpeg::AV_PIX_FMT_YVYU422:
-	case LibFFmpeg::AV_PIX_FMT_NV12:
-	case LibFFmpeg::AV_PIX_FMT_NV21:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
 }
 
 /**
@@ -1550,14 +1493,12 @@ void MediaPlayer::LVP_Player::renderVideo()
 		return;
 
 	auto pixelFormat = (LibFFmpeg::AVPixelFormat)frame->format;
+	bool isYUV420P   = (pixelFormat == VIDEO_PIXEL_FORMAT_FFMPEG);
 
 	if (!IS_VALID_TEXTURE(texture))
 	{
-		auto sdlPixelFormat    = LVP_Player::getVideoPixelFormat(pixelFormat);
-		auto ffmpegPixelFormat = LVP_Player::getVideoPixelFormat(sdlPixelFormat);
-
 		texture = new Graphics::LVP_Texture(
-			sdlPixelFormat,
+			VIDEO_PIXEL_FORMAT_SDL,
 			SDL_TEXTUREACCESS_STREAMING,
 			frame->width,
 			frame->height,
@@ -1579,7 +1520,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 		LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
 
-		if ((pixelFormat == LibFFmpeg::AV_PIX_FMT_YUV420P) || !IS_VALID_TEXTURE(texture))
+		if (isYUV420P || !IS_VALID_TEXTURE(texture))
 			return;
 
 		// Create a scaling context for non-YUV420P videos
@@ -1591,14 +1532,14 @@ void MediaPlayer::LVP_Player::renderVideo()
 			frameEncoded->linesize,
 			frame->width,
 			frame->height,
-			ffmpegPixelFormat,
+			VIDEO_PIXEL_FORMAT_FFMPEG,
 			24
 		);
 
 		LVP_Player::renderContext.scaleContextVideo = sws_getCachedContext(
 			LVP_Player::renderContext.scaleContextVideo,
 			frame->width, frame->height, pixelFormat,
-			frame->width, frame->height, ffmpegPixelFormat,
+			frame->width, frame->height, VIDEO_PIXEL_FORMAT_FFMPEG,
 			DEFAULT_SCALE_FILTER, NULL, NULL, NULL
 		);
 					
@@ -1612,7 +1553,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 		return;
 
 	// YUV420P VIDEOS - Copy the frame directly to the texture
-	if (LVP_Player::isYUV(pixelFormat))
+	if (isYUV420P)
 	{
 		SDL_UpdateYUVTexture(
 			texture->data, NULL,
