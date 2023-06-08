@@ -592,6 +592,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 		LVP_Player::audioContext.writtenToStream = 0;
 		LVP_Player::audioContext.decodeFrame     = true;
 		LVP_Player::audioContext.lastPogress     = 0.0;
+		LVP_Player::subContext.nextPTS           = {};
 		LVP_Player::subContext.pts               = {};
 		LVP_Player::videoContext.pts             = 0.0;
 
@@ -2336,6 +2337,8 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
 		bool isNextPTS = ((pts.start >= LVP_Player::subContext.pts.end) && (pts.end > LVP_Player::subContext.pts.end));
+
+		LVP_Player::subContext.nextPTS = pts;
 
 		while (LVP_Player::subContext.isReadyForPresent && isNextPTS && !LVP_Player::seekRequested && !LVP_Player::state.quit)
 			SDL_Delay(1);

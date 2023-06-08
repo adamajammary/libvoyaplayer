@@ -356,6 +356,7 @@ namespace LibVoyaPlayer
 			LibFFmpeg::AVFormatContext* formatContext;
 			bool                        isReadyForRender;
 			bool                        isReadyForPresent;
+			LVP_SubPTS                  nextPTS;
 			LVP_SubPTS                  pts;
 			SDL_FPoint                  scale;
 			SDL_Point                   size;
@@ -381,6 +382,7 @@ namespace LibVoyaPlayer
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
+				this->nextPTS           = {};
 				this->pts               = {};
 				this->scale             = { 1.0f, 1.0f };
 				this->size              = {};
