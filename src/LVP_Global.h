@@ -180,6 +180,7 @@ namespace LibVoyaPlayer
 
 		const int    DELAY_TIME_BACKGROUND = 200;
 		const int    DELAY_TIME_DEFAULT    = 15;
+		const double DELAY_TIME_DEFAULT_S  = 0.015;
 		const int    DELAY_TIME_ONE_MS     = 1;
 		
 		const double FONT_DPI_SCALE = (76.0 / 96.0);
@@ -190,10 +191,9 @@ namespace LibVoyaPlayer
 			const char FONT_ARIAL[] = "Arial";
 		#endif
 
-		const int    MAX_ERRORS          = 100;
-		const int    MAX_FONT_SIZE       = 200;
-		const double MAX_SUB_DURATION    = 20.0;
-		const int    MAX_SUB_DURATION_MS = 20000;
+		const int    MAX_ERRORS       = 100;
+		const int    MAX_FONT_SIZE    = 200;
+		const double MAX_SUB_DURATION = 20.0;
 
 		const float MIN_FLOAT_ZERO        = 0.01f;
 		const int   MIN_PACKET_QUEUE_SIZE = 25;
@@ -356,6 +356,7 @@ namespace LibVoyaPlayer
 			LibFFmpeg::AVFormatContext* formatContext;
 			bool                        isReadyForRender;
 			bool                        isReadyForPresent;
+			LVP_SubPTS                  currentPTS;
 			LVP_SubPTS                  nextPTS;
 			LVP_SubPTS                  pts;
 			SDL_FPoint                  scale;
@@ -382,6 +383,7 @@ namespace LibVoyaPlayer
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
+				this->currentPTS        = {};
 				this->nextPTS           = {};
 				this->pts               = {};
 				this->scale             = { 1.0f, 1.0f };

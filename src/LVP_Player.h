@@ -142,6 +142,7 @@ namespace LibVoyaPlayer
 			static void                        callbackEvents(LVP_EventType type);
 			static void                        callbackVideoIsAvailable(SDL_Surface* surface);
 			static void                        clearSubTexture(SDL_Texture* texture);
+			static void                        clearSubTextures(bool current = true, bool next = true);
 			static void                        clearSubs();
 			static void                        closeAudio();
 			static void                        closePackets();
