@@ -27,7 +27,7 @@ namespace LibVoyaPlayer
 			static bool        IsBlurayAACS(const std::string &filePath, size_t fileSize);
 			static bool        IsConcat(const std::string &filePath);
 			static bool        IsDVDCSS(const std::string &filePath, size_t fileSize);
-			static bool        IsMediaFile(const std::string &filePath);
+			static bool        IsSystemFile(const std::string &fileName);
 
 			#if defined _windows
 				static SDL_RWops* FileOpenSDLRWops(FILE* file);
@@ -39,7 +39,6 @@ namespace LibVoyaPlayer
 			static std::string getFileName(const std::string &filePath, bool removeExtension);
 			static bool        hasFileExtension(const std::string &filePath);
 			static bool        isSubtitleFile(const std::string &filePath);
-			static bool        isSystemFile(const std::string &fileName);
 
 			#if defined _windows
 				static int SDLCALL    SDL_RW_Close(SDL_RWops* rwops);

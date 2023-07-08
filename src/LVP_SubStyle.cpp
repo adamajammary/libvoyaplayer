@@ -95,7 +95,6 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 
 		this->rotation = (std::atof(data[SUB_STYLE_V4PLUS_FONT_ROTATION_ANGLE].c_str()) * -1.0f);
 
-
 		break;
 	// Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour,
 	// Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV,
@@ -249,34 +248,21 @@ TTF_Font* MediaPlayer::LVP_SubStyle::openFontArial(int fontSize)
 	if (fontSize < 1)
 		return NULL;
 
+	TTF_Font* font = NULL;
+
 	#if defined _android
-		auto font = OPEN_FONT("/system/fonts/Arial.ttf", fontSize);
+		font = OPEN_FONT("/system/fonts/DroidSans.ttf", fontSize);
 	#elif defined _ios
-		auto font = OPEN_FONT("/System/Library/Fonts/Cache/Arial.ttf", fontSize);
+		font = OPEN_FONT("/System/Library/Fonts/Cache/arialuni.ttf", fontSize);
 	#elif defined _linux
-		auto font = OPEN_FONT("/usr/share/fonts/truetype/msttcorefonts/arial.ttf", fontSize);
-	#elif defined  _macosx
-		auto font = OPEN_FONT("/Library/Fonts/Arial.ttf", fontSize);
-	#elif defined _windows
-		auto font = OPEN_FONT(L"C:\\Windows\\Fonts\\ARIALUNI.TTF", fontSize);
-	#endif
-
-	if (font != NULL)
-		return font;
-
-	#if defined _linux
-		font = OPEN_FONT("/usr/share/fonts/liberation/LiberationSans-Regular.ttf", fontSize);
-
-		if (font != NULL)
-			return font;
-
 		font = OPEN_FONT("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", fontSize);
-
-		if (font != NULL)
-			return font;
+	#elif defined  _macosx
+		font = OPEN_FONT("/System/Library/Fonts/Supplemental/Arial Unicode.ttf", fontSize);
+	#elif defined _windows
+		font = OPEN_FONT(L"C:\\Windows\\Fonts\\ARIALUNI.TTF", fontSize);
 	#endif
 
-	return NULL;
+	return font;
 }
 
 TTF_Font* MediaPlayer::LVP_SubStyle::openFontInternal(const LVP_SubtitleContext &subContext, int fontSize)

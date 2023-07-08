@@ -3,6 +3,9 @@
 #include "TestPlayer.h"
 #include "TestWindow.h"
 
+const int MS_PER_FRAME_FPS60 = (1000 / 60);
+const int MS_PER_FRAME_IDLE  = 200;
+
 bool QUIT = false;
 
 void handleOpenUI()
@@ -298,6 +301,16 @@ void handleWindowEvent(const SDL_WindowEvent &event)
     }
 }
 
+int getSleepTime(uint32_t frameStart)
+{
+    auto timeToRenderFrame = (int)(SDL_GetTicks() - frameStart);
+    bool use60FPS          = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
+    auto timePerFrame      = (use60FPS ? MS_PER_FRAME_FPS60 : MS_PER_FRAME_IDLE);
+    auto sleepTime         = (timePerFrame - timeToRenderFrame);
+
+    return sleepTime;
+}
+
 void handleEvents()
 {
     SDL_Event event = {};
@@ -305,6 +318,10 @@ void handleEvents()
     while (SDL_PollEvent(&event))
     {
         switch (event.type) {
+        case SDL_AUDIODEVICEADDED:
+            break;
+        case SDL_AUDIODEVICEREMOVED:
+            break;
         case SDL_DROPFILE:
             handleDropFileEvent(event);
             break;
@@ -364,6 +381,7 @@ void render()
 
     SDL_RenderPresent(renderer);
 }
+
 #if defined _windows && defined _DEBUG
 int wmain(int argc, wchar_t* argv[])
 #elif defined _windows && defined NDEBUG
@@ -372,49 +390,48 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 int SDL_main(int argc, char* argv[])
 #endif
 {
-    try {
+    try
+    {
         init();
-    } catch (const std::exception &e) {
-        std::fprintf(stderr, e.what());
 
+        const int MS_PER_FRAME_FPS60 = (1000 / 60);
+        const int MS_PER_FRAME_IDLE  = 200;
+
+        auto startTime = SDL_GetTicks();
+
+        while (!QUIT)
+        {
+            auto frameStart = SDL_GetTicks();
+
+            handleEvents();
+
+            auto deltaTime = (SDL_GetTicks() - startTime);
+
+            TestWindow::UpdateUI(deltaTime);
+
+            if (deltaTime >= UI_UDPATE_RATE_MS)
+                startTime = SDL_GetTicks();
+
+            if (QUIT)
+                break;
+
+            render();
+
+            auto sleepTime = getSleepTime(frameStart);
+
+            if (sleepTime > 0)
+                SDL_Delay(sleepTime);
+        }
+
+        quit();
+    }
+    catch (const std::exception& e)
+    {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "testvoyaplayer", e.what(), NULL);
         quit();
 
         return 1;
     }
-
-    const int MS_PER_FRAME_FPS60 = (1000 / 60);
-    const int MS_PER_FRAME_IDLE  = 200;
-
-    auto startTime = SDL_GetTicks();
-
-    while (!QUIT)
-    {
-        auto frameStart = SDL_GetTicks();
-
-        handleEvents();
-
-        auto deltaTime = (SDL_GetTicks() - startTime);
-
-        TestWindow::UpdateUI(deltaTime);
-
-        if (deltaTime >= UI_UDPATE_RATE_MS)
-            startTime = SDL_GetTicks();
-
-        if (QUIT)
-            break;
-
-        render();
-
-        auto timeToRenderFrame = (SDL_GetTicks() - frameStart);
-        bool use60FPS          = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
-        auto timePerFrame      = (use60FPS ? MS_PER_FRAME_FPS60 : MS_PER_FRAME_IDLE);
-        auto sleepTime         = (int)(timePerFrame - (int)timeToRenderFrame);
-
-        if (sleepTime > 0)
-            SDL_Delay(sleepTime);
-    }
-
-    quit();
 
     return 0;
 }

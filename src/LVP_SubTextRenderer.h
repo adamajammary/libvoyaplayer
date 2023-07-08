@@ -39,7 +39,6 @@ namespace LibVoyaPlayer
 		public:
 			static std::string   RemoveFormatting(const std::string &subtitleString);
 			static void          RemoveSubs(size_t id);
-			static void          RemoveSubsBottom();
 			static void          Render(SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static LVP_Subtitles SplitAndFormatSub(const Strings &subTexts, LVP_SubtitleContext &subContext);
 
@@ -60,9 +59,8 @@ namespace LibVoyaPlayer
 			static void                      handleSubCollisions(const Graphics::LVP_SubTextureId &subTextures, const Graphics::LVP_SubTexturesId &subs);
 			static void                      handleSubsOutOfBound(const Graphics::LVP_SubTextureId &subTextures);
 			static std::string               removeInvalidFormatting(const std::string &subtitleString);
-			static void                      removeSubs(Graphics::LVP_SubTexturesId &subs);
 			static void                      removeSubs(Graphics::LVP_SubTexturesId &subs, size_t id);
-			static void                      renderSub(Graphics::LVP_SubTexture* subTexture, SDL_Renderer* renderer);
+			static void                      renderSub(Graphics::LVP_SubTexture* subTexture, SDL_Renderer* renderer, const LVP_SubtitleContext &subContext);
 			static void                      renderSubBorderShadow(Graphics::LVP_SubTexture* subTexture, SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static void                      renderSubs(Graphics::LVP_SubTexturesId &subs, SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static void                      setSubPositionAbsolute(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext);

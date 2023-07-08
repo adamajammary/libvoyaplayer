@@ -58,8 +58,22 @@ void MediaPlayer::LVP_Player::clearSubTexture(SDL_Texture* texture)
 	SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, texture);
 
+	SDL_SetRenderDrawBlendMode(LVP_Player::renderContext.renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(LVP_Player::renderContext.renderer, 0, 0, 0, 0);
 	SDL_RenderClear(LVP_Player::renderContext.renderer);
+}
+
+void MediaPlayer::LVP_Player::clearSubTextures(bool current, bool next)
+{
+	auto renderTarget = SDL_GetRenderTarget(LVP_Player::renderContext.renderer);
+
+	if (current && IS_VALID_TEXTURE(LVP_Player::subContext.textureCurrent))
+		LVP_Player::clearSubTexture(LVP_Player::subContext.textureCurrent->data);
+
+	if (next && IS_VALID_TEXTURE(LVP_Player::subContext.textureNext))
+		LVP_Player::clearSubTexture(LVP_Player::subContext.textureNext->data);
+
+	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
 }
 
 void MediaPlayer::LVP_Player::clearSubs()
@@ -119,6 +133,14 @@ void MediaPlayer::LVP_Player::closeAudio()
 	FREE_SWR(LVP_Player::audioContext.resampleContext);
 	FREE_THREAD_COND(LVP_Player::audioContext.condition);
 	FREE_THREAD_MUTEX(LVP_Player::audioContext.mutex);
+	
+	if (strcmp(SDL_GetCurrentAudioDriver(), "dummy") == 0)
+	{
+		SDL_AudioQuit();
+		SDL_setenv("SDL_AUDIODRIVER", "", 1);
+		SDL_AudioInit(NULL);
+	}
+
 }
 
 void MediaPlayer::LVP_Player::closePackets()
@@ -196,7 +218,8 @@ void MediaPlayer::LVP_Player::closeVideo()
 	if ((LVP_Player::videoContext.index < 0) || (LVP_Player::videoContext.stream == NULL))
 		return;
 
-	FREE_AVFRAME(LVP_Player::videoContext.frame);
+	FREE_AVFRAME(LVP_Player::videoContext.frameSoftware);
+	FREE_AVFRAME(LVP_Player::videoContext.frameHardware);
 	FREE_AVFRAME(LVP_Player::videoContext.frameEncoded);
 	DELETE_POINTER(LVP_Player::videoContext.texture);
 	FREE_SWS(LVP_Player::renderContext.scaleContextVideo);
@@ -260,9 +283,11 @@ int MediaPlayer::LVP_Player::GetAudioTrack()
 	return LVP_Player::audioContext.index;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks()
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks(LibFFmpeg::AVFormatContext* formatContext)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto context = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
+
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO, context);
 }
 
 std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
@@ -367,26 +392,53 @@ MediaPlayer::LVP_FontFaceMap MediaPlayer::LVP_Player::getFontFaces(LibFFmpeg::AV
 	return fontFaces;
 }
 
-LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
+LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 {
+	if (LVP_Player::state.isStopped)
+		return {};
+
 	return
 	{
+		.duration       = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext.stream),
+		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::formatContext->url),
+		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
+		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
-		.videoTracks    = LVP_Player::GetVideoTracks(),
-		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext)
+		.videoTracks    = LVP_Player::GetVideoTracks()
 	};
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType)
+LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto audioStream   = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+
+	LVP_MediaDetails details =
+	{
+		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
+		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
+		.mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext),
+		.meta           = LVP_Media::GetMediaMeta(formatContext),
+		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
+		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
+		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
+	};
+
+	FREE_AVFORMAT(formatContext);
+
+	return details;
+}
+
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
 {
 	std::vector<LVP_MediaTrack> tracks;
 
 	// DISABLE SUBS
 
-	if (IS_SUB(mediaType) && LVP_Media::HasSubtitleTracks(LVP_Player::formatContext, LVP_Player::formatContextExternal))
+	if (IS_SUB(mediaType) && LVP_Media::HasSubtitleTracks(formatContext, formatContextExternal))
 	{
-		std::unordered_map<std::string, std::string> trackMeta;
+		std::map<std::string, std::string> trackMeta;
 
 		trackMeta["title"] = "Disable";
 
@@ -399,7 +451,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::A
 
 	// MEDIA TRACKS
 
-	auto mediaTracks = LVP_Player::getMediaTracksMeta(LVP_Player::formatContext, mediaType);
+	auto mediaTracks = LVP_Player::getMediaTracksMeta(formatContext, mediaType);
 
 	tracks.insert(tracks.end(), mediaTracks.begin(), mediaTracks.end());
 
@@ -407,7 +459,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::A
 
 	if (IS_SUB(mediaType))
 	{
-		auto externalSubTracks = LVP_Player::getMediaTracksMeta(LVP_Player::formatContextExternal, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, true);
+		auto externalSubTracks = LVP_Player::getMediaTracksMeta(formatContextExternal, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, true);
 
 		tracks.insert(tracks.end(), externalSubTracks.begin(), externalSubTracks.end());
 	}
@@ -443,6 +495,11 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpe
 LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 {
 	return (LVP_MediaType)LVP_Player::state.mediaType;
+}
+
+LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
+{
+	return LVP_Player::videoContext.pixelFormatHardware;
 }
 
 double MediaPlayer::LVP_Player::GetPlaybackSpeed()
@@ -512,53 +569,19 @@ int MediaPlayer::LVP_Player::GetSubtitleTrack()
 	return LVP_Player::subContext.index;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks()
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+	auto context       = (formatContext         != NULL ? formatContext         : LVP_Player::formatContext);
+	auto extSubContext = (formatContextExternal != NULL ? formatContextExternal : LVP_Player::formatContextExternal);
+
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, context, extSubContext);
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks()
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO);
-}
+	auto context = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
 
-uint32_t MediaPlayer::LVP_Player::getVideoPixelFormat(LibFFmpeg::AVPixelFormat pixelFormat)
-{
-	// https://wiki.videolan.org/YUV/
-	switch (pixelFormat) {
-	case LibFFmpeg::AV_PIX_FMT_YUV420P:
-	case LibFFmpeg::AV_PIX_FMT_YUVJ420P:
-		return SDL_PIXELFORMAT_YV12;
-	case LibFFmpeg::AV_PIX_FMT_YUYV422:
-		return SDL_PIXELFORMAT_YUY2;
-	case LibFFmpeg::AV_PIX_FMT_UYVY422:
-		return SDL_PIXELFORMAT_UYVY;
-	case LibFFmpeg::AV_PIX_FMT_YVYU422:
-		return SDL_PIXELFORMAT_YVYU;
-	case LibFFmpeg::AV_PIX_FMT_NV12:
-		return SDL_PIXELFORMAT_NV12;
-	case LibFFmpeg::AV_PIX_FMT_NV21:
-		return SDL_PIXELFORMAT_NV21;
-	default:
-		break;
-	}
-
-	return SDL_PIXELFORMAT_YV12;
-}
-
-LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::getVideoPixelFormat(uint32_t pixelFormat)
-{
-	switch (pixelFormat) {
-		case SDL_PIXELFORMAT_YV12: return LibFFmpeg::AV_PIX_FMT_YUV420P;
-		case SDL_PIXELFORMAT_YUY2: return LibFFmpeg::AV_PIX_FMT_YUYV422;
-		case SDL_PIXELFORMAT_UYVY: return LibFFmpeg::AV_PIX_FMT_UYVY422;
-		case SDL_PIXELFORMAT_YVYU: return LibFFmpeg::AV_PIX_FMT_YVYU422;
-		case SDL_PIXELFORMAT_NV12: return LibFFmpeg::AV_PIX_FMT_NV12;
-		case SDL_PIXELFORMAT_NV21: return LibFFmpeg::AV_PIX_FMT_NV21;
-		default: break;
-	}
-
-	return LibFFmpeg::AV_PIX_FMT_YUV420P;
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO, context);
 }
 
 double MediaPlayer::LVP_Player::GetVolume()
@@ -568,21 +591,29 @@ double MediaPlayer::LVP_Player::GetVolume()
 
 void MediaPlayer::LVP_Player::handleSeek()
 {
+	LVP_Player::clearSubTextures();
+	LVP_Player::clearSubs();
+
+	LVP_Player::audioContext.bufferOffset    = 0;
+	LVP_Player::audioContext.bufferRemaining = 0;
+	LVP_Player::audioContext.writtenToStream = 0;
+	LVP_Player::audioContext.decodeFrame     = true;
+	LVP_Player::audioContext.lastPogress     = 0.0;
+	LVP_Player::subContext.isReadyForRender  = false;
+	LVP_Player::subContext.isReadyForPresent = false;
+	LVP_Player::subContext.currentPTS        = {};
+	LVP_Player::subContext.nextPTS           = {};
+	LVP_Player::subContext.pts               = {};
+	LVP_Player::videoContext.pts             = 0.0;
+
+	LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
+
 	const int SEEK_FLAGS = AV_SEEK_FLAGS(LVP_Player::formatContext->iformat);
 
 	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, SEEK_FLAGS) >= 0)
 	{
 		if (LVP_Player::subContext.index >= SUB_STREAM_EXTERNAL)
 			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, SEEK_FLAGS);
-
-		LVP_Player::closePackets();
-
-		LVP_Player::audioContext.bufferOffset    = 0;
-		LVP_Player::audioContext.bufferRemaining = 0;
-		LVP_Player::audioContext.writtenToStream = 0;
-		LVP_Player::audioContext.decodeFrame     = true;
-		LVP_Player::audioContext.lastPogress     = 0;
-		LVP_Player::videoContext.pts             = 0.0;
 
 		if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
 		{
@@ -593,6 +624,8 @@ void MediaPlayer::LVP_Player::handleSeek()
 			LVP_Player::state.progress = (double)((double)LVP_Player::seekPosition / AV_TIME_BASE_D);
 		}
 	}
+
+	SDL_Delay(DELAY_TIME_DEFAULT);
 
 	LVP_Player::seekRequested = false;
 	LVP_Player::seekPosition  = -1;
@@ -606,28 +639,26 @@ void MediaPlayer::LVP_Player::initSubTextures()
 	DELETE_POINTER(LVP_Player::subContext.textureCurrent);
 	DELETE_POINTER(LVP_Player::subContext.textureNext);
 
+	auto videoWidth  = LVP_Player::videoContext.stream->codecpar->width;
+	auto videoHeight = LVP_Player::videoContext.stream->codecpar->height;
+
 	LVP_Player::subContext.textureCurrent = new Graphics::LVP_Texture(
 		SUB_PIXEL_FORMAT_SDL,
 		SDL_TEXTUREACCESS_TARGET,
-		LVP_Player::videoContext.frame->width,
-		LVP_Player::videoContext.frame->height,
+		videoWidth,
+		videoHeight,
 		LVP_Player::renderContext.renderer
 	);
 
 	LVP_Player::subContext.textureNext = new Graphics::LVP_Texture(
 		SUB_PIXEL_FORMAT_SDL,
 		SDL_TEXTUREACCESS_TARGET,
-		LVP_Player::videoContext.frame->width,
-		LVP_Player::videoContext.frame->height,
+		videoWidth,
+		videoHeight,
 		LVP_Player::renderContext.renderer
 	);
 
-	auto renderTarget = SDL_GetRenderTarget(LVP_Player::renderContext.renderer);
-
-	LVP_Player::clearSubTexture(LVP_Player::subContext.textureCurrent->data);
-	LVP_Player::clearSubTexture(LVP_Player::subContext.textureNext->data);
-
-	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
+	LVP_Player::clearSubTextures();
 }
 
 bool MediaPlayer::LVP_Player::IsMuted()
@@ -680,24 +711,6 @@ bool MediaPlayer::LVP_Player::IsStopped()
 	return LVP_Player::state.isStopped;
 }
 
-bool MediaPlayer::LVP_Player::isYUV(LibFFmpeg::AVPixelFormat pixelFormat)
-{
-	switch (pixelFormat) {
-	case LibFFmpeg::AV_PIX_FMT_YUV420P:
-	case LibFFmpeg::AV_PIX_FMT_YUVJ420P:
-	case LibFFmpeg::AV_PIX_FMT_YUYV422:
-	case LibFFmpeg::AV_PIX_FMT_UYVY422:
-	case LibFFmpeg::AV_PIX_FMT_YVYU422:
-	case LibFFmpeg::AV_PIX_FMT_NV12:
-	case LibFFmpeg::AV_PIX_FMT_NV21:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
-}
-
 /**
  * @throws invalid_argument
  * @throws exception
@@ -707,8 +720,8 @@ void MediaPlayer::LVP_Player::Open(const std::string &filePath)
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
-	if (!System::LVP_FileSystem::IsMediaFile(filePath))
-		throw std::exception("Invalid media file.");
+	if (System::LVP_FileSystem::IsSystemFile(filePath))
+		throw std::exception(std::format("Invalid media file: {}", filePath).c_str());
 
 	if (!LVP_Player::state.isStopped)
 		LVP_Player::Close();
@@ -735,6 +748,13 @@ void MediaPlayer::LVP_Player::openAudioDevice(const SDL_AudioSpec &wantedSpecs)
 
 	if (LVP_Player::audioContext.deviceID >= 2)
 		SDL_CloseAudioDevice(LVP_Player::audioContext.deviceID);
+
+	if (SDL_GetNumAudioDevices(0) < 1)
+	{
+		SDL_AudioQuit();
+		SDL_setenv("SDL_AUDIODRIVER", "dummy", 1);
+		SDL_AudioInit("dummy");
+	}
 
 	LVP_Player::audioContext.deviceID = SDL_OpenAudioDevice(
 		newDevice,
@@ -1118,11 +1138,16 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 		videoHeight
 	);
 
-	LVP_Player::videoContext.frame     = LibFFmpeg::av_frame_alloc();
-	LVP_Player::videoContext.frameRate = (1.0 / LVP_Media::GetMediaFrameRate(LVP_Player::videoContext.stream));
+	LVP_Player::videoContext.frameHardware = LibFFmpeg::av_frame_alloc();
+	LVP_Player::videoContext.frameSoftware = LibFFmpeg::av_frame_alloc();
+	LVP_Player::videoContext.frameRate     = (1.0 / LVP_Media::GetMediaFrameRate(LVP_Player::videoContext.stream));
 
-	if ((LVP_Player::videoContext.frame == NULL) || (LVP_Player::videoContext.frameRate <= 0))
+	if ((LVP_Player::videoContext.frameHardware == NULL) ||
+		(LVP_Player::videoContext.frameSoftware == NULL) ||
+		(LVP_Player::videoContext.frameRate <= 0))
+	{
 		throw std::exception("Failed to allocate a video context frame.");
+	}
 
 	if (LVP_Player::videoContext.frameEncoded != NULL)
 		LVP_Player::videoContext.frameEncoded->linesize[0] = 0;
@@ -1220,34 +1245,99 @@ void MediaPlayer::LVP_Player::play()
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_PLAYING);
 }
 
+void MediaPlayer::LVP_Player::present()
+{
+	if (!IS_VALID_TEXTURE(LVP_Player::videoContext.texture))
+		return;
+
+	auto renderTarget = SDL_GetRenderTarget(LVP_Player::renderContext.renderer);
+
+	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, LVP_Player::renderContext.texture);
+
+	SDL_SetYUVConversionMode(LVP_Player::getSdlYuvConversionMode(LVP_Player::videoContext.frame));
+	SDL_RenderClear(LVP_Player::renderContext.renderer);
+	SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::videoContext.texture->data, NULL, NULL);
+	SDL_SetYUVConversionMode(SDL_YUV_CONVERSION_AUTOMATIC);
+
+	if (LVP_Player::subContext.isReadyForPresent)
+	{
+		LVP_Player::subContext.isReadyForPresent = false;
+
+		auto current = LVP_Player::subContext.textureCurrent;
+
+		LVP_Player::subContext.textureCurrent = LVP_Player::subContext.textureNext;
+		LVP_Player::subContext.textureNext    = current;
+	}
+
+	if (LVP_Player::subContext.textureCurrent != NULL)
+		SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::subContext.textureCurrent->data, NULL, NULL);
+
+	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
+
+	if (LVP_Player::callbackContext.hardwareRenderer == NULL)
+		LVP_Player::presentSoftwareRenderer();
+}
+
+void MediaPlayer::LVP_Player::presentSoftwareRenderer()
+{
+	SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::renderContext.texture, NULL, NULL);
+
+	SDL_Rect renderViewport;
+	SDL_RenderGetViewport(LVP_Player::renderContext.renderer, &renderViewport);
+
+	auto surface = SDL_CreateRGBSurfaceWithFormat(0, renderViewport.w, renderViewport.h, 24, SDL_PIXELFORMAT_RGB24);
+
+	if (surface == NULL)
+		return;
+
+	auto readResult = SDL_RenderReadPixels(LVP_Player::renderContext.renderer, NULL, surface->format->format, surface->pixels, surface->pitch);
+
+	if ((readResult == 0) && !LVP_Player::state.quit)
+		LVP_Player::callbackVideoIsAvailable(surface);
+}
+
 void MediaPlayer::LVP_Player::removeExpiredSubs()
 {
+	bool isReadyForRender  = false;
+	bool isReadyForPresent = false;
+
 	for (auto subIter = LVP_Player::subContext.subs.begin(); subIter != LVP_Player::subContext.subs.end();)
 	{
 		auto sub = *subIter;
-		
-		if (!sub->isExpired(LVP_Player::subContext.presentTime, LVP_Player::state.progress)) {
+
+		bool isExpired = sub->isExpiredPTS(LVP_Player::subContext, LVP_Player::state.progress);
+		bool isSeeked  = sub->isSeekedPTS(LVP_Player::subContext);
+
+		if (!isExpired && !isSeeked) {
 			subIter++;
 			continue;
 		}
-
-		bool isBottomAligned = (IS_SUB_TEXT(LVP_Player::subContext.type) && sub->isAlignedBottom());
 
 		LVP_SubTextRenderer::RemoveSubs(sub->id);
 		DELETE_POINTER(sub);
 
 		subIter = LVP_Player::subContext.subs.erase(subIter);
 
-		if (isBottomAligned)
-			LVP_SubTextRenderer::RemoveSubsBottom();
+		isReadyForRender = true;
 
+		if (isSeeked)
+			isReadyForPresent = true;
+	}
+
+	if (isReadyForRender)
 		LVP_Player::subContext.isReadyForRender = true;
+
+	if (isReadyForPresent && LVP_Player::subContext.subs.empty())
+	{
+		LVP_Player::clearSubTextures();
+
+		LVP_Player::subContext.isReadyForPresent = true;
 	}
 }
 
 void MediaPlayer::LVP_Player::renderSubs()
 {
-	if (LVP_Player::subContext.subs.empty() || (LVP_Player::subContext.index < 0) || LVP_Player::state.isStopped || LVP_Player::state.quit)
+	if ((LVP_Player::subContext.index < 0) || LVP_Player::state.isStopped || LVP_Player::state.quit)
 		return;
 
 	SDL_LockMutex(LVP_Player::subContext.subsMutex);
@@ -1261,11 +1351,11 @@ void MediaPlayer::LVP_Player::renderSubs()
 		return;
 	}
 
-	LVP_Player::removeExpiredSubs();
-
 	LVP_Player::initSubTextures();
 
-	if (!IS_VALID_TEXTURE(LVP_Player::subContext.textureCurrent) || !IS_VALID_TEXTURE(LVP_Player::subContext.textureNext)) {
+	if (!IS_VALID_TEXTURE(LVP_Player::subContext.textureCurrent) || !IS_VALID_TEXTURE(LVP_Player::subContext.textureNext))
+	{
+		LVP_Player::subContext.isReadyForRender = true;
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 		return;
 	}
@@ -1389,152 +1479,118 @@ void MediaPlayer::LVP_Player::renderSubsText()
 
 	LVP_Player::clearSubTexture(LVP_Player::subContext.textureNext->data);
 
-	LVP_SubTextRenderer::Render(LVP_Player::renderContext.renderer, LVP_Player::subContext);
+	if (!LVP_Player::subContext.subs.empty())
+		LVP_SubTextRenderer::Render(LVP_Player::renderContext.renderer, LVP_Player::subContext);
+	else
+		LVP_Player::subContext.isReadyForPresent = true;
 
 	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
 }
 
 void MediaPlayer::LVP_Player::renderVideo()
 {
-	auto& frame        = LVP_Player::videoContext.frame;
-	auto& frameEncoded = LVP_Player::videoContext.frameEncoded;
-	auto& texture      = LVP_Player::videoContext.texture;
+	if ((LVP_Player::videoContext.index < 0) || (LVP_Player::videoContext.codec == NULL))
+		return;
 
-	auto pixelFormat = LVP_Player::videoContext.codec->pix_fmt;
+	auto videoWidth  = LVP_Player::videoContext.stream->codecpar->width;
+	auto videoHeight = LVP_Player::videoContext.stream->codecpar->height;
 
-	if (!IS_VALID_TEXTURE(texture))
+	// SUB SCALING RELATIVE TO VIDEO
+
+	if ((LVP_Player::subContext.size.x > 0) && (LVP_Player::subContext.size.y > 0))
 	{
-		auto sdlPixelFormat    = LVP_Player::getVideoPixelFormat(pixelFormat);
-		auto ffmpegPixelFormat = LVP_Player::getVideoPixelFormat(sdlPixelFormat);
+		LVP_Player::subContext.scale = {
+			(float)((float)videoWidth  / (float)LVP_Player::subContext.size.x),
+			(float)((float)videoHeight / (float)LVP_Player::subContext.size.y)
+		};
+	}
 
-		texture = new Graphics::LVP_Texture(
-			sdlPixelFormat,
+	LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
+
+	if (!IS_VALID_TEXTURE(LVP_Player::videoContext.texture))
+	{
+		LVP_Player::videoContext.texture = new Graphics::LVP_Texture(
+			VIDEO_PIXEL_FORMAT_SDL,
 			SDL_TEXTUREACCESS_STREAMING,
-			frame->width,
-			frame->height,
+			videoWidth,
+			videoHeight,
 			LVP_Player::renderContext.renderer
 		);
+	}
 
-		// SUB SCALING RELATIVE TO VIDEO
+	if (!IS_VALID_TEXTURE(LVP_Player::videoContext.texture)) {
+		DELETE_POINTER(LVP_Player::videoContext.texture);
+		return;
+	}
 
-		if ((LVP_Player::subContext.size.x > 0) && (LVP_Player::subContext.size.y > 0))
-		{
-			LVP_Player::subContext.scale = {
-				(float)((float)frame->width  / (float)LVP_Player::subContext.size.x),
-				(float)((float)frame->height / (float)LVP_Player::subContext.size.y)
-			};
-		}
+	if (LVP_Player::videoContext.frame == NULL)
+		return;
 
-		LVP_Player::subContext.videoDimensions = { 0, 0, frame->width, frame->height };
+	auto pixelFormat = (LibFFmpeg::AVPixelFormat)LVP_Player::videoContext.frame->format;
+	bool isYUV420P   = (pixelFormat == VIDEO_PIXEL_FORMAT_FFMPEG);
 
-		if ((pixelFormat == LibFFmpeg::AV_PIX_FMT_YUV420P) || !IS_VALID_TEXTURE(texture))
-			return;
+	// YUV420P VIDEOS - Copy the frame directly to the texture
+	if (isYUV420P)
+	{
+		SDL_UpdateYUVTexture(
+			LVP_Player::videoContext.texture->data, NULL,
+			LVP_Player::videoContext.frame->data[0], LVP_Player::videoContext.frame->linesize[0],
+			LVP_Player::videoContext.frame->data[1], LVP_Player::videoContext.frame->linesize[1],
+			LVP_Player::videoContext.frame->data[2], LVP_Player::videoContext.frame->linesize[2]
+		);
 
-		// Create a scaling context for non-YUV420P videos
+		return;
+	}
 
-		frameEncoded = LibFFmpeg::av_frame_alloc();
+	// NON-YUV420P VIDEOS - Convert the pixel format to YUV420P
 
-		int result = LibFFmpeg::av_image_alloc(
-			frameEncoded->data,
-			frameEncoded->linesize,
-			frame->width,
-			frame->height,
-			ffmpegPixelFormat,
+	if (LVP_Player::videoContext.frameEncoded == NULL)
+	{
+		LVP_Player::videoContext.frameEncoded = LibFFmpeg::av_frame_alloc();
+
+		auto frameEncodedResult = LibFFmpeg::av_image_alloc(
+			LVP_Player::videoContext.frameEncoded->data,
+			LVP_Player::videoContext.frameEncoded->linesize,
+			videoWidth,
+			videoHeight,
+			VIDEO_PIXEL_FORMAT_FFMPEG,
 			24
 		);
 
-		LVP_Player::renderContext.scaleContextVideo = sws_getCachedContext(
-			LVP_Player::renderContext.scaleContextVideo,
-			frame->width, frame->height, pixelFormat,
-			frame->width, frame->height, ffmpegPixelFormat,
-			DEFAULT_SCALE_FILTER, NULL, NULL, NULL
-		);
-					
-		if ((result <= 0) || (LVP_Player::renderContext.scaleContextVideo == NULL)) {
-			FREE_AVFRAME(frameEncoded);
-			DELETE_POINTER(texture);
-		}
+		if (frameEncodedResult <= 0)
+			FREE_AVFRAME(LVP_Player::videoContext.frameEncoded);
 	}
 
-	if (!IS_VALID_TEXTURE(texture))
+	if (LVP_Player::videoContext.frameEncoded == NULL)
 		return;
 
-	// YUV420P VIDEOS - Copy the frame directly to the texture
-	if (LVP_Player::isYUV(pixelFormat))
-	{
-		SDL_UpdateYUVTexture(
-			texture->data, NULL,
-			frame->data[0], frame->linesize[0],
-			frame->data[1], frame->linesize[1],
-			frame->data[2], frame->linesize[2]
-		);
-	}
-	// NON-YUV420P VIDEOS - Convert the pixel format to YUV420P
-	else
-	{
-		auto result = sws_scale(
-			LVP_Player::renderContext.scaleContextVideo,
-			frame->data, frame->linesize, 0, frame->height,
-			frameEncoded->data, frameEncoded->linesize
-		);
+	LVP_Player::renderContext.scaleContextVideo = LibFFmpeg::sws_getCachedContext(
+		LVP_Player::renderContext.scaleContextVideo,
+		videoWidth, videoHeight, pixelFormat,
+		videoWidth, videoHeight, VIDEO_PIXEL_FORMAT_FFMPEG,
+		DEFAULT_SCALE_FILTER, NULL, NULL, NULL
+	);
 
-		// Copy the converted frame to the texture
-		if (result > 0) {
-			SDL_UpdateYUVTexture(
-				texture->data, NULL,
-				frameEncoded->data[0], frameEncoded->linesize[0],
-				frameEncoded->data[1], frameEncoded->linesize[1],
-				frameEncoded->data[2], frameEncoded->linesize[2]
-			);
-		}
-	}
-}
+	auto scaleResult = LibFFmpeg::sws_scale(
+		LVP_Player::renderContext.scaleContextVideo,
+		LVP_Player::videoContext.frame->data,
+		LVP_Player::videoContext.frame->linesize,
+		0,
+		LVP_Player::videoContext.frame->height,
+		LVP_Player::videoContext.frameEncoded->data,
+		LVP_Player::videoContext.frameEncoded->linesize
+	);
 
-void MediaPlayer::LVP_Player::present()
-{
-	auto renderTarget = SDL_GetRenderTarget(LVP_Player::renderContext.renderer);
-
-	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, LVP_Player::renderContext.texture);
-
-	SDL_SetYUVConversionMode(LVP_Player::getSdlYuvConversionMode(LVP_Player::videoContext.frame));
-	SDL_RenderClear(LVP_Player::renderContext.renderer);
-	SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::videoContext.texture->data, NULL, NULL);
-	SDL_SetYUVConversionMode(SDL_YUV_CONVERSION_AUTOMATIC);
-
-	if (LVP_Player::subContext.isReadyForPresent)
-	{
-		LVP_Player::subContext.isReadyForPresent = false;
-
-		auto current = LVP_Player::subContext.textureCurrent;
-		LVP_Player::subContext.textureCurrent = LVP_Player::subContext.textureNext;
-		LVP_Player::subContext.textureNext    = current;
-	}
-
-	if (LVP_Player::subContext.textureCurrent != NULL)
-		SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::subContext.textureCurrent->data, NULL, NULL);
-
-	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
-
-	if (LVP_Player::callbackContext.hardwareRenderer == NULL)
-		LVP_Player::presentSoftwareRenderer();
-}
-
-void MediaPlayer::LVP_Player::presentSoftwareRenderer()
-{
-	SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::renderContext.texture, NULL, NULL);
-
-	SDL_Rect renderViewport;
-	SDL_RenderGetViewport(LVP_Player::renderContext.renderer, &renderViewport);
-
-	auto surface = SDL_CreateRGBSurfaceWithFormat(0, renderViewport.w, renderViewport.h, 24, SDL_PIXELFORMAT_RGB24);
-
-	if (surface == NULL)
+	if (scaleResult <= 0)
 		return;
 
-	auto readResult = SDL_RenderReadPixels(LVP_Player::renderContext.renderer, NULL, surface->format->format, surface->pixels, surface->pitch);
-
-	if ((readResult == 0) && !LVP_Player::state.quit)
-		LVP_Player::callbackVideoIsAvailable(surface);
+	// Copy the converted frame to the texture
+	SDL_UpdateYUVTexture(
+		LVP_Player::videoContext.texture->data, NULL,
+		LVP_Player::videoContext.frameEncoded->data[0], LVP_Player::videoContext.frameEncoded->linesize[0],
+		LVP_Player::videoContext.frameEncoded->data[1], LVP_Player::videoContext.frameEncoded->linesize[1],
+		LVP_Player::videoContext.frameEncoded->data[2], LVP_Player::videoContext.frameEncoded->linesize[2]
+	);
 }
 
 void MediaPlayer::LVP_Player::Render(const SDL_Rect* destination)
@@ -1542,9 +1598,20 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect* destination)
 	if (LVP_Player::state.quit)
 		return;
 
+	if (LVP_Player::seekRequested)
+		LVP_Player::handleSeek();
+
 	if (LVP_Player::videoContext.isReadyForRender) {
 		LVP_Player::videoContext.isReadyForRender = false;
 		LVP_Player::renderVideo();
+		LVP_Player::removeExpiredSubs();
+	}
+
+	if ((LVP_Player::subContext.currentPTS.end > 0) &&
+		(LVP_Player::state.progress > LVP_Player::subContext.currentPTS.end) &&
+		(LVP_Player::state.progress < LVP_Player::subContext.nextPTS.start))
+	{
+		LVP_Player::clearSubTextures(true, false);
 	}
 
 	if (LVP_Player::subContext.isReadyForRender) {
@@ -1563,6 +1630,9 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect* destination)
 
 void MediaPlayer::LVP_Player::renderHardwareRenderer(const SDL_Rect* destination)
 {
+	if ((LVP_Player::renderContext.renderer == NULL) || (LVP_Player::renderContext.texture == NULL))
+		return;
+
 	SDL_Rect* scaledDestination = LVP_Player::getScaledVideoDestination(destination);
 
 	SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::renderContext.texture, NULL, scaledDestination);
@@ -1589,11 +1659,16 @@ void MediaPlayer::LVP_Player::reset()
 
 void MediaPlayer::LVP_Player::Resize()
 {
+	if (LVP_Player::state.isStopped)
+		return;
+
 	LVP_Player::videoContext.isReadyForRender  = true;
 	LVP_Player::videoContext.isReadyForPresent = true;
 
-	LVP_Player::subContext.isReadyForRender  = true;
-	LVP_Player::subContext.isReadyForPresent = true;
+	if ((LVP_Player::state.progress >= LVP_Player::subContext.currentPTS.start) && (LVP_Player::state.progress < LVP_Player::subContext.currentPTS.end)) {
+		LVP_Player::subContext.isReadyForRender  = true;
+		LVP_Player::subContext.isReadyForPresent = true;
+	}
 }
 
 void MediaPlayer::LVP_Player::SeekTo(double percent)
@@ -1665,6 +1740,8 @@ void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 		LVP_Player::state.playbackSpeed = newSpeed;
 
 		LVP_Player::openThreadAudioFilter();
+
+		LVP_Player::callbackEvents(LVP_EVENT_PLAYBACK_SPEED_CHANGED);
 	}
 }
 
@@ -1718,6 +1795,8 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		if (!isPaused)
 			SDL_PauseAudioDevice(LVP_Player::audioContext.deviceID, 0);
 
+		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
+
 		break;
 	case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
 		LVP_Player::closeSub();
@@ -1730,6 +1809,8 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 
 		LVP_Player::openThreadSub();
 		LVP_Player::SeekTo(lastProgress);
+
+		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
 
 		break;
 	default:
@@ -1992,14 +2073,17 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 
 	while (!LVP_Player::state.quit)
 	{
-		// Seek if requested
 		if (LVP_Player::seekRequested)
-			LVP_Player::handleSeek();
+			LVP_Player::closePackets();
+
+		while (LVP_Player::seekRequested && !LVP_Player::state.quit)
+			SDL_Delay(DELAY_TIME_ONE_MS);
 
 		if (LVP_Player::state.quit)
 			break;
 
 		// Initialize a new packet
+
 		auto packet = LibFFmpeg::av_packet_alloc();
 
 		if (packet == NULL) {
@@ -2007,14 +2091,17 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			break;
 		}
 
-		LVP_Player::timeOut->start();
+		if (LVP_Player::timeOut != NULL)
+			LVP_Player::timeOut->start();
 
 		// Read and fill in the packet
+
 		auto result = LibFFmpeg::av_read_frame(LVP_Player::formatContext, packet);
 
 		if ((result < 0) || LVP_Player::state.quit)
 		{
-			LVP_Player::timeOut->stop();
+			if (LVP_Player::timeOut != NULL)
+				LVP_Player::timeOut->stop();
 
 			#if defined _DEBUG
 				char strerror[AV_ERROR_MAX_STRING_SIZE];
@@ -2037,6 +2124,7 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 				FREE_AVPACKET(packet);
 
 				// Wait until all packets have been consumed
+
 				while (!LVP_Player::audioContext.packets.empty() && !LVP_Player::state.quit)
 					SDL_Delay(DELAY_TIME_DEFAULT);
 
@@ -2044,6 +2132,7 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 					break;
 
 				// Stop media playback
+
 				if (errorCount >= MAX_ERRORS) {
 					LVP_Player::stop("Too many errors occured while reading packets.");
 					LVP_Player::callbackEvents(LVP_EVENT_MEDIA_COMPLETED_WITH_ERRORS);
@@ -2058,7 +2147,8 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			errorCount = 0;
 		}
 
-		LVP_Player::timeOut->stop();
+		if (LVP_Player::timeOut != NULL)
+			LVP_Player::timeOut->stop();
 
 		// AUDIO PACKET
 		if (packet->stream_index == LVP_Player::audioContext.index)
@@ -2259,7 +2349,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 
 			#if _DEBUG
 			for (const auto &subText : subTexts)
-				printf("[%.2f,%.2f] %s\n", pts.start, pts.end, subText.c_str());
+				printf("[%.3f,%.3f] %s\n", pts.start, pts.end, subText.c_str());
 			#endif
 		}
 
@@ -2276,22 +2366,54 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_CondSignal(LVP_Player::subContext.subsCondition);
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
-		auto timeUntilPresent = (pts.start - LVP_Player::state.progress);
-		auto timeToSleepMs    = (int)(timeUntilPresent * (double)ONE_SECOND_MS);
+		bool isNextPTS = ((pts.start >= LVP_Player::subContext.pts.end) && (pts.end > LVP_Player::subContext.pts.end));
 
-		LVP_Player::subContext.presentTime = (LVP_Player::state.progress + timeUntilPresent);
+		LVP_Player::subContext.nextPTS = pts;
 
-		// Sub is ahead of audio, skip or speed up.
-		if (timeToSleepMs < 0)
+		while (LVP_Player::subContext.isReadyForPresent && isNextPTS && !LVP_Player::seekRequested && !LVP_Player::state.quit)
+			SDL_Delay(DELAY_TIME_ONE_MS);
+
+		if (LVP_Player::seekRequested || LVP_Player::state.quit)
 			continue;
 
-		LVP_Player::subContext.isReadyForRender = true;
+		LVP_Player::subContext.pts = pts;
+
+		auto timeToSleep = (LVP_Player::subContext.pts.start - LVP_Player::state.progress);
+
+		// Sub is ahead of audio, skip or speed up.
+
+		if (timeToSleep < 0)
+		{
+			if (!isNextPTS) {
+				LVP_Player::subContext.isReadyForRender  = true;
+				LVP_Player::subContext.isReadyForPresent = true;
+			}
+
+			continue;
+		}
+
+		// Prepare subs by rendering to background texture buffer
+
+		LVP_Player::subContext.isReadyForPresent = false;
+		LVP_Player::subContext.isReadyForRender  = true;
 
 		// Sub is behind audio, wait or slow down.
-		SDL_Delay(min(timeToSleepMs, MAX_SUB_DURATION_MS));
 
-		// Make the subs available for rendering
+		auto timeUntilPTS = (LVP_Player::subContext.pts.start - LVP_Player::state.progress);
+
+		while ((timeUntilPTS >= DELAY_TIME_DEFAULT_S) && !LVP_Player::seekRequested && !LVP_Player::state.quit) {
+			SDL_Delay(DELAY_TIME_DEFAULT);
+			timeUntilPTS = (LVP_Player::subContext.pts.start - LVP_Player::state.progress);
+		}
+
+		if (LVP_Player::seekRequested || LVP_Player::state.quit)
+			continue;
+
+		// Make the subs available for presentation
+
 		LVP_Player::subContext.isReadyForPresent = true;
+
+		LVP_Player::subContext.currentPTS = pts;
 	}
 
 	FREE_SUB_FRAME(subFrame);
@@ -2310,8 +2432,11 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 
 int MediaPlayer::LVP_Player::threadVideo(void* userData)
 {
-	auto& videoFrame     = LVP_Player::videoContext.frame;
-	auto  videoStream    = LVP_Player::videoContext.stream;
+	auto& videoFrame         = LVP_Player::videoContext.frame;
+	auto& videoFrameHardware = LVP_Player::videoContext.frameHardware;
+	auto& videoFrameSoftware = LVP_Player::videoContext.frameSoftware;
+
+	auto videoStream = LVP_Player::videoContext.stream;
 
 	int  errorCount                  = 0;
 	auto videoFrameDuration2x        = (int)(LVP_Player::videoContext.frameRate * 2.0 * (double)ONE_SECOND_MS);
@@ -2341,12 +2466,24 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 		}
 
 		// Get decoded frame
-		result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext.codec, videoFrame);
+		result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext.codec, videoFrameHardware);
 
 		FREE_AVPACKET(packet);
 
 		if (LVP_Player::state.quit)
 			break;
+
+		if ((LibFFmpeg::AVPixelFormat)videoFrameHardware->format == LVP_Player::videoContext.pixelFormatHardware)
+		{
+			result = LibFFmpeg::av_hwframe_transfer_data(videoFrameSoftware, videoFrameHardware, 0);
+
+			videoFrameSoftware->best_effort_timestamp = videoFrameHardware->best_effort_timestamp;
+
+			videoFrame = videoFrameSoftware;
+
+		} else {
+			videoFrame = videoFrameHardware;
+		}
 
 		if ((result < 0) || !AVFRAME_IS_VALID(videoFrame))
 		{
@@ -2367,7 +2504,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 			errorCount++;
 
 			if (LVP_Player::state.progress > 1.0) {
-				av_frame_unref(videoFrame);
+				LibFFmpeg::av_frame_unref(videoFrame);
 				videoFrame = LibFFmpeg::av_frame_alloc();
 			}
 
@@ -2393,7 +2530,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 		// Update video if seek was requested while paused
 		if (LVP_Player::seekRequestedPaused)
 		{
-			// Keep seeking until we video and audio catch up.
+			// Keep seeking until the video and audio catch up
 			if (fabs(LVP_Player::state.progress - LVP_Player::videoContext.pts) > videoFrameDuration2xSeconds)
 				continue;
 
@@ -2402,20 +2539,27 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 			LVP_Player::videoContext.isReadyForRender  = true;
 			LVP_Player::videoContext.isReadyForPresent = true;
 
-			LVP_Player::subContext.isReadyForRender  = true;
-			LVP_Player::subContext.isReadyForPresent = true;
+			LVP_Player::clearSubTextures(true, false);
+
+			for (auto sub : LVP_Player::subContext.subs)
+			{
+				if ((LVP_Player::state.progress < sub->pts.start) || (LVP_Player::state.progress >= sub->pts.end))
+					continue;
+
+				LVP_Player::subContext.isReadyForRender  = true;
+				LVP_Player::subContext.isReadyForPresent = true;
+
+				break;
+			}
 		}
 
 		auto sleepTime = (int)((LVP_Player::videoContext.pts - LVP_Player::state.progress) * (double)ONE_SECOND_MS);
 
-		// Video is ahead of audio, skip or speed up.
-		if (sleepTime < 0)
-			continue;
-
 		LVP_Player::videoContext.isReadyForRender = true;
 
-		// Video is behind audio, wait or slow down.
-		SDL_Delay(min(sleepTime, videoFrameDuration2x));
+		// Video is behind audio - wait or slow down
+		if (sleepTime > 0)
+			SDL_Delay(min(sleepTime, videoFrameDuration2x));
 
 		LVP_Player::videoContext.isReadyForPresent = true;
 	}

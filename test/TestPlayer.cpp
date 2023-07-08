@@ -4,7 +4,6 @@ SDL_Texture* TestPlayer::texture = nullptr;
 SDL_Surface* TestPlayer::videoFrame = nullptr;
 bool         TestPlayer::videoIsAvailable = false;
 std::mutex   TestPlayer::videoLock;
-bool         TestPlayer::useHardwareRenderer = true;
 
 void TestPlayer::freeResources()
 {
@@ -81,9 +80,6 @@ void TestPlayer::handleEvent(LVP_EventType type, const void* data)
 
 void TestPlayer::handleVideoIsAvailable(SDL_Surface* videoFrame, const void* data)
 {
-	if (TestPlayer::useHardwareRenderer)
-		return;
-
 	TestPlayer::videoLock.lock();
 
 	if (TestPlayer::videoFrame)
@@ -98,11 +94,11 @@ void TestPlayer::handleVideoIsAvailable(SDL_Surface* videoFrame, const void* dat
 void TestPlayer::Init(SDL_Renderer* renderer, const void* data)
 {
 	LVP_CallbackContext callbackContext = {
-		.errorCB = handleError,
+		.errorCB  = handleError,
 		.eventsCB = handleEvent,
-		.videoCB = handleVideoIsAvailable,
-		.data = data,
-		.hardwareRenderer = (TestPlayer::useHardwareRenderer ? renderer : nullptr)
+		.videoCB  = handleVideoIsAvailable,
+		.data     = data,
+		.hardwareRenderer = renderer
 	};
 
 	LVP_Initialize(callbackContext);
@@ -117,14 +113,7 @@ void TestPlayer::Quit()
 
 void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect &destination)
 {
-	// HARDWARE RENDERER
-	if (TestPlayer::useHardwareRenderer) {
-		LVP_Render(&destination);
-		return;
-	}
-
-	// SOFTWARE RENDERER
-	LVP_Render();
+	LVP_Render(&destination);
 
 	if (!renderer || !TestPlayer::videoFrame)
 		return;

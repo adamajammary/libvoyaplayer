@@ -143,10 +143,29 @@ bool MediaPlayer::LVP_Subtitle::isAlignedTop()
 	return ((a == SUB_ALIGN_TOP_LEFT) || (a == SUB_ALIGN_TOP_RIGHT) || (a == SUB_ALIGN_TOP_CENTER));
 }
 
-bool MediaPlayer::LVP_Subtitle::isExpired(double presentTime, double progress)
+bool MediaPlayer::LVP_Subtitle::isExpiredPTS(const LVP_SubtitleContext &subContext, double progress)
 {
-	bool hasEnded = (presentTime >= (this->pts.end - 0.01));
-	bool isSeeked = (fabs(this->pts.start - progress) > MAX_SUB_DURATION);
+	auto ptsEnd    = (this->pts.end - 0.001);
+	bool isExpired = ((ptsEnd <= subContext.pts.start) || (ptsEnd <= progress));
 
-	return (hasEnded || isSeeked);
+	return isExpired;
+}
+
+bool MediaPlayer::LVP_Subtitle::isSeekedPTS(const LVP_SubtitleContext& subContext)
+{
+	bool isFuturePTS = (this->pts.start > subContext.nextPTS.end);
+
+	return isFuturePTS;
+}
+
+bool MediaPlayer::LVP_Subtitle::overlaps(LVP_Subtitle* subtitle)
+{
+	bool overlaps = !(
+		(this->pts.end < subtitle->pts.start) ||
+		!ARE_DIFFERENT_DOUBLES(this->pts.end, subtitle->pts.start) ||
+		(this->pts.start > subtitle->pts.end) ||
+		!ARE_DIFFERENT_DOUBLES(this->pts.start, subtitle->pts.end)
+	);
+
+	return overlaps;
 }

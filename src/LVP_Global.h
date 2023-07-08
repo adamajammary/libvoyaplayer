@@ -4,6 +4,7 @@
 #include <chrono>
 #include <format>
 #include <list>
+#include <map>
 #include <queue>
 #include <sstream> // stringstream, to_string(x)
 #include <thread>
@@ -179,6 +180,7 @@ namespace LibVoyaPlayer
 
 		const int    DELAY_TIME_BACKGROUND = 200;
 		const int    DELAY_TIME_DEFAULT    = 15;
+		const double DELAY_TIME_DEFAULT_S  = 0.015;
 		const int    DELAY_TIME_ONE_MS     = 1;
 		
 		const double FONT_DPI_SCALE = (76.0 / 96.0);
@@ -189,10 +191,9 @@ namespace LibVoyaPlayer
 			const char FONT_ARIAL[] = "Arial";
 		#endif
 
-		const int    MAX_ERRORS          = 100;
-		const int    MAX_FONT_SIZE       = 200;
-		const double MAX_SUB_DURATION    = 20.0;
-		const int    MAX_SUB_DURATION_MS = 20000;
+		const int    MAX_ERRORS       = 100;
+		const int    MAX_FONT_SIZE    = 200;
+		const double MAX_SUB_DURATION = 20.0;
 
 		const float MIN_FLOAT_ZERO        = 0.01f;
 		const int   MIN_PACKET_QUEUE_SIZE = 25;
@@ -203,6 +204,9 @@ namespace LibVoyaPlayer
 		const auto     SUB_PIXEL_FORMAT_FFMPEG = LibFFmpeg::AV_PIX_FMT_BGRA;
 		const uint32_t SUB_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_ARGB8888;
 		const int      SUB_STREAM_EXTERNAL     = 1000;
+
+		const auto     VIDEO_PIXEL_FORMAT_FFMPEG = LibFFmpeg::AV_PIX_FMT_YUV420P;
+		const uint32_t VIDEO_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_YV12;
 
 		class LVP_Subtitle;
 		class LVP_SubStyle;
@@ -252,6 +256,7 @@ namespace LibVoyaPlayer
 			SDL_mutex*                 mutex;
 			LVP_Packets                packets;
 			bool                       packetsAvailable;
+			LibFFmpeg::AVPixelFormat   pixelFormatHardware;
 			LibFFmpeg::AVStream*       stream;
 
 			LVP_MediaContext()
@@ -261,12 +266,13 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
-				this->codec            = NULL;
-				this->condition        = NULL;
-				this->index            = -1;
-				this->mutex            = NULL;
-				this->packetsAvailable = true;
-				this->stream           = NULL;
+				this->codec               = NULL;
+				this->condition           = NULL;
+				this->index               = -1;
+				this->mutex               = NULL;
+				this->packetsAvailable    = true;
+				this->pixelFormatHardware = LibFFmpeg::AV_PIX_FMT_NONE;
+				this->stream              = NULL;
 			}
 		};
 
@@ -319,6 +325,29 @@ namespace LibVoyaPlayer
 			}
 		};
 
+		struct LVP_SubPTS
+		{
+			double start, end;
+
+			LVP_SubPTS()
+			{
+				this->start = 0.0;
+				this->end   = 0.0;
+			}
+
+			LVP_SubPTS(double start, double end)
+			{
+				this->start = start;
+				this->end   = end;
+			}
+
+			LVP_SubPTS(const LVP_SubPTS &pts)
+			{
+				this->start = pts.start;
+				this->end   = pts.end;
+			}
+		};
+
 		struct LVP_SubtitleContext : LVP_MediaContext
 		{
 			bool                        available;
@@ -327,7 +356,9 @@ namespace LibVoyaPlayer
 			LibFFmpeg::AVFormatContext* formatContext;
 			bool                        isReadyForRender;
 			bool                        isReadyForPresent;
-			double                      presentTime;
+			LVP_SubPTS                  currentPTS;
+			LVP_SubPTS                  nextPTS;
+			LVP_SubPTS                  pts;
 			SDL_FPoint                  scale;
 			SDL_Point                   size;
 			std::vector<LVP_SubStyle*>  styles;
@@ -352,7 +383,9 @@ namespace LibVoyaPlayer
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
-				this->presentTime       = 0.0;
+				this->currentPTS        = {};
+				this->nextPTS           = {};
+				this->pts               = {};
 				this->scale             = { 1.0f, 1.0f };
 				this->size              = {};
 				this->subsCondition     = NULL;
@@ -371,6 +404,8 @@ namespace LibVoyaPlayer
 		{
 			LibFFmpeg::AVFrame*    frame;
 			LibFFmpeg::AVFrame*    frameEncoded;
+			LibFFmpeg::AVFrame*    frameHardware;
+			LibFFmpeg::AVFrame*    frameSoftware;
 			double                 frameRate;
 			bool                   isReadyForRender;
 			bool                   isReadyForPresent;
@@ -387,35 +422,14 @@ namespace LibVoyaPlayer
 			{
 				this->frame             = NULL;
 				this->frameEncoded      = NULL;
+				this->frameHardware     = NULL;
+				this->frameSoftware     = NULL;
 				this->frameRate         = 0.0;
 				this->isReadyForRender  = false;
 				this->isReadyForPresent = false;
 				this->pts               = 0.0;
 				this->texture           = NULL;
 				this->thread            = NULL;
-			}
-		};
-
-		struct LVP_SubPTS
-		{
-			double start, end;
-
-			LVP_SubPTS()
-			{
-				this->start = 0.0;
-				this->end   = 0.0;
-			}
-
-			LVP_SubPTS(double start, double end)
-			{
-				this->start = start;
-				this->end   = end;
-			}
-
-			LVP_SubPTS(const LVP_SubPTS &pts)
-			{
-				this->start = pts.start;
-				this->end   = pts.end;
 			}
 		};
 	}

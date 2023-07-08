@@ -109,7 +109,7 @@ Strings System::LVP_FileSystem::getDirectoryContent(const std::string &directory
 			auto fileName = std::string(file->d_name);
 		#endif
 
-		if ((file->d_type == fileType) && (!checkSystemFiles || !LVP_FileSystem::isSystemFile(fileName)))
+		if ((file->d_type == fileType) && (!checkSystemFiles || !LVP_FileSystem::IsSystemFile(fileName)))
 			directoyContent.push_back(fileName);
 	}
 
@@ -297,14 +297,6 @@ bool System::LVP_FileSystem::IsDVDCSS(const std::string &filePath, size_t fileSi
 	return (sector < nrSectors);
 }
 
-bool System::LVP_FileSystem::IsMediaFile(const std::string &filePath)
-{
-	bool isMedia  = LVP_Text::VectorContains(LVP_FileSystem::mediaFileExtensions, LVP_FileSystem::GetFileExtension(filePath, true));
-	bool isConcat = LVP_FileSystem::IsConcat(filePath);
-
-	return (isMedia || isConcat);
-}
-
 bool System::LVP_FileSystem::isSubtitleFile(const std::string &filePath)
 {
 	if (!LVP_FileSystem::hasFileExtension(filePath) || (filePath.size() >= MAX_FILE_PATH))
@@ -318,7 +310,7 @@ bool System::LVP_FileSystem::isSubtitleFile(const std::string &filePath)
 	return false;
 }
 
-bool System::LVP_FileSystem::isSystemFile(const std::string &fileName)
+bool System::LVP_FileSystem::IsSystemFile(const std::string &fileName)
 {
 	if (fileName.empty())
 		return true;

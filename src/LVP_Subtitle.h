@@ -55,14 +55,16 @@ namespace LibVoyaPlayer
 			TTF_Font*           getFont(LVP_SubtitleContext &subContext);
 			SDL_Rect            getMargins(const SDL_FPoint &scale);
 			int                 getOutline(const SDL_FPoint &scale);
-			SDL_Point           getShadow(const SDL_FPoint &scale);
+			SDL_Point           getShadow(const SDL_FPoint  &scale);
 			bool                isAlignedBottom();
 			bool                isAlignedCenter();
 			bool                isAlignedLeft();
 			bool                isAlignedMiddle();
 			bool                isAlignedRight();
 			bool                isAlignedTop();
-			bool                isExpired(double presentTime, double progress);
+			bool                isExpiredPTS(const LVP_SubtitleContext &subContext, double progress);
+			bool                isSeekedPTS(const LVP_SubtitleContext  &subContext);
+			bool                overlaps(LVP_Subtitle* subtitle);
 
 		private:
 			LVP_SubAlignment getAlignment();

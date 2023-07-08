@@ -41,7 +41,7 @@ DLLEXPORT int DLL LVP_GetAudioTrack();
 DLLEXPORT std::vector<LVP_MediaTrack> DLL LVP_GetAudioTracks();
 
 /**
- * @returns the media duration as milliseconds (one thousandth of a second).
+ * @returns the media duration in milliseconds (one thousandth of a second).
  * @throws exception
 */
 DLLEXPORT int64_t DLL LVP_GetDuration();
@@ -53,13 +53,27 @@ DLLEXPORT int64_t DLL LVP_GetDuration();
 DLLEXPORT std::string DLL LVP_GetFilePath();
 
 /**
- * @returns metadata for the currently loaded media including all tracks.
+ * @returns media details of the currently loaded media.
  * @throws exception
  */
-DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta();
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails();
 
 /**
- * @returns the media type for the currently loaded media.
+ * @returns media details of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath);
+
+/**
+ * @returns media details of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::wstring& filePath);
+
+/**
+ * @returns the media type of the currently loaded media.
  * @throws exception
  */
 DLLEXPORT LVP_MediaType DLL LVP_GetMediaType();
@@ -71,7 +85,7 @@ DLLEXPORT LVP_MediaType DLL LVP_GetMediaType();
 DLLEXPORT double DLL LVP_GetPlaybackSpeed();
 
 /**
- * @returns the media playback progress as milliseconds (one thousandth of a second).
+ * @returns the media playback progress in milliseconds (one thousandth of a second).
  * @throws exception
 */
 DLLEXPORT int64_t DLL LVP_GetProgress();
@@ -147,7 +161,7 @@ DLLEXPORT void DLL LVP_Quit();
 /**
  * @brief Generates and renders a video frame.
  *        If hardware rendering is used, it will copy the texture to the renderer.
- *        If software rendering is used, it will generate a LVP_VideoCallback with a SDL_Surface.
+ *        If software rendering is used, it will generate a LVP_VideoCallback with an SDL_Surface.
  * @param destination Optional clipping/scaling region used by the hardware renderer.
  */
 DLLEXPORT void DLL LVP_Render(const SDL_Rect* destination = nullptr);
@@ -180,7 +194,7 @@ DLLEXPORT void DLL LVP_SetPlaybackSpeed(double speed);
 
 /**
  * @brief Tries to set the given stream as the current stream if valid.
- * @param LVP_MediaTrack with track of -1 to disable subtitles, or >= 0 for a valid media track.
+ * @param track -1 to disable subtitles or >= 0 for a valid media track.
  * @throws exception
  */
 DLLEXPORT void DLL LVP_SetTrack(const LVP_MediaTrack &track);
