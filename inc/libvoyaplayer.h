@@ -59,14 +59,14 @@ DLLEXPORT std::string DLL LVP_GetFilePath();
 DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails();
 
 /**
- * @returns media details of the currently loaded media.
+ * @returns media details of the provided media file.
  * @param filePath Full path to the media file.
  * @throws exception
  */
 DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath);
 
 /**
- * @returns media details of the currently loaded media.
+ * @returns media details of the provided media file.
  * @param filePath Full path to the media file.
  * @throws exception
  */
@@ -161,7 +161,7 @@ DLLEXPORT void DLL LVP_Quit();
 /**
  * @brief Generates and renders a video frame.
  *        If hardware rendering is used, it will copy the texture to the renderer.
- *        If software rendering is used, it will generate a LVP_VideoCallback with a SDL_Surface.
+ *        If software rendering is used, it will generate a LVP_VideoCallback with an SDL_Surface.
  * @param destination Optional clipping/scaling region used by the hardware renderer.
  */
 DLLEXPORT void DLL LVP_Render(const SDL_Rect* destination = nullptr);
@@ -194,7 +194,7 @@ DLLEXPORT void DLL LVP_SetPlaybackSpeed(double speed);
 
 /**
  * @brief Tries to set the given stream as the current stream if valid.
- * @param LVP_MediaTrack with track of -1 to disable subtitles, or >= 0 for a valid media track.
+ * @param track -1 to disable subtitles or >= 0 for a valid media track.
  * @throws exception
  */
 DLLEXPORT void DLL LVP_SetTrack(const LVP_MediaTrack &track);

@@ -91,6 +91,7 @@ add_custom_command(TARGET libvoyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/
 add_custom_command(TARGET libvoyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libaom.txt    ${DIST_DIR}/)
 add_custom_command(TARGET libvoyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-sdl2.txt      ${DIST_DIR}/)
 add_custom_command(TARGET libvoyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-sdl2_ttf.txt  ${DIST_DIR}/)
+add_custom_command(TARGET libvoyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-zlib.txt      ${DIST_DIR}/)
 
 if (WIN32)
     set_target_properties(testvoyaplayer PROPERTIES LINK_FLAGS_DEBUG   "-SUBSYSTEM:CONSOLE,5.02")
