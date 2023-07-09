@@ -596,10 +596,6 @@ Cleans up allocated resources.
 void LVP_Quit();
 ```
 
-Exceptions
-
-- exception
-
 ### LVP_Render
 
 Generates and renders a video frame.

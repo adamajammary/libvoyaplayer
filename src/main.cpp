@@ -259,7 +259,9 @@ void LVP_Open(const std::wstring &filePath)
 void LVP_Quit()
 {
 	if (!isInitialized)
-		throw std::exception(ERROR_NO_INIT);
+		return;
+
+	isInitialized = false;
 
 	MediaPlayer::LVP_Player::Close();
 

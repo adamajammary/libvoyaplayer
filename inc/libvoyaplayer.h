@@ -154,7 +154,6 @@ DLLEXPORT void DLL LVP_Open(const std::wstring &filePath);
 
 /**
  * @brief Cleans up allocated resources.
- * @throws exception
  */
 DLLEXPORT void DLL LVP_Quit();
 
