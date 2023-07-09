@@ -134,13 +134,14 @@ void MediaPlayer::LVP_Player::closeAudio()
 	FREE_THREAD_COND(LVP_Player::audioContext.condition);
 	FREE_THREAD_MUTEX(LVP_Player::audioContext.mutex);
 	
-	if (strcmp(SDL_GetCurrentAudioDriver(), "dummy") == 0)
+	auto audioDriver = SDL_GetCurrentAudioDriver();
+
+	if ((audioDriver != NULL) && strcmp(audioDriver, "dummy") == 0)
 	{
 		SDL_AudioQuit();
 		SDL_setenv("SDL_AUDIODRIVER", "", 1);
 		SDL_AudioInit(NULL);
 	}
-
 }
 
 void MediaPlayer::LVP_Player::closePackets()
