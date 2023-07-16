@@ -124,7 +124,15 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath)
 	if (!isInitialized)
 		throw std::exception(ERROR_NO_INIT);
 
-	return MediaPlayer::LVP_Player::GetMediaDetails(filePath);
+	LVP_MediaDetails mediaDetails = {};
+
+	try {
+		mediaDetails = MediaPlayer::LVP_Player::GetMediaDetails(filePath);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
+	}
+
+	return mediaDetails;
 }
 
 LVP_MediaDetails LVP_GetMediaDetails(const std::wstring &filePath)
@@ -132,12 +140,18 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::wstring &filePath)
 	if (!isInitialized)
 		throw std::exception(ERROR_NO_INIT);
 
-	auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
-	auto mediaMeta    = MediaPlayer::LVP_Player::GetMediaDetails(filePathUTF8);
+	LVP_MediaDetails mediaDetails = {};
 
-	SDL_free(filePathUTF8);
+	try {
+		auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+		mediaDetails      = MediaPlayer::LVP_Player::GetMediaDetails(filePathUTF8);
 
-	return mediaMeta;
+		SDL_free(filePathUTF8);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
+	}
+
+	return mediaDetails;
 }
 
 LVP_MediaType LVP_GetMediaType()
