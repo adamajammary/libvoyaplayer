@@ -607,7 +607,8 @@ void MediaPlayer::LVP_Player::handleSeek()
 	LVP_Player::subContext.pts               = {};
 	LVP_Player::videoContext.pts             = 0.0;
 
-	LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
+	if (LVP_Player::subContext.codec != NULL)
+		LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
 
 	const int SEEK_FLAGS = AV_SEEK_FLAGS(LVP_Player::formatContext->iformat);
 
@@ -1053,6 +1054,8 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		};
 	}
 
+	LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
+
 	// SUB STYLES
 
 	if (styleVersion != SUB_STYLE_VERSION_UNKNOWN)
@@ -1495,18 +1498,6 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 	auto videoWidth  = LVP_Player::videoContext.stream->codecpar->width;
 	auto videoHeight = LVP_Player::videoContext.stream->codecpar->height;
-
-	// SUB SCALING RELATIVE TO VIDEO
-
-	if ((LVP_Player::subContext.size.x > 0) && (LVP_Player::subContext.size.y > 0))
-	{
-		LVP_Player::subContext.scale = {
-			(float)((float)videoWidth  / (float)LVP_Player::subContext.size.x),
-			(float)((float)videoHeight / (float)LVP_Player::subContext.size.y)
-		};
-	}
-
-	LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
 
 	if (!IS_VALID_TEXTURE(LVP_Player::videoContext.texture))
 	{
