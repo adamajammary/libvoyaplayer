@@ -1273,7 +1273,7 @@ void MediaPlayer::LVP_Player::present()
 		LVP_Player::subContext.textureNext    = current;
 	}
 
-	if (LVP_Player::subContext.textureCurrent != NULL)
+	if ((LVP_Player::subContext.textureCurrent != NULL) && (LVP_Player::subContext.index >= 0))
 		SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::subContext.textureCurrent->data, NULL, NULL);
 
 	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
@@ -1312,7 +1312,7 @@ void MediaPlayer::LVP_Player::removeExpiredSubs()
 		bool isExpired = sub->isExpiredPTS(LVP_Player::subContext, LVP_Player::state.progress);
 		bool isSeeked  = sub->isSeekedPTS(LVP_Player::subContext);
 
-		if (!isExpired && !isSeeked) {
+		if (!isExpired && !isSeeked && (LVP_Player::subContext.index >= 0)) {
 			subIter++;
 			continue;
 		}
@@ -1553,7 +1553,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 			FREE_AVFRAME(LVP_Player::videoContext.frameEncoded);
 	}
 
-	if (LVP_Player::videoContext.frameEncoded == NULL)
+	if ((LVP_Player::videoContext.frameEncoded == NULL) || (pixelFormat == LibFFmpeg::AV_PIX_FMT_NONE))
 		return;
 
 	LVP_Player::renderContext.scaleContextVideo = LibFFmpeg::sws_getCachedContext(
@@ -1756,8 +1756,11 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		return;
 
 	// Disable subs
-	if (IS_SUB(mediaType) && (trackIndex < 0)) {
+	if (IS_SUB(mediaType) && (trackIndex < 0))
+	{
 		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
+
 		return;
 	}
 
@@ -2095,21 +2098,23 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			if (LVP_Player::timeOut != NULL)
 				LVP_Player::timeOut->stop();
 
-			#if defined _DEBUG
-				char strerror[AV_ERROR_MAX_STRING_SIZE];
-				LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-				LOG("%s\n", strerror);
-			#endif
-
-			if (LVP_Player::state.quit)
-				break;
-
 			// Is the media file completed (EOF) or did an error occur?
 
 			if ((result == AVERROR_EOF) && LibFFmpeg::avio_feof(formatContext->pb))
 				endOfFile = true;
 			else
 				errorCount++;
+
+			#if defined _DEBUG
+			if (!endOfFile) {
+				char strerror[AV_ERROR_MAX_STRING_SIZE];
+				LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+				LOG("%s\n", strerror);
+			}
+			#endif
+
+			if (LVP_Player::state.quit)
+				break;
 
 			if (endOfFile || (errorCount >= MAX_ERRORS))
 			{

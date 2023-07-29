@@ -318,10 +318,6 @@ void handleEvents()
     while (SDL_PollEvent(&event))
     {
         switch (event.type) {
-        case SDL_AUDIODEVICEADDED:
-            break;
-        case SDL_AUDIODEVICEREMOVED:
-            break;
         case SDL_DROPFILE:
             handleDropFileEvent(event);
             break;
