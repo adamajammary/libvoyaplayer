@@ -255,6 +255,140 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaMeta(LibFFmpe
 	return LVP_Media::getMeta(formatContext != NULL ? formatContext->metadata : NULL);
 }
 
+SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContext* formatContext)
+{
+	if (formatContext == NULL)
+		return NULL;
+
+	auto videoStream = LVP_Media::GetMediaTrackThumbnail(formatContext);
+
+	if (videoStream == NULL)
+		videoStream = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_VIDEO);
+
+	if ((videoStream == NULL) || (videoStream->codecpar == NULL))
+		return NULL;
+
+	auto decoder = LibFFmpeg::avcodec_find_decoder(videoStream->codecpar->codec_id);
+	auto codec   = (decoder != NULL ? LibFFmpeg::avcodec_alloc_context3(decoder) : NULL);
+
+	if (codec != NULL)
+		LibFFmpeg::avcodec_parameters_to_context(codec, videoStream->codecpar);
+
+	if ((codec == NULL) || (LibFFmpeg::avcodec_open2(codec, decoder, NULL) < 0)) {
+		FREE_AVCODEC(codec);
+		return NULL;
+	}
+
+	int  result = -1;
+	auto frame  = LibFFmpeg::av_frame_alloc();
+
+	if (videoStream->attached_pic.size > 0)
+	{
+		LibFFmpeg::avcodec_send_packet(codec, &videoStream->attached_pic);
+		result = LibFFmpeg::avcodec_receive_frame(codec, frame);
+	}
+	else
+	{
+		auto seekPos = LVP_Media::GetMediaThumbnailSeekPos(formatContext);
+
+		if (seekPos > 0)
+			avformat_seek_file(formatContext, -1, INT64_MIN, seekPos, INT64_MAX, AV_SEEK_FLAGS(formatContext->iformat));
+
+		auto packet = LibFFmpeg::av_packet_alloc();
+
+		for (int i = 0; (LibFFmpeg::av_read_frame(formatContext, packet) == 0) && (i < 100); i++)
+		{
+			if (packet->stream_index != videoStream->index) {
+				LibFFmpeg::av_packet_unref(packet);
+				continue;
+			}
+
+			LibFFmpeg::avcodec_send_packet(codec, packet);
+			result = LibFFmpeg::avcodec_receive_frame(codec, frame);
+
+			if (result != AVERROR(EAGAIN))
+				break;
+
+			LibFFmpeg::av_frame_unref(frame);
+			LibFFmpeg::av_packet_unref(packet);
+		}
+
+		FREE_AVPACKET(packet);
+	}
+
+	if (result < 0) {
+		FREE_AVFRAME(frame);
+		FREE_AVCODEC(codec);
+		return NULL;
+	}
+
+	auto frameRGB = LibFFmpeg::av_frame_alloc();
+
+	LibFFmpeg::av_image_alloc(frameRGB->data, frameRGB->linesize, frame->width, frame->height, LibFFmpeg::AV_PIX_FMT_RGB24, 24);
+
+	auto contextRGB = LibFFmpeg::sws_getContext(
+		frame->width, frame->height, (LibFFmpeg::AVPixelFormat)frame->format,
+		frame->width, frame->height, LibFFmpeg::AV_PIX_FMT_RGB24,
+		DEFAULT_SCALE_FILTER, NULL, NULL, NULL
+	);
+
+	SDL_Surface* thumbnail = NULL;
+
+	result = LibFFmpeg::sws_scale(contextRGB, frame->data, frame->linesize, 0, frame->height, frameRGB->data, frameRGB->linesize);
+
+	if (result > 0)
+		thumbnail = SDL_CreateRGBSurfaceWithFormat(0, frame->width, frame->height, 24, SDL_PIXELFORMAT_RGB24);
+
+	if (thumbnail != NULL)
+	{
+		bool lock = SDL_MUSTLOCK(thumbnail);
+
+		thumbnail->pitch = frameRGB->linesize[0];
+
+		if (lock)
+			SDL_LockSurface(thumbnail);
+
+		std::memcpy(thumbnail->pixels, frameRGB->data[0], (size_t)(frame->height * thumbnail->pitch));
+
+		if (lock)
+			SDL_UnlockSurface(thumbnail);
+	}
+
+	FREE_SWS(contextRGB);
+	FREE_AVFRAME(frameRGB);
+	FREE_AVFRAME(frame);
+	FREE_AVCODEC(codec);
+
+	return thumbnail;
+}
+
+int64_t MediaPlayer::LVP_Media::GetMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext)
+{
+	if (formatContext == NULL)
+		return 0;
+
+	const int64_t AV_TIME_100 = (100ll * AV_TIME_BASE_I64);
+	const int64_t AV_TIME_50  = (50ll  * AV_TIME_BASE_I64);
+	const int64_t AV_TIME_10  = (10ll  * AV_TIME_BASE_I64);
+
+	int64_t seekPos = 0;
+
+	if (formatContext->duration > AV_TIME_100)
+		seekPos = AV_TIME_100;
+	else if (formatContext->duration > AV_TIME_50)
+		seekPos = AV_TIME_50;
+	else if (formatContext->duration > AV_TIME_10)
+		seekPos = AV_TIME_10;
+
+	if (AV_SEEK_FLAGS(formatContext->iformat) != AVSEEK_FLAG_BYTE)
+		return seekPos;
+
+	auto fileSize = System::LVP_FileSystem::GetFileSize(formatContext->url);
+	auto percent  = ((double)seekPos / (double)formatContext->duration);
+
+	return (int64_t)((double)fileSize * percent);
+}
+
 LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType)
 {
 	if ((formatContext == NULL) || (formatContext->nb_streams == 0))
@@ -335,6 +469,16 @@ LibFFmpeg::AVMediaType MediaPlayer::LVP_Media::GetMediaType(LibFFmpeg::AVFormatC
 		return LibFFmpeg::AVMEDIA_TYPE_VIDEO;
 
 	return LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
+}
+
+LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackThumbnail(LibFFmpeg::AVFormatContext* formatContext)
+{
+	for (uint32_t i = 0; i < formatContext->nb_streams; i++) {
+		if ((formatContext->streams[i]->codecpar->codec_type == LibFFmpeg::AVMEDIA_TYPE_VIDEO) && (formatContext->streams[i]->attached_pic.size > 0))
+			return formatContext->streams[i];
+	}
+
+	return NULL;
 }
 
 // http://wiki.multimedia.cx/index.php?title=FFmpeg_Metadata
@@ -557,7 +701,7 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
 			codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_PAL8;
 			break;
-		case  LibFFmpeg::AVMEDIA_TYPE_VIDEO:
+		case LibFFmpeg::AVMEDIA_TYPE_VIDEO:
 			codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_YUV420P;
 			break;
 		default:

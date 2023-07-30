@@ -132,6 +132,8 @@ struct LVP_MediaDetails
 	 */
 	std::map<std::string, std::string> meta;
 
+	SDL_Surface* thumbnail = nullptr;
+
 	std::vector<LVP_MediaTrack> audioTracks;
 	std::vector<LVP_MediaTrack> subtitleTracks;
 	std::vector<LVP_MediaTrack> videoTracks;

@@ -404,6 +404,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::formatContext->url),
 		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
 		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
+		.thumbnail      = LVP_Media::GetMediaThumbnail(LVP_Player::formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
 		.videoTracks    = LVP_Player::GetVideoTracks()
@@ -421,6 +422,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &fil
 		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
 		.mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext),
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
+		.thumbnail      = LVP_Media::GetMediaThumbnail(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
 		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
@@ -1587,7 +1589,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 void MediaPlayer::LVP_Player::Render(const SDL_Rect* destination)
 {
-	if (LVP_Player::state.quit)
+	if (LVP_Player::state.isStopped || LVP_Player::state.quit)
 		return;
 
 	if (LVP_Player::seekRequested)
