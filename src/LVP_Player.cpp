@@ -500,6 +500,16 @@ LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 	return (LVP_MediaType)LVP_Player::state.mediaType;
 }
 
+LVP_MediaType MediaPlayer::LVP_Player::GetMediaType(const std::string &filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto mediaType     = (LVP_MediaType)LVP_Media::GetMediaType(formatContext);
+
+	FREE_AVFORMAT(formatContext);
+
+	return mediaType;
+}
+
 LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
 {
 	return LVP_Player::videoContext.pixelFormatHardware;

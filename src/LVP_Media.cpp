@@ -125,7 +125,10 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	auto avRescaleB = (int64_t)audioStream->time_base.den;
 	auto avRescaleC = (int64_t)(audioStream->codecpar->bit_rate * audioStream->codecpar->ch_layout.nb_channels * audioStream->time_base.num);
 
-	return (LibFFmpeg::av_rescale(avRescaleA, avRescaleB, avRescaleC) / AV_TIME_BASE_I64);
+	if (avRescaleC > 0)
+		return (LibFFmpeg::av_rescale(avRescaleA, avRescaleB, avRescaleC) / AV_TIME_BASE_I64);
+
+	return 0;
 }
 
 /**

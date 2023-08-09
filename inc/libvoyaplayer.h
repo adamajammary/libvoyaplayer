@@ -79,6 +79,20 @@ DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::wstring& filePath)
 DLLEXPORT LVP_MediaType DLL LVP_GetMediaType();
 
 /**
+ * @returns the media type of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaType DLL LVP_GetMediaType(const std::string& filePath);
+
+/**
+ * @returns the media type of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws exception
+ */
+DLLEXPORT LVP_MediaType DLL LVP_GetMediaType(const std::wstring& filePath);
+
+/**
  * @returns the current playback speed as a percent between 0.5 and 2.0.
  * @throws exception
  */

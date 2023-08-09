@@ -436,6 +436,38 @@ Exceptions
 
 - exception
 
+### LVP_GetMediaType (string)
+
+Returns the media type of the the provided media file.
+
+```cpp
+LVP_MediaType LVP_GetMediaType(const std::string& filePath);
+```
+
+Parameters
+
+- **filePath** Full path to the media file
+
+Exceptions
+
+- exception
+
+### LVP_GetMediaType (wstring)
+
+Returns the media type of the the provided media file.
+
+```cpp
+LVP_MediaType LVP_GetMediaType(const std::wstring& filePath);
+```
+
+Parameters
+
+- **filePath** Full path to the media file
+
+Exceptions
+
+- exception
+
 ### LVP_GetPlaybackSpeed
 
 Returns the current playback speed as a percent between 0.5 and 2.0.

@@ -162,6 +162,41 @@ LVP_MediaType LVP_GetMediaType()
 	return MediaPlayer::LVP_Player::GetMediaType();
 }
 
+LVP_MediaType LVP_GetMediaType(const std::string &filePath)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN;
+
+	try {
+		mediaType = MediaPlayer::LVP_Player::GetMediaType(filePath);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
+	}
+
+	return mediaType;
+}
+
+LVP_MediaType LVP_GetMediaType(const std::wstring &filePath)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN;
+
+	try {
+		auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+		mediaType = MediaPlayer::LVP_Player::GetMediaType(filePathUTF8);
+
+		SDL_free(filePathUTF8);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
+	}
+
+	return mediaType;
+}
+
 double LVP_GetPlaybackSpeed()
 {
 	if (!isInitialized)
