@@ -107,6 +107,10 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	if (formatContext == NULL)
 		return 0;
 
+	// Perform an extra scan if duration was not calculated in the initial scan
+	if ((formatContext->duration < 1) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
+		return 0;
+
 	if (formatContext->duration > 0)
 		return (size_t)((double)formatContext->duration / AV_TIME_BASE_D);
 
@@ -424,10 +428,8 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 		return 0;
 
 	// Perform an extra scan if no streams were found in the initial scan
-	if (formatContext->nb_streams == 0) {
-		if (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0)
-			return 0;
-	}
+	if ((formatContext->nb_streams == 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
+		return 0;
 
 	size_t streamCount = 0;
 
