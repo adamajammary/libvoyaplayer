@@ -413,21 +413,25 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 
 LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &filePath)
 {
-	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
-	auto audioStream   = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto formatContext  = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto audioStream    = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext);
+	auto subFiles       = (IS_VIDEO(mediaType) ? System::LVP_FileSystem::GetSubtitleFilesForVideo(filePath) : Strings());
+	auto subFileContext = (!subFiles.empty() ? LVP_Media::GetMediaFormatContext(subFiles[0], false) : NULL);
 
 	LVP_MediaDetails details =
 	{
 		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
 		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
-		.mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext),
+		.mediaType      = mediaType,
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
 		.thumbnail      = LVP_Media::GetMediaThumbnail(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
-		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
+		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext, subFileContext),
 		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
 	};
 
+	FREE_AVFORMAT(subFileContext);
 	FREE_AVFORMAT(formatContext);
 
 	return details;
@@ -883,10 +887,8 @@ void MediaPlayer::LVP_Player::openSubExternal(int streamIndex)
 
 	LVP_Player::formatContextExternal = LVP_Media::GetMediaFormatContext(subFile, true);
 
-	if (LVP_Player::formatContextExternal == NULL)
-		return;
-
-	LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, fileStreamIndex, LVP_Player::subContext, true);
+	if (LVP_Player::formatContextExternal != NULL)
+		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, fileStreamIndex, LVP_Player::subContext, true);
 }
 
 /**
