@@ -498,8 +498,14 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 
 	while ((entry = LibFFmpeg::av_dict_get(metadata, "", entry, AV_DICT_IGNORE_SUFFIX)) != NULL)
 	{
-		if (strcmp(entry->value, "und") != 0)
-			meta[System::LVP_Text::ToLower(entry->key)] = entry->value;
+		if (strcmp(entry->value, "und") == 0)
+			continue;
+
+		auto key   = System::LVP_Text::ToLower(entry->key);
+		auto value = System::LVP_Text::Replace(entry->value, "\r", "\\r");
+		value      = System::LVP_Text::Replace(value,        "\n", "\\n");
+
+		meta[key] = value;
 	}
 
 	return meta;
