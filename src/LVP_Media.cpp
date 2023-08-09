@@ -349,13 +349,12 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	if (thumbnail != NULL)
 	{
 		bool lock = SDL_MUSTLOCK(thumbnail);
-
-		thumbnail->pitch = frameRGB->linesize[0];
+		auto size = (size_t)(frame->width * thumbnail->format->BytesPerPixel * frame->height);
 
 		if (lock)
 			SDL_LockSurface(thumbnail);
 
-		std::memcpy(thumbnail->pixels, frameRGB->data[0], (size_t)(frame->height * thumbnail->pitch));
+		std::memcpy(thumbnail->pixels, frameRGB->data[0], size);
 
 		if (lock)
 			SDL_UnlockSurface(thumbnail);
