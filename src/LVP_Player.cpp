@@ -88,7 +88,7 @@ void MediaPlayer::LVP_Player::clearSubs()
 
 void MediaPlayer::LVP_Player::Close()
 {
-	if (LVP_Player::isStopping || LVP_Player::state.isStopped)
+	if (LVP_Player::isStopping)
 		return;
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_STOPPING);

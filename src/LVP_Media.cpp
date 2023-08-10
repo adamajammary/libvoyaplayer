@@ -6,7 +6,14 @@ std::string MediaPlayer::LVP_Media::GetAudioChannelLayout(const LibFFmpeg::AVCha
 
 	LibFFmpeg::av_channel_layout_describe(&layout, buffer, DEFAULT_CHAR_BUFFER_SIZE);
 
-	return std::string(buffer);
+	auto channelLayout = std::string(buffer);
+
+	if (channelLayout == "2 channels")
+		return "stereo";
+	else if (channelLayout == "1 channel")
+		return "mono";
+
+	return channelLayout;
 }
 
 double MediaPlayer::LVP_Media::GetAudioPTS(const LVP_AudioContext &audioContext)

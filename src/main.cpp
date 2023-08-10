@@ -286,6 +286,7 @@ void LVP_Open(const std::string &filePath)
 		MediaPlayer::LVP_Player::Open(filePath);
 	} catch (const std::exception &e) {
 		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to open media file:\n{}", e.what()));
+		LVP_Stop();
 	}
 }
 
@@ -302,6 +303,7 @@ void LVP_Open(const std::wstring &filePath)
 		SDL_free(filePathUTF8);
 	} catch (const std::exception &e) {
 		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to open media file:\n{}", e.what()));
+		LVP_Stop();
 	}
 }
 
