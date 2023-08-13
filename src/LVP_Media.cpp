@@ -495,6 +495,8 @@ LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackThumbnail(LibFFmpeg::A
 }
 
 // http://wiki.multimedia.cx/index.php?title=FFmpeg_Metadata
+// https://www.exiftool.org/TagNames/ID3.html
+
 std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AVDictionary* metadata)
 {
 	std::map<std::string, std::string> meta;
@@ -509,7 +511,11 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 		if (strcmp(entry->value, "und") == 0)
 			continue;
 
-		auto key   = System::LVP_Text::ToLower(entry->key);
+		auto key = System::LVP_Text::ToLower(entry->key);
+
+		if (key.starts_with("id3v2_priv."))
+			continue;
+
 		auto value = System::LVP_Text::Replace(entry->value, "\r", "\\r");
 		value      = System::LVP_Text::Replace(value,        "\n", "\\n");
 
