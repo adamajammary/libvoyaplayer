@@ -681,6 +681,22 @@ Parameters
 
 - **device** Name of the audio device
 
+### LVP_SetMuted
+
+Mutes/unmutes the audio volume.
+
+```cpp
+void LVP_SetMuted(bool muted);
+```
+
+Parameters
+
+- **muted** true to mute or false to unmute
+
+Exceptions
+
+- exception
+
 ### LVP_SetPlaybackSpeed
 
 Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.

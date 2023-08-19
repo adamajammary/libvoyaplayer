@@ -199,6 +199,13 @@ DLLEXPORT void DLL LVP_SeekTo(double percent);
 DLLEXPORT bool DLL LVP_SetAudioDevice(const std::string &device);
 
 /**
+ * @brief Mutes/unmutes the audio volume.
+ * @param muted true to mute or false to unmute
+ * @throws exception
+ */
+DLLEXPORT void DLL LVP_SetMuted(bool muted);
+
+/**
  * @brief Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.
  * @param speed [0.5-2.0]
  * @throws exception

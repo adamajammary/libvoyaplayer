@@ -1737,6 +1737,16 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string &device)
 	return isSuccess;
 }
 
+void MediaPlayer::LVP_Player::SetMuted(bool muted)
+{
+	LVP_Player::audioContext.isMuted = muted;
+
+	if (LVP_Player::audioContext.isMuted)
+		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_MUTED);
+	else
+		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_UNMUTED);
+}
+
 void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 {
 	auto newSpeed = max(0.5, min(2.0, speed));
@@ -2580,12 +2590,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 
 void MediaPlayer::LVP_Player::ToggleMute()
 {
-	LVP_Player::audioContext.isMuted = !LVP_Player::audioContext.isMuted;
-
-	if (LVP_Player::audioContext.isMuted)
-		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_MUTED);
-	else
-		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_UNMUTED);
+	LVP_Player::SetMuted(!LVP_Player::audioContext.isMuted);
 }
 
 void MediaPlayer::LVP_Player::TogglePause()

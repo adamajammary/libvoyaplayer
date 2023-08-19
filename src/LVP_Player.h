@@ -133,6 +133,7 @@ namespace LibVoyaPlayer
 			static void                          Resize();
 			static void                          SeekTo(double percent);
 			static bool                          SetAudioDevice(const std::string &device = "");
+			static void                          SetMuted(bool muted = true);
 			static void                          SetPlaybackSpeed(double speed);
 			static void                          SetTrack(const LVP_MediaTrack &track);
 			static void                          SetVolume(double percent);

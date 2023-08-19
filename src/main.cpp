@@ -352,12 +352,12 @@ bool LVP_SetAudioDevice(const std::string &device)
 	return MediaPlayer::LVP_Player::SetAudioDevice(device);
 }
 
-void LVP_SetVolume(double percent)
+void LVP_SetMuted(bool muted)
 {
 	if (!isInitialized)
 		throw std::exception(ERROR_NO_INIT);
 
-	MediaPlayer::LVP_Player::SetVolume(percent);
+	MediaPlayer::LVP_Player::SetMuted(muted);
 }
 
 void LVP_SetPlaybackSpeed(double speed)
@@ -374,6 +374,14 @@ void LVP_SetTrack(const LVP_MediaTrack &track)
 		throw std::exception(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::SetTrack(track);
+}
+
+void LVP_SetVolume(double percent)
+{
+	if (!isInitialized)
+		throw std::exception(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::SetVolume(percent);
 }
 
 void LVP_Stop()
