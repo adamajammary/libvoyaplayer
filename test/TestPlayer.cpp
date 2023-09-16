@@ -1,7 +1,7 @@
 #include "TestPlayer.h"
 
-SDL_Texture* TestPlayer::texture = nullptr;
-SDL_Surface* TestPlayer::videoFrame = nullptr;
+SDL_Texture* TestPlayer::texture          = nullptr;
+SDL_Surface* TestPlayer::videoFrame       = nullptr;
 bool         TestPlayer::videoIsAvailable = false;
 std::mutex   TestPlayer::videoLock;
 
@@ -179,41 +179,4 @@ void TestPlayer::SeekForward()
 	auto percent  = (progress / duration);
 
 	LVP_SeekTo(percent);
-}
-
-void TestPlayer::SeekToChapter(const LVP_MediaChapter &chapter)
-{
-	auto duration = (double)LVP_GetDuration();
-	auto position = (double)chapter.startTime;
-	auto percent  = (position / duration);
-
-	LVP_SeekTo(percent);
-}
-
-void TestPlayer::SetPlaybackSpeedDown()
-{
-	auto speed = LVP_GetPlaybackSpeed();
-
-	LVP_SetPlaybackSpeed(speed - SPEED_DIFF);
-}
-
-void TestPlayer::SetPlaybackSpeedUp()
-{
-	auto speed = LVP_GetPlaybackSpeed();
-
-	LVP_SetPlaybackSpeed(speed + SPEED_DIFF);
-}
-
-void TestPlayer::SetVolumeDown()
-{
-	auto volume = LVP_GetVolume();
-
-	LVP_SetVolume(volume - VOLUME_DIFF);
-}
-
-void TestPlayer::SetVolumeUp()
-{
-	auto volume = LVP_GetVolume();
-
-	LVP_SetVolume(volume + VOLUME_DIFF);
 }

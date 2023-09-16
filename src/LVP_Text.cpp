@@ -33,7 +33,7 @@ int System::LVP_Text::GetWidth(const std::string &text, TTF_Font* font)
 {
 	if (!text.empty())
 	{
-		auto text16 = SDL_iconv_utf8_ucs2(text.c_str());
+		auto text16 = System::LVP_Text::ToUTF16(text.c_str());
 
 		int textWidth, h;
 		TTF_SizeUNICODE(font, text16, &textWidth, &h);
@@ -95,7 +95,7 @@ std::string System::LVP_Text::ToLower(const std::string &text)
 	std::string lower = std::string(text);
 
 	for (int i = 0; i < (int)lower.size(); i++)
-		lower[i] = tolower(lower[i]);
+		lower[i] = std::tolower(lower[i]);
 
 	return lower;
 }
@@ -106,7 +106,7 @@ std::wstring System::LVP_Text::ToLower(const std::wstring &text)
 	std::wstring lower = std::wstring(text);
 
 	for (int i = 0; i < (int)lower.size(); i++)
-		lower[i] = tolower(lower[i]);
+		lower[i] = std::tolower(lower[i]);
 
 	return lower;
 }
@@ -117,9 +117,18 @@ std::string System::LVP_Text::ToUpper(const std::string &text)
 	std::string upper = std::string(text);
 
 	for (int i = 0; i < (int)upper.size(); i++)
-		upper[i] = toupper(upper[i]);
+		upper[i] = std::toupper(upper[i]);
 
 	return upper;
+}
+
+uint16_t* System::LVP_Text::ToUTF16(const std::string &text)
+{
+	#if defined _linux
+		return (uint16_t*)SDL_iconv_string("UCS-2", "UTF-8", text.c_str(), SDL_strlen(text.c_str()) + 1);
+	#else
+		return SDL_iconv_utf8_ucs2(text.c_str());
+	#endif
 }
 
 std::string System::LVP_Text::Trim(const std::string &text)
@@ -127,11 +136,11 @@ std::string System::LVP_Text::Trim(const std::string &text)
 	auto stringTrimmed = std::string(text);
 
 	// TRIM FRONT
-	while (!stringTrimmed.empty() && std::isspace(stringTrimmed[0], std::locale()))
+	while (!stringTrimmed.empty() && std::isspace(stringTrimmed[0]))
 		stringTrimmed = stringTrimmed.substr(1);
 
 	// TRIM END
-	while (!stringTrimmed.empty() && std::isspace(stringTrimmed[stringTrimmed.size() - 1], std::locale()))
+	while (!stringTrimmed.empty() && std::isspace(stringTrimmed[stringTrimmed.size() - 1]))
 		stringTrimmed = stringTrimmed.substr(0, stringTrimmed.size() - 1);
 	
 	return stringTrimmed;

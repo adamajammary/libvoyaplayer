@@ -3,9 +3,7 @@
 
 #include <libvoyaplayer.h>
 
-const int64_t SEEK_DIFF   = 20000;
-const double  SPEED_DIFF  = 0.25;
-const double  VOLUME_DIFF = 0.05;
+const int64_t SEEK_DIFF = 20000;
 
 class TestPlayer
 {
@@ -25,11 +23,6 @@ public:
     static void Render(SDL_Renderer* renderer, const SDL_Rect &destination);
     static void SeekBack();
     static void SeekForward();
-    static void SeekToChapter(const LVP_MediaChapter &chapter);
-    static void SetPlaybackSpeedDown();
-    static void SetPlaybackSpeedUp();
-    static void SetVolumeDown();
-    static void SetVolumeUp();
 
 private:
     static void freeResources();

@@ -88,7 +88,7 @@ void MediaPlayer::LVP_Player::clearSubs()
 
 void MediaPlayer::LVP_Player::Close()
 {
-	if (LVP_Player::isStopping || LVP_Player::state.isStopped)
+	if (LVP_Player::isStopping)
 		return;
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_STOPPING);
@@ -134,13 +134,14 @@ void MediaPlayer::LVP_Player::closeAudio()
 	FREE_THREAD_COND(LVP_Player::audioContext.condition);
 	FREE_THREAD_MUTEX(LVP_Player::audioContext.mutex);
 	
-	if (strcmp(SDL_GetCurrentAudioDriver(), "dummy") == 0)
+	auto audioDriver = SDL_GetCurrentAudioDriver();
+
+	if ((audioDriver != NULL) && strcmp(audioDriver, "dummy") == 0)
 	{
 		SDL_AudioQuit();
 		SDL_setenv("SDL_AUDIODRIVER", "", 1);
 		SDL_AudioInit(NULL);
 	}
-
 }
 
 void MediaPlayer::LVP_Player::closePackets()
@@ -368,7 +369,7 @@ MediaPlayer::LVP_FontFaceMap MediaPlayer::LVP_Player::getFontFaces(LibFFmpeg::AV
 		auto fontStyleLower = System::LVP_Text::ToLower(fontStyle);
 
 		#if defined _windows
-			auto font16          = (wchar_t*)SDL_iconv_utf8_ucs2(familyName);
+			auto font16          = (wchar_t*)System::LVP_Text::ToUTF16(familyName);
 			auto familyNameLower = std::wstring(font16);
 
 			SDL_free(font16);
@@ -403,6 +404,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::formatContext->url),
 		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
 		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
+		.thumbnail      = LVP_Media::GetMediaThumbnail(LVP_Player::formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
 		.videoTracks    = LVP_Player::GetVideoTracks()
@@ -411,20 +413,25 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 
 LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &filePath)
 {
-	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
-	auto audioStream   = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto formatContext  = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto audioStream    = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext);
+	auto subFiles       = (IS_VIDEO(mediaType) ? System::LVP_FileSystem::GetSubtitleFilesForVideo(filePath) : Strings());
+	auto subFileContext = (!subFiles.empty() ? LVP_Media::GetMediaFormatContext(subFiles[0], false) : NULL);
 
 	LVP_MediaDetails details =
 	{
 		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
 		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
-		.mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext),
+		.mediaType      = mediaType,
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
+		.thumbnail      = LVP_Media::GetMediaThumbnail(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
-		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext),
+		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext, subFileContext),
 		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
 	};
 
+	FREE_AVFORMAT(subFileContext);
 	FREE_AVFORMAT(formatContext);
 
 	return details;
@@ -497,6 +504,16 @@ LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 	return (LVP_MediaType)LVP_Player::state.mediaType;
 }
 
+LVP_MediaType MediaPlayer::LVP_Player::GetMediaType(const std::string &filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+	auto mediaType     = (LVP_MediaType)LVP_Media::GetMediaType(formatContext);
+
+	FREE_AVFORMAT(formatContext);
+
+	return mediaType;
+}
+
 LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
 {
 	return LVP_Player::videoContext.pixelFormatHardware;
@@ -521,8 +538,8 @@ SDL_Rect* MediaPlayer::LVP_Player::getScaledVideoDestination(const SDL_Rect* des
 	int videoHeight  = LVP_Player::videoContext.stream->codecpar->height;
 	int maxWidth     = (int)((double)videoWidth  / (double)videoHeight * (double)destination->h);
 	int maxHeight    = (int)((double)videoHeight / (double)videoWidth  * (double)destination->w);
-	int scaledWidth  = min(destination->w, maxWidth);
-	int scaledHeight = min(destination->h, maxHeight);
+	int scaledWidth  = std::min(destination->w, maxWidth);
+	int scaledHeight = std::min(destination->h, maxHeight);
 
 	auto scaledDestination = new SDL_Rect
 	{
@@ -557,6 +574,8 @@ SDL_YUV_CONVERSION_MODE MediaPlayer::LVP_Player::getSdlYuvConversionMode(LibFFmp
 		default:
 			break;
 		}
+
+		break;
 	default:
 		break;
 	}
@@ -606,7 +625,8 @@ void MediaPlayer::LVP_Player::handleSeek()
 	LVP_Player::subContext.pts               = {};
 	LVP_Player::videoContext.pts             = 0.0;
 
-	LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
+	if (LVP_Player::subContext.codec != NULL)
+		LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
 
 	const int SEEK_FLAGS = AV_SEEK_FLAGS(LVP_Player::formatContext->iformat);
 
@@ -713,7 +733,7 @@ bool MediaPlayer::LVP_Player::IsStopped()
 
 /**
  * @throws invalid_argument
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::Open(const std::string &filePath)
 {
@@ -721,7 +741,7 @@ void MediaPlayer::LVP_Player::Open(const std::string &filePath)
 		throw std::invalid_argument("filePath cannot be empty");
 
 	if (System::LVP_FileSystem::IsSystemFile(filePath))
-		throw std::exception(std::format("Invalid media file: {}", filePath).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Invalid media file: %s", filePath.c_str()).c_str());
 
 	if (!LVP_Player::state.isStopped)
 		LVP_Player::Close();
@@ -738,7 +758,7 @@ void MediaPlayer::LVP_Player::Open(const std::string &filePath)
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openAudioDevice(const SDL_AudioSpec &wantedSpecs)
 {
@@ -772,13 +792,13 @@ void MediaPlayer::LVP_Player::openAudioDevice(const SDL_AudioSpec &wantedSpecs)
 
 		SDL_CloseAudioDevice(LVP_Player::audioContext.deviceID);
 
-		throw std::exception(std::format("Failed to open a valid audio device: {}", LVP_Player::audioContext.deviceID).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to open a valid audio device: %u", LVP_Player::audioContext.deviceID).c_str());
 	}
 }
 
 /**
  * @throws invalid_argument
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openFormatContext(const std::string &filePath)
 {
@@ -795,7 +815,7 @@ void MediaPlayer::LVP_Player::openFormatContext(const std::string &filePath)
 
 	if (!isValidMedia) {
 		FREE_AVFORMAT(LVP_Player::formatContext);
-		throw std::exception(std::format("Invalid media type: {}", (int)mediaType).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Invalid media type: %d", (int)mediaType).c_str());
 	}
 
 	auto fileExtension = System::LVP_FileSystem::GetFileExtension(filePath, true);
@@ -808,7 +828,7 @@ void MediaPlayer::LVP_Player::openFormatContext(const std::string &filePath)
 
 	if (!isValidMedia) {
 		FREE_AVFORMAT(LVP_Player::formatContext);
-		throw std::exception("Media is DRM encrypted.");
+		throw std::runtime_error("Media is DRM encrypted.");
 	}
 
 	LVP_Player::state.filePath  = filePath;
@@ -819,7 +839,7 @@ void MediaPlayer::LVP_Player::openFormatContext(const std::string &filePath)
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openStreams()
 {
@@ -831,7 +851,7 @@ void MediaPlayer::LVP_Player::openStreams()
 	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO, LVP_Player::audioContext);
 
 	if (LVP_Player::audioContext.stream == NULL)
-		throw std::exception("Failed to find a valid audio track.");
+		throw std::runtime_error("Failed to find a valid audio track.");
 
 	LVP_Player::state.duration = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext.stream);
 
@@ -841,7 +861,7 @@ void MediaPlayer::LVP_Player::openStreams()
 	if (IS_VIDEO(LVP_Player::state.mediaType))
 	{
 		if (LVP_Player::videoContext.stream == NULL)
-			throw std::exception("Failed to find a valid video track.");
+			throw std::runtime_error("Failed to find a valid video track.");
 
 		// SUB TRACK
 		LVP_Player::subContext.external = System::LVP_FileSystem::GetSubtitleFilesForVideo(LVP_Player::state.filePath);
@@ -869,14 +889,12 @@ void MediaPlayer::LVP_Player::openSubExternal(int streamIndex)
 
 	LVP_Player::formatContextExternal = LVP_Media::GetMediaFormatContext(subFile, true);
 
-	if (LVP_Player::formatContextExternal == NULL)
-		return;
-
-	LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, fileStreamIndex, LVP_Player::subContext, true);
+	if (LVP_Player::formatContextExternal != NULL)
+		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, fileStreamIndex, LVP_Player::subContext, true);
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openThreads()
 {
@@ -890,16 +908,16 @@ void MediaPlayer::LVP_Player::openThreads()
 	LVP_Player::packetsThread = SDL_CreateThread(LVP_Player::threadPackets, "packetsThread", NULL);
 
 	if (LVP_Player::packetsThread == NULL)
-		throw std::exception(std::format("Failed to create a packets thread: {}", SDL_GetError()).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to create a packets thread: %s", SDL_GetError()).c_str());
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openThreadAudio()
 {
 	if ((LVP_Player::audioContext.stream == NULL) || (LVP_Player::audioContext.stream->codecpar == NULL))
-		throw std::exception("Audio context stream is missing a valid codec.");
+		throw std::runtime_error("Audio context stream is missing a valid codec.");
 
 	LVP_Player::audioContext.frame     = LibFFmpeg::av_frame_alloc();
 	LVP_Player::audioContext.condition = SDL_CreateCond();
@@ -907,7 +925,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	LVP_Player::audioContext.index     = LVP_Player::audioContext.stream->index;
 
 	if ((LVP_Player::audioContext.frame == NULL) || (LVP_Player::audioContext.condition == NULL) || (LVP_Player::audioContext.mutex == NULL))
-		throw std::exception("Failed to allocate an audio context frame.");
+		throw std::runtime_error("Failed to allocate an audio context frame.");
 
 	auto channelCount = LVP_Player::audioContext.stream->codecpar->ch_layout.nb_channels;
 	auto sampleRate   = LVP_Player::audioContext.stream->codecpar->sample_rate;
@@ -916,7 +934,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		LibFFmpeg::av_channel_layout_default(&LVP_Player::audioContext.stream->codecpar->ch_layout, 2);
 
 	if ((sampleRate < 1) || (channelCount < 1))
-		throw std::exception(std::format("Invalid audio: {} channels, {} bps", channelCount, sampleRate).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Invalid audio: %d channels, %d bps", channelCount, sampleRate).c_str());
 
 	// https://developer.apple.com/documentation/audiotoolbox/kaudiounitproperty_maximumframesperslice
 
@@ -933,17 +951,17 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	LVP_Player::audioContext.bufferSize      = AUDIO_BUFFER_SIZE;
 
 	LVP_Player::audioContext.decodeFrame     = true;
-	LVP_Player::audioContext.frameEncoded    = (uint8_t*)malloc(LVP_Player::audioContext.bufferSize);
+	LVP_Player::audioContext.frameEncoded    = (uint8_t*)std::malloc(LVP_Player::audioContext.bufferSize);
 	LVP_Player::audioContext.writtenToStream = 0;
 
 	if (LVP_Player::audioContext.frameEncoded == NULL)
-		throw std::exception("Failed to allocate an encoded audio context frame.");
+		throw std::runtime_error("Failed to allocate an encoded audio context frame.");
 
 	LVP_Player::openThreadAudioFilter();
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openThreadAudioFilter()
 {
@@ -979,7 +997,7 @@ void MediaPlayer::LVP_Player::openThreadAudioFilter()
 	LibFFmpeg::avfilter_link(filterATempo, 0, bufferSink, 0);
 
 	if (LibFFmpeg::avfilter_graph_config(filterGraph, NULL) < 0)
-		throw std::exception("Failed to initialize a valid audio filter.");
+		throw std::runtime_error("Failed to initialize a valid audio filter.");
 
 	LVP_Player::audioFilterLock.lock();
 
@@ -993,7 +1011,7 @@ void MediaPlayer::LVP_Player::openThreadAudioFilter()
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openThreadSub()
 {
@@ -1052,6 +1070,8 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		};
 	}
 
+	LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
+
 	// SUB STYLES
 
 	if (styleVersion != SUB_STYLE_VERSION_UNKNOWN)
@@ -1088,7 +1108,7 @@ void MediaPlayer::LVP_Player::openThreadSub()
 	}
 
 	if ((LVP_Player::subContext.mutex == NULL) || (LVP_Player::subContext.condition == NULL))
-		throw std::exception(std::format("Failed to create a subtitle context mutex: {}", SDL_GetError()).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to create a subtitle context mutex: %s", SDL_GetError()).c_str());
 
 	if (LVP_Player::subContext.subsMutex == NULL) {
 		LVP_Player::subContext.subsMutex     = SDL_CreateMutex();
@@ -1096,22 +1116,22 @@ void MediaPlayer::LVP_Player::openThreadSub()
 	}
 
 	if ((LVP_Player::subContext.subsMutex == NULL) || (LVP_Player::subContext.subsCondition == NULL))
-		throw std::exception(std::format("Failed to create a subtitles context mutex: {}", SDL_GetError()).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to create a subtitles context mutex: %s", SDL_GetError()).c_str());
 
 	if (LVP_Player::subContext.thread == NULL)
 		LVP_Player::subContext.thread = SDL_CreateThread(LVP_Player::threadSub, "subContext.thread", NULL);
 
 	if (LVP_Player::subContext.thread == NULL)
-		throw std::exception(std::format("Failed to create a subtitles context thread: {}", SDL_GetError()).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to create a subtitles context thread: %s", SDL_GetError()).c_str());
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::openThreadVideo()
 {
 	if ((LVP_Player::videoContext.stream == NULL) || (LVP_Player::videoContext.stream->codecpar == NULL))
-		throw std::exception("Video context stream is missing a valid codec.");
+		throw std::runtime_error("Video context stream is missing a valid codec.");
 
 	// VIDEO RENDERER
 
@@ -1126,7 +1146,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 	}
 
 	if (LVP_Player::renderContext.renderer == NULL)
-		throw std::exception(std::format("Failed to create a renderer: {}", SDL_GetError()).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to create a renderer: %s", SDL_GetError()).c_str());
 
 	// VIDEO TARGET TEXTURE
 
@@ -1146,7 +1166,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 		(LVP_Player::videoContext.frameSoftware == NULL) ||
 		(LVP_Player::videoContext.frameRate <= 0))
 	{
-		throw std::exception("Failed to allocate a video context frame.");
+		throw std::runtime_error("Failed to allocate a video context frame.");
 	}
 
 	if (LVP_Player::videoContext.frameEncoded != NULL)
@@ -1159,7 +1179,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 	LVP_Player::videoContext.thread    = SDL_CreateThread(LVP_Player::threadVideo, "videoContext.thread", NULL);
 
 	if ((LVP_Player::videoContext.thread == NULL) || (LVP_Player::videoContext.mutex == NULL) || (LVP_Player::videoContext.condition == NULL))
-		throw std::exception(std::format("Failed to create a video thread: {}", SDL_GetError()).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to create a video thread: %s", SDL_GetError()).c_str());
 
 	LVP_Player::videoContext.index = LVP_Player::videoContext.stream->index;
 }
@@ -1269,7 +1289,7 @@ void MediaPlayer::LVP_Player::present()
 		LVP_Player::subContext.textureNext    = current;
 	}
 
-	if (LVP_Player::subContext.textureCurrent != NULL)
+	if ((LVP_Player::subContext.textureCurrent != NULL) && (LVP_Player::subContext.index >= 0))
 		SDL_RenderCopy(LVP_Player::renderContext.renderer, LVP_Player::subContext.textureCurrent->data, NULL, NULL);
 
 	SDL_SetRenderTarget(LVP_Player::renderContext.renderer, renderTarget);
@@ -1308,7 +1328,7 @@ void MediaPlayer::LVP_Player::removeExpiredSubs()
 		bool isExpired = sub->isExpiredPTS(LVP_Player::subContext, LVP_Player::state.progress);
 		bool isSeeked  = sub->isSeekedPTS(LVP_Player::subContext);
 
-		if (!isExpired && !isSeeked) {
+		if (!isExpired && !isSeeked && (LVP_Player::subContext.index >= 0)) {
 			subIter++;
 			continue;
 		}
@@ -1495,18 +1515,6 @@ void MediaPlayer::LVP_Player::renderVideo()
 	auto videoWidth  = LVP_Player::videoContext.stream->codecpar->width;
 	auto videoHeight = LVP_Player::videoContext.stream->codecpar->height;
 
-	// SUB SCALING RELATIVE TO VIDEO
-
-	if ((LVP_Player::subContext.size.x > 0) && (LVP_Player::subContext.size.y > 0))
-	{
-		LVP_Player::subContext.scale = {
-			(float)((float)videoWidth  / (float)LVP_Player::subContext.size.x),
-			(float)((float)videoHeight / (float)LVP_Player::subContext.size.y)
-		};
-	}
-
-	LVP_Player::subContext.videoDimensions = { 0, 0, videoWidth, videoHeight };
-
 	if (!IS_VALID_TEXTURE(LVP_Player::videoContext.texture))
 	{
 		LVP_Player::videoContext.texture = new Graphics::LVP_Texture(
@@ -1561,7 +1569,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 			FREE_AVFRAME(LVP_Player::videoContext.frameEncoded);
 	}
 
-	if (LVP_Player::videoContext.frameEncoded == NULL)
+	if ((LVP_Player::videoContext.frameEncoded == NULL) || (pixelFormat == LibFFmpeg::AV_PIX_FMT_NONE))
 		return;
 
 	LVP_Player::renderContext.scaleContextVideo = LibFFmpeg::sws_getCachedContext(
@@ -1595,7 +1603,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 void MediaPlayer::LVP_Player::Render(const SDL_Rect* destination)
 {
-	if (LVP_Player::state.quit)
+	if (LVP_Player::state.isStopped || LVP_Player::state.quit)
 		return;
 
 	if (LVP_Player::seekRequested)
@@ -1677,7 +1685,7 @@ void MediaPlayer::LVP_Player::SeekTo(double percent)
 		return;
 	
 	int64_t position;
-	auto    validPercent = max(0.0, min(1.0, percent));
+	auto    validPercent = std::max(0.0, std::min(1.0, percent));
 
 	if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
 		position = (int64_t)((double)LVP_Player::state.fileSize * validPercent);
@@ -1731,9 +1739,19 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string &device)
 	return isSuccess;
 }
 
+void MediaPlayer::LVP_Player::SetMuted(bool muted)
+{
+	LVP_Player::audioContext.isMuted = muted;
+
+	if (LVP_Player::audioContext.isMuted)
+		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_MUTED);
+	else
+		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_UNMUTED);
+}
+
 void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 {
-	auto newSpeed = max(0.5, min(2.0, speed));
+	auto newSpeed = std::max(0.5, std::min(2.0, speed));
 
 	if (ARE_DIFFERENT_DOUBLES(newSpeed, LVP_Player::state.playbackSpeed))
 	{
@@ -1746,7 +1764,7 @@ void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 }
 
 /**
- * @throws exception
+ * @throws runtime_error
  */
 void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 {
@@ -1754,7 +1772,7 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 	auto trackIndex = track.track;
 
 	if (LVP_Player::formatContext == NULL)
-		throw std::exception(std::format("Failed to set track {}:\n- No media has been loaded.", trackIndex).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to set track %d:\n- No media has been loaded.", trackIndex).c_str());
 
 	bool isSameAudioTrack = (IS_AUDIO(mediaType) && (trackIndex == LVP_Player::audioContext.index));
 	bool isSameSubTrack   = (IS_SUB(mediaType)   && (trackIndex == LVP_Player::subContext.index));
@@ -1764,8 +1782,11 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		return;
 
 	// Disable subs
-	if (IS_SUB(mediaType) && (trackIndex < 0)) {
+	if (IS_SUB(mediaType) && (trackIndex < 0))
+	{
 		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
+
 		return;
 	}
 
@@ -1822,10 +1843,10 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 
 void MediaPlayer::LVP_Player::SetVolume(double percent)
 {
-	auto validPercent = max(0.0, min(1.0, percent));
+	auto validPercent = std::max(0.0, std::min(1.0, percent));
 	auto volume       = (int)((double)SDL_MIX_MAXVOLUME * validPercent);
 
-	LVP_Player::audioContext.volume = max(0, min(SDL_MIX_MAXVOLUME, volume));
+	LVP_Player::audioContext.volume = std::max(0, std::min(SDL_MIX_MAXVOLUME, volume));
 
 	LVP_Player::callbackEvents(LVP_EVENT_AUDIO_VOLUME_CHANGED);
 }
@@ -2103,21 +2124,23 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			if (LVP_Player::timeOut != NULL)
 				LVP_Player::timeOut->stop();
 
+			// Is the media file completed (EOF) or did an error occur?
+
+			if ((result == AVERROR_EOF) || LibFFmpeg::avio_feof(formatContext->pb))
+				endOfFile = true;
+			else
+				errorCount++;
+
 			#if defined _DEBUG
+			if (!endOfFile) {
 				char strerror[AV_ERROR_MAX_STRING_SIZE];
 				LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 				LOG("%s\n", strerror);
+			}
 			#endif
 
 			if (LVP_Player::state.quit)
 				break;
-
-			// Is the media file completed (EOF) or did an error occur?
-
-			if ((result == AVERROR_EOF) && LibFFmpeg::avio_feof(formatContext->pb))
-				endOfFile = true;
-			else
-				errorCount++;
 
 			if (endOfFile || (errorCount >= MAX_ERRORS))
 			{
@@ -2229,7 +2252,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		// Get packet from queue
 		auto packet = LVP_Player::packetGet(LVP_Player::subContext);
 
-		if ((packet == NULL))
+		if (packet == NULL)
 			continue;
 
 		// Decode packet to frame
@@ -2559,7 +2582,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 
 		// Video is behind audio - wait or slow down
 		if (sleepTime > 0)
-			SDL_Delay(min(sleepTime, videoFrameDuration2x));
+			SDL_Delay(std::min(sleepTime, videoFrameDuration2x));
 
 		LVP_Player::videoContext.isReadyForPresent = true;
 	}
@@ -2569,12 +2592,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 
 void MediaPlayer::LVP_Player::ToggleMute()
 {
-	LVP_Player::audioContext.isMuted = !LVP_Player::audioContext.isMuted;
-
-	if (LVP_Player::audioContext.isMuted)
-		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_MUTED);
-	else
-		LVP_Player::callbackEvents(LVP_EVENT_AUDIO_UNMUTED);
+	LVP_Player::SetMuted(!LVP_Player::audioContext.isMuted);
 }
 
 void MediaPlayer::LVP_Player::TogglePause()

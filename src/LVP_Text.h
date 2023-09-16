@@ -25,7 +25,34 @@ namespace LibVoyaPlayer
 			static Strings      Split(const std::string &text, const std::string &delimiter, bool returnEmpty = true);
 			static std::string  ToLower(const std::string &text);
 			static std::string  ToUpper(const std::string &text);
+			static uint16_t*    ToUTF16(const std::string& text);
 			static std::string  Trim(const std::string &text);
+
+			template<typename... Args>
+			static std::string Format(const char* formatString, const Args&... args)
+			{
+				if (!formatString)
+					return "";
+
+				char buffer[DEFAULT_CHAR_BUFFER_SIZE] = {};
+				std::snprintf(buffer, DEFAULT_CHAR_BUFFER_SIZE, formatString, args...);
+
+				return std::string(buffer);
+			}
+
+			#if defined _windows
+			template<typename... Args>
+			static std::wstring FormatW(const wchar_t* formatString, const Args&... args)
+			{
+				if (!formatString)
+					return L"";
+
+				wchar_t buffer[DEFAULT_CHAR_BUFFER_SIZE] = {};
+				std::swprintf(buffer, DEFAULT_CHAR_BUFFER_SIZE, formatString, args...);
+
+				return std::wstring(buffer);
+			}
+			#endif
 
 			template <class T>
 			static bool VectorContains(const std::vector<T> &vector, const T &value)

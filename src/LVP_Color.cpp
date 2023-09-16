@@ -31,12 +31,12 @@ Graphics::LVP_Color::LVP_Color()
 
 bool Graphics::LVP_Color::operator ==(const LVP_Color &color)
 {
-	return ((color.r == this->r) && (color.g == this->g) && (color.b == this->b) && (color.a == this->a));
+	return ((this->r == color.r) && (this->g == color.g) && (this->b == color.b) && (this->a == color.a));
 }
 
 bool Graphics::LVP_Color::operator !=(const LVP_Color &color)
 {
-	return !((LVP_Color)color == *this);
+	return !(*this == color);
 }
 
 Graphics::LVP_Color::operator SDL_Color()

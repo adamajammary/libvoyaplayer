@@ -18,25 +18,109 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://www.libsdl.org/) | [2.28.1](https://www.libsdl.org/release/SDL2-2.28.1.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
+[SDL2](https://www.libsdl.org/) | [2.28.2](https://www.libsdl.org/release/SDL2-2.28.2.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
 [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) | [2.20.2](https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-2.20.2.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
 [FFmpeg](https://ffmpeg.org/) | [6.0](https://ffmpeg.org/releases/ffmpeg-6.0.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
 [libaom](https://aomedia.googlesource.com/aom/) | [3.6.1](https://storage.googleapis.com/aom-releases/libaom-3.6.1.tar.gz) | [Alliance for Open Media Patent License](https://aomedia.org/license/software-license/)
-[zLib](http://www.zlib.net/) | [1.2.13](https://www.zlib.net/zlib-1.2.13.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
+[zLib](http://www.zlib.net/) | [1.3](https://www.zlib.net/zlib-1.3.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
+
+## Platform-dependent Include Headers
+
+Platform | Header | Package
+-------- | ------ | -------
+Linux | gtk/gtk.h | libgtk-3-dev
+macOS | AppKit/AppKit.h | AppKit Framework
+Windows | windows.h | Win32 API
+Windows | Commdlg.h | Win32 API
+Windows | dirent.h | [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h)
+
+## Compilers and C++20
+
+libvoyaplayer uses modern [C++20](https://en.cppreference.com/w/cpp/compiler_support#cpp20) features and requires the following minimum compiler versions.
+
+Compiler | Version
+-------- | -------
+CLANG | 14
+GCC | 13
+MSVC | 2019
 
 ## How to build
 
 1. Build the third-party libraries and place the them in a common directory
-1. You will also need the [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) header if you are building on Windows
+   - You will also need the [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) header if you are building on **Windows**
 1. Make sure you have [cmake](https://cmake.org/download/) installed
 1. Open a command prompt or terminal
-1. Create a *build* directory `mkdir build` and enter it `cd build`
-1. Run the command `cmake .. -D EXT_LIB_DIR="/path/to/libs" -D DIRENT_DIR="/path/to/dirent"`
-1. The *build* directory will now contain a *makefile* or a *Visual Studio* solution
+1. Create a **build** directory and enter it
+1. Run `cmake` to create a **Makefile**, **Xcode** project or **Visual Studio** solution based on your target platform.
+1. After building, the **dist** directory will contain all the output resources in the **inc**, **bin** and **lib** directories.
+
+```bash
+mkdir build
+cd build
+```
+
+### Android
+
+Make sure you have [Android NDK](https://developer.android.com/ndk/downloads) installed.
+
+```bash
+cmake .. -G "Unix Makefiles" \
+-D CMAKE_SYSTEM_NAME="Android" \
+-D CMAKE_TOOLCHAIN_FILE="/path/to/ANDROID_NDK/build/cmake/android.toolchain.cmake" \
+-D ANDROID_NDK="/path/to/ANDROID_NDK" \
+-D ANDROID_ABI="arm64-v8a" \
+-D ANDROID_PLATFORM="android-26" \
+-D EXT_LIB_DIR="/path/to/libs"
+
+make
+```
+
+### iOS
+
+You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos --show-sdk-path`
+
+```bash
+/Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
+-D CMAKE_SYSTEM_NAME="iOS" \
+-D CMAKE_OSX_ARCHITECTURES="arm64" \
+-D CMAKE_OSX_DEPLOYMENT_TARGET="13.0" \
+-D CMAKE_OSX_SYSROOT="/path/to/IOS_SDK" \
+-D EXT_LIB_DIR="/path/to/libs"
+
+xcodebuild IPHONEOS_DEPLOYMENT_TARGET="13.0" CODE_SIGNING_ALLOWED=NO -configuration "Release" -arch "arm64" -project voyaplayer.xcodeproj
+```
+
+### macOS
+
+You can get the macOS SDK path with the following command: `xcrun --sdk macosx --show-sdk-path`
+
+```bash
+/Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
+-D CMAKE_OSX_ARCHITECTURES="x86_64" \
+-D CMAKE_OSX_DEPLOYMENT_TARGET="12.6" \
+-D CMAKE_OSX_SYSROOT="/path/to/MACOSX_SDK" \
+-D EXT_LIB_DIR="/path/to/libs"
+
+xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -configuration "Release" -arch "x86_64" -project voyaplayer.xcodeproj
+```
+
+### Linux
+
+```bash
+cmake .. -G "Unix Makefiles" -D EXT_LIB_DIR="/path/to/libs"
+
+make
+```
+
+### Windows
+
+```bash
+cmake .. -G "Visual Studio 17 2022" -D EXT_LIB_DIR="/path/to/libs" -D DIRENT_DIR="/path/to/dirent"
+
+devenv.com voyaplayer.sln -build "Release|x64"
+```
 
 ## Test project
-
-> The *test* project currently only has UI components for Windows using [Win32 Controls](https://learn.microsoft.com/en-us/windows/win32/controls/individual-control-info).
 
 You must call [LVP_Initialize](#lvp_initialize) with your callback handlers before using other *LVP_\** methods, see the *test* project for examples.
 
@@ -141,8 +225,8 @@ If you don't use SDL2 for rendering, you need to copy the pixels to a bitmap/ima
 - The `.pitch` property will contain the byte size of a row of RGB pixels
 
 ```cpp
-SDL_Texture* Texture = nullptr;
-SDL_Surface* VideoFrame = nullptr;
+SDL_Texture* Texture          = nullptr;
+SDL_Surface* VideoFrame       = nullptr;
 bool         VideoIsAvailable = false;
 std::mutex   VideoLock;
 
@@ -310,7 +394,7 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext);
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetAudioDevices
 
@@ -330,7 +414,7 @@ std::vector<LVP_MediaChapter> LVP_GetChapters();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetAudioTrack
 
@@ -342,7 +426,7 @@ int LVP_GetAudioTrack();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetAudioTracks
 
@@ -354,7 +438,7 @@ std::vector<LVP_MediaTrack> LVP_GetAudioTracks();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetDuration
 
@@ -366,7 +450,7 @@ int64_t LVP_GetDuration();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetFilePath
 
@@ -378,7 +462,7 @@ std::string LVP_GetFilePath();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetMediaDetails
 
@@ -390,7 +474,7 @@ LVP_MediaDetails LVP_GetMediaDetails();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetMediaDetails (string)
 
@@ -406,7 +490,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetMediaDetails (wstring)
 
@@ -422,7 +506,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetMediaType
 
@@ -434,7 +518,39 @@ LVP_MediaType LVP_GetMediaType();
 
 Exceptions
 
-- exception
+- runtime_error
+
+### LVP_GetMediaType (string)
+
+Returns the media type of the the provided media file.
+
+```cpp
+LVP_MediaType LVP_GetMediaType(const std::string& filePath);
+```
+
+Parameters
+
+- **filePath** Full path to the media file
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaType (wstring)
+
+Returns the media type of the the provided media file.
+
+```cpp
+LVP_MediaType LVP_GetMediaType(const std::wstring& filePath);
+```
+
+Parameters
+
+- **filePath** Full path to the media file
+
+Exceptions
+
+- runtime_error
 
 ### LVP_GetPlaybackSpeed
 
@@ -446,7 +562,7 @@ double LVP_GetPlaybackSpeed();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetProgress
 
@@ -458,7 +574,7 @@ int64_t LVP_GetProgress();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetSubtitleTrack
 
@@ -470,7 +586,7 @@ int LVP_GetSubtitleTrack();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetSubtitleTracks
 
@@ -482,7 +598,7 @@ std::vector<LVP_MediaTrack> LVP_GetSubtitleTracks();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetVideoTracks
 
@@ -494,7 +610,7 @@ std::vector<LVP_MediaTrack> LVP_GetVideoTracks();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_GetVolume
 
@@ -506,7 +622,7 @@ double LVP_GetVolume();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_IsMuted
 
@@ -518,7 +634,7 @@ bool LVP_IsMuted();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_IsPaused
 
@@ -530,7 +646,7 @@ bool LVP_IsPaused();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_IsPlaying
 
@@ -542,7 +658,7 @@ bool LVP_IsPlaying();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_IsStopped
 
@@ -554,7 +670,7 @@ bool LVP_IsStopped();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_Open
 
@@ -570,7 +686,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_Open (wstring)
 
@@ -586,7 +702,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_Quit
 
@@ -595,10 +711,6 @@ Cleans up allocated resources.
 ```cpp
 void LVP_Quit();
 ```
-
-Exceptions
-
-- exception
 
 ### LVP_Render
 
@@ -637,7 +749,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_SetAudioDevice
 
@@ -653,6 +765,22 @@ Parameters
 
 - **device** Name of the audio device
 
+### LVP_SetMuted
+
+Mutes/unmutes the audio volume.
+
+```cpp
+void LVP_SetMuted(bool muted);
+```
+
+Parameters
+
+- **muted** true to mute or false to unmute
+
+Exceptions
+
+- runtime_error
+
 ### LVP_SetPlaybackSpeed
 
 Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.
@@ -667,7 +795,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_SetTrack
 
@@ -683,7 +811,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_SetVolume
 
@@ -699,7 +827,7 @@ Parameters
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_Stop
 
@@ -711,7 +839,7 @@ void LVP_Stop();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_ToggleMute
 
@@ -723,7 +851,7 @@ void LVP_ToggleMute();
 
 Exceptions
 
-- exception
+- runtime_error
 
 ### LVP_TogglePause
 
@@ -735,4 +863,4 @@ void LVP_TogglePause();
 
 Exceptions
 
-- exception
+- runtime_error

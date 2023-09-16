@@ -115,6 +115,7 @@ namespace LibVoyaPlayer
 			static LVP_MediaDetails              GetMediaDetails();
 			static LVP_MediaDetails              GetMediaDetails(const std::string &filePath);
 			static LVP_MediaType                 GetMediaType();
+			static LVP_MediaType                 GetMediaType(const std::string& filePath);
 			static LibFFmpeg::AVPixelFormat      GetPixelFormatHardware();
 			static double                        GetPlaybackSpeed();
 			static int64_t                       GetProgress();
@@ -132,6 +133,7 @@ namespace LibVoyaPlayer
 			static void                          Resize();
 			static void                          SeekTo(double percent);
 			static bool                          SetAudioDevice(const std::string &device = "");
+			static void                          SetMuted(bool muted = true);
 			static void                          SetPlaybackSpeed(double speed);
 			static void                          SetTrack(const LVP_MediaTrack &track);
 			static void                          SetVolume(double percent);

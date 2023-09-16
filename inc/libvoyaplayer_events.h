@@ -4,6 +4,9 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifndef LIB_SDL2_H
 #define LIB_SDL2_H
@@ -131,6 +134,8 @@ struct LVP_MediaDetails
 	 * @brief Media metadata like title, artist, album, genre etc.
 	 */
 	std::map<std::string, std::string> meta;
+
+	SDL_Surface* thumbnail = nullptr;
 
 	std::vector<LVP_MediaTrack> audioTracks;
 	std::vector<LVP_MediaTrack> subtitleTracks;

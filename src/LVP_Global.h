@@ -1,12 +1,15 @@
 #ifndef LVP_GLOBAL_H
 #define LVP_GLOBAL_H
 
-#include <chrono>
-#include <format>
+#include <algorithm> // min/max(x)
+#include <cctype>    // isspace(x)
+#include <cstdio>    // sprintf(x)
+#include <cstdlib>   // atoi(x)
+#include <cstring>   // memcpy(x)
 #include <list>
 #include <map>
 #include <queue>
-#include <sstream> // stringstream, to_string(x)
+#include <sstream>   // stringstream, to_string(x)
 #include <thread>
 #include <unordered_map>
 
@@ -16,17 +19,23 @@ extern "C"
 }
 
 #if defined _android
-	#include <dirent.h> // mkdir(x), opendir(x)
-	#include <unistd.h> // chdir(x)
+	#include <dirent.h>   // opendir(x)
+	#include <unistd.h>   // chdir(x)
+	#include <sys/stat.h> // stat64, lstat64(x)
 #elif defined _ios
-	#include <dirent.h> // mkdir(x),  opendir(x)
+	#include <dirent.h>   // opendir(x)
+	#include <unistd.h>   // chdir(x)
+	#include <sys/stat.h> // stat64, lstat64(x)
 #elif defined _linux
-	#include <dirent.h> // opendir(x)
+	#include <dirent.h>   // opendir(x)
+	#include <sys/stat.h> // stat64, lstat64(x)
 #elif defined _macosx
-	#include <sys/dir.h> // opendir(x)
+	#include <unistd.h>   // chdir(x)
+	#include <sys/dir.h>  // opendir(x)
+	#include <sys/stat.h> // stat64, lstat64(x)
 #elif defined _windows
-	#include <direct.h> // _chdir(x), mkdir(x)
-	#include <dirent.h> // opendir(x)
+	#include <direct.h>   // _chdir(x)
+	#include <dirent.h>   // _wopendir(x)
 #endif
 
 namespace LibFFmpeg
@@ -59,8 +68,8 @@ namespace LibVoyaPlayer
 		#define fseek       fseeko
 		#define LOG(x, ...) os_log_error(OS_LOG_DEFAULT, x, ##__VA_ARGS__);
 	#elif defined _macosx
-		#define fstat       lstat64
-		#define stat_t      struct stat64
+		#define fstat       lstat
+		#define stat_t      struct stat
 		#define fseek       fseeko
 		#define LOG(x, ...) NSLog(@x, ##__VA_ARGS__);
 	#elif defined _linux
@@ -76,8 +85,7 @@ namespace LibVoyaPlayer
 		#define closedir    _wclosedir
 		#define opendir     _wopendir
 		#define readdir     _wreaddir
-		#define fstat       _stat64
-		#define fstatw      _wstat64
+		#define fstat       _wstat64
 		#define stat_t      struct _stat64
 		#define fseek       _fseeki64
 		#define LOG(x, ...) SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, x, ##__VA_ARGS__);
@@ -131,7 +139,7 @@ namespace LibVoyaPlayer
 
 	namespace MediaPlayer
 	{
-		#define ALIGN_CENTER(o, ts, s)      max(0, ((o) + (max(0, ((ts) - (s))) / 2)))
+		#define ALIGN_CENTER(o, ts, s)      std::max(0, ((o) + (std::max(0, ((ts) - (s))) / 2)))
 		#define ARE_DIFFERENT_DOUBLES(a, b) ((a > (b + 0.01)) || (a < (b - 0.01)))
 		#define HEX_STR_TO_UINT(h)          (uint8_t)std::strtoul(std::string("0x" + h).c_str(), NULL, 16)
 
@@ -164,10 +172,8 @@ namespace LibVoyaPlayer
 		#define IS_VIDEO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
 
 		#if defined _windows
-			#define FONT_NAME(f, s) std::format(L"{}_{}", f, s)
 			#define OPEN_FONT(f, s) TTF_OpenFontRW(System::LVP_FileSystem::FileOpenSDLRWops(_wfopen(f, L"rb")), 1, s)
 		#else
-			#define FONT_NAME(f, s) std::format("{}_{}", f, s)
 			#define OPEN_FONT(f, s) TTF_OpenFont(f, s)
 		#endif
 
