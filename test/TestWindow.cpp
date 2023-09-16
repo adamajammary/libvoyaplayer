@@ -1,5 +1,6 @@
 #include "TestWindow.h"
 
+ButtonIds     TestWindow::buttonIds;
 Buttons       TestWindow::buttons;
 SDL_Renderer* TestWindow::renderer = nullptr;
 std::string   TestWindow::title    = "Voya Player Library";
@@ -7,15 +8,15 @@ SDL_Window*   TestWindow::window   = nullptr;
 
 void TestWindow::EnableButton(ButtonId id, bool enabled)
 {
-	if (TestWindow::buttons.contains(id))
-		TestWindow::buttons[id]->enable(enabled);
+	if (TestWindow::buttonIds.contains(id))
+		TestWindow::buttonIds[id]->enable(enabled);
 }
 
 Button* TestWindow::GetClickedButton(const SDL_Point& clickPosition)
 {
 	for (const auto& button : TestWindow::buttons) {
-		if (button.second->enabled && SDL_PointInRect(&clickPosition, &button.second->background))
-			return button.second;
+		if (button->enabled && SDL_PointInRect(&clickPosition, &button->background))
+			return button;
 	}
 
 	return nullptr;
@@ -67,19 +68,29 @@ void TestWindow::Init(int width, int height)
 void TestWindow::initButtons()
 {
 	auto open = new Button(TestWindow::renderer, BUTTON_ID_OPEN, "OPEN");
-	TestWindow::buttons[BUTTON_ID_OPEN] = open;
+
+	TestWindow::buttonIds[BUTTON_ID_OPEN] = open;
+	TestWindow::buttons.push_back(open);
 
 	auto stop = new Button(TestWindow::renderer, BUTTON_ID_STOP, "STOP", false);
-	TestWindow::buttons[BUTTON_ID_STOP] = stop;
+
+	TestWindow::buttonIds[BUTTON_ID_STOP] = stop;
+	TestWindow::buttons.push_back(stop);
 
 	auto seekBack = new Button(TestWindow::renderer, BUTTON_ID_SEEK_BACK, "<< SEEK", false);
-	TestWindow::buttons[BUTTON_ID_SEEK_BACK] = seekBack;
+
+	TestWindow::buttonIds[BUTTON_ID_SEEK_BACK] = seekBack;
+	TestWindow::buttons.push_back(seekBack);
 
 	auto seekForward = new Button(TestWindow::renderer, BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
-	TestWindow::buttons[BUTTON_ID_SEEK_FORWARD] = seekForward;
+
+	TestWindow::buttonIds[BUTTON_ID_SEEK_FORWARD] = seekForward;
+	TestWindow::buttons.push_back(seekForward);
 
 	auto progress = new Button(TestWindow::renderer, BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
-	TestWindow::buttons[BUTTON_ID_PROGRESS] = progress;
+
+	TestWindow::buttonIds[BUTTON_ID_PROGRESS] = progress;
+	TestWindow::buttons.push_back(progress);
 }
 
 #if defined _linux
@@ -183,8 +194,9 @@ std::wstring TestWindow::OpenFile()
 void TestWindow::Quit()
 {
 	for (const auto& button : TestWindow::buttons)
-		delete button.second;
+		delete button;
 
+	TestWindow::buttonIds.clear();
 	TestWindow::buttons.clear();
 
 	if (TestWindow::renderer) {
@@ -213,15 +225,15 @@ void TestWindow::RenderControls(const SDL_Rect& destination)
 	auto controlsSize = ((int)TestWindow::buttons.size() * 2 * 10);
 
 	for (const auto& button : TestWindow::buttons)
-		controlsSize += button.second->size.x;
+		controlsSize += button->size.x;
 
 	auto offsetX = std::max(0, (std::max(0, (destination.w - controlsSize)) / 2));
 
 	SDL_SetRenderDrawColor(TestWindow::renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 	SDL_RenderFillRect(TestWindow::renderer, &destination);
 
-	int lineY      = (!TestWindow::buttons.empty() ? TestWindow::buttons.begin()->second->background.y : 0);
-	int lineHeight = (!TestWindow::buttons.empty() ? TestWindow::buttons.begin()->second->background.h : 0);
+	int lineY      = (!TestWindow::buttons.empty() ? TestWindow::buttons[0]->background.y : 0);
+	int lineHeight = (!TestWindow::buttons.empty() ? TestWindow::buttons[0]->background.h : 0);
 
 	if (!TestWindow::buttons.empty()) {
 		SDL_SetRenderDrawColor(TestWindow::renderer, lineColor.r, lineColor.g, lineColor.b, lineColor.a);
@@ -232,18 +244,18 @@ void TestWindow::RenderControls(const SDL_Rect& destination)
 
 	for (const auto& button : TestWindow::buttons)
 	{
-		SDL_Rect highlightArea = { button.second->background.x - 5, button.second->background.y, button.second->background.w + 10, button.second->background.h };
+		SDL_Rect highlightArea = { button->background.x - 5, button->background.y, button->background.w + 10, button->background.h };
 
-		if (button.second->enabled && SDL_PointInRect(&mousePosition, &highlightArea)) {
+		if (button->enabled && SDL_PointInRect(&mousePosition, &highlightArea)) {
 			SDL_SetRenderDrawColor(TestWindow::renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
 			SDL_RenderFillRect(TestWindow::renderer, &highlightArea);
 		}
 
-		button.second->background = { offsetX, (destination.y + 7), button.second->size.x, button.second->size.y };
+		button->background = { offsetX, (destination.y + 7), button->size.x, button->size.y };
 
-		SDL_RenderCopy(TestWindow::renderer, button.second->texture, nullptr, &button.second->background);
+		SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
 
-		offsetX += (button.second->background.w + 10);
+		offsetX += (button->background.w + 10);
 
 		SDL_SetRenderDrawColor(TestWindow::renderer, lineColor.r, lineColor.g, lineColor.b, lineColor.a);
 		SDL_RenderDrawLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
@@ -254,8 +266,8 @@ void TestWindow::RenderControls(const SDL_Rect& destination)
 
 void TestWindow::UpdateButton(ButtonId id, const std::string& label)
 {
-	if (TestWindow::buttons.contains(id))
-		TestWindow::buttons[id]->update(label);
+	if (TestWindow::buttonIds.contains(id))
+		TestWindow::buttonIds[id]->update(label);
 }
 
 void TestWindow::UpdateProgress()

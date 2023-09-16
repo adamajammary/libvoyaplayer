@@ -2,6 +2,7 @@
 #define TEST_WINDOW_H
 
 #include <algorithm> // min/max(x)
+#include <vector>
 #include <unordered_map>
 
 extern "C" {
@@ -134,7 +135,8 @@ struct Button
     }
 };
 
-using Buttons = std::unordered_map<ButtonId, Button*>;
+using ButtonIds = std::unordered_map<ButtonId, Button*>;
+using Buttons   = std::vector<Button*>;
 
 class TestWindow
 {
@@ -143,6 +145,7 @@ private:
     ~TestWindow() {}
 
 private:
+    static ButtonIds     buttonIds;
     static Buttons       buttons;
     static SDL_Renderer* renderer;
     static std::string   title;
