@@ -122,8 +122,6 @@ devenv.com voyaplayer.sln -build "Release|x64"
 
 ## Test project
 
-> The *test* project currently only has UI components for Windows using [Win32 Controls](https://learn.microsoft.com/en-us/windows/win32/controls/individual-control-info).
-
 You must call [LVP_Initialize](#lvp_initialize) with your callback handlers before using other *LVP_\** methods, see the *test* project for examples.
 
 ```cpp
