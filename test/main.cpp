@@ -8,78 +8,22 @@ const int MS_PER_FRAME_IDLE  = 200;
 
 bool QUIT = false;
 
-void handleOpenUI()
-{
-    TestWindow::InitSubMenuAudioTracks(LVP_GetAudioTracks());
-    TestWindow::InitSubMenuSubtitleTracks(LVP_GetSubtitleTracks());
-    TestWindow::InitSubMenuChapters(LVP_GetChapters());
-
-    auto audioTrack    = LVP_GetAudioTrack();
-    auto subtitleTrack = LVP_GetSubtitleTrack();
-
-    TestWindow::ToggleMenuChecked(TestWindow::GetAudioTrackId(audioTrack),       MENU_AUDIO_TRACK,    MENU_ITEM_AUDIO_TRACK1);
-    TestWindow::ToggleMenuChecked(TestWindow::GetSubtitleTrackId(subtitleTrack), MENU_SUBTITLE_TRACK, MENU_ITEM_SUBTITLE_TRACK1);
-}
-
 void handleOpenFile()
 {
-    auto file = TestWindow::OpenFile();
+    #if defined _linux || defined _macosx || defined _windows
+        auto file = TestWindow::OpenFile();
+    #else
+        auto file = std::string("");
+    #endif
 
-    if (!file.empty()) {
+    if (!file.empty())
         LVP_Open(file);
-        handleOpenUI();
-    }
-}
-
-void handleSeekToChapter(unsigned short id, Menu menu, MenuItem firstItem)
-{
-    TestPlayer::SeekToChapter(TestWindow::GetChapter(id));
-    TestWindow::ToggleMenuChecked(id, menu, firstItem);
-}
-
-void handleSetAudioDevice(unsigned short id, Menu menu, MenuItem firstItem)
-{
-    auto device = TestWindow::GetMenuLabel(id, menu);
-
-    if (LVP_SetAudioDevice(device))
-        TestWindow::ToggleMenuChecked(id, menu, firstItem);
-}
-
-void handleSetPlaybackSpeed(unsigned short id)
-{
-    auto speedLabel = TestWindow::GetMenuLabel(id, MENU_PLAYBACK_SPEED);
-    auto speed      = std::atof(speedLabel.c_str());
-
-    LVP_SetPlaybackSpeed(speed);
-    TestWindow::ToggleMenuChecked(id, MENU_PLAYBACK_SPEED, MENU_ITEM_PLAYBACK_SPEED_050X);
-}
-
-void handleSetPlaybackSpeed()
-{
-    auto speed = LVP_GetPlaybackSpeed();
-    auto id    = TestWindow::GetMenuIdPlaybackSpeed(speed);
-
-    TestWindow::ToggleMenuChecked(id, MENU_PLAYBACK_SPEED, MENU_ITEM_PLAYBACK_SPEED_050X);
-}
-
-void handleSetTrack(LVP_MediaTrack track, unsigned short id, Menu menu, MenuItem firstItem)
-{
-    LVP_SetTrack(track);
-    TestWindow::ToggleMenuChecked(id, menu, firstItem);
-}
-
-void handleStop()
-{
-    LVP_Stop();
-    TestWindow::ToggleMenuChecked(MENU_ITEM_PLAYBACK_SPEED_100X, MENU_PLAYBACK_SPEED, MENU_ITEM_PLAYBACK_SPEED_050X);
 }
 
 void handleDropFileEvent(const SDL_Event &event)
 {
     LVP_Open(event.drop.file);
     SDL_free(event.drop.file);
-
-    handleOpenUI();
 }
 
 void handleKeyDownEvent(const SDL_KeyboardEvent &event)
@@ -88,25 +32,11 @@ void handleKeyDownEvent(const SDL_KeyboardEvent &event)
         return;
 
     switch (event.keysym.sym) {
-    case SDLK_MINUS: case SDLK_KP_MINUS:
-        TestPlayer::SetPlaybackSpeedDown();
-        handleSetPlaybackSpeed();
-        break;
-    case SDLK_PLUS: case SDLK_KP_PLUS:
-        TestPlayer::SetPlaybackSpeedUp();
-        handleSetPlaybackSpeed();
-        break;
     case SDLK_LEFT: case SDLK_AUDIOREWIND:
         TestPlayer::SeekBack();
         break;
     case SDLK_RIGHT: case SDLK_AUDIOFASTFORWARD:
         TestPlayer::SeekForward();
-        break;
-    case SDLK_DOWN:
-        TestPlayer::SetVolumeDown();
-        break;
-    case SDLK_UP:
-        TestPlayer::SetVolumeUp();
         break;
     default:
         break;
@@ -136,11 +66,8 @@ void handleKeyUpEvent(const SDL_KeyboardEvent &event)
         return;
 
     switch (event.keysym.sym) {
-    case SDLK_m:
-        LVP_ToggleMute();
-        break;
     case SDLK_s: case SDLK_AUDIOSTOP:
-        handleStop();
+        LVP_Stop();
         break;
     case SDLK_SPACE: case SDLK_AUDIOPLAY:
         LVP_TogglePause();
@@ -150,127 +77,33 @@ void handleKeyUpEvent(const SDL_KeyboardEvent &event)
     }
 }
 
-void handleMouseScrollEvent(const SDL_MouseWheelEvent &event)
+void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
 {
-    if (LVP_IsStopped())
+    SDL_Point clickPosition = { event.x, event.y };
+    auto      button        = TestWindow::GetClickedButton(clickPosition);
+
+    if (!button)
         return;
 
-    int scrollDirection = (event.direction == SDL_MOUSEWHEEL_FLIPPED ? event.y * -1 : event.y);
-
-    if (scrollDirection > 0)
-        TestPlayer::SetVolumeUp();
-    else
-        TestPlayer::SetVolumeDown();
-}
-
-#if defined _windows
-void handleSystemCommandEvent(SDL_SysWMmsg* msg)
-{
-    auto id = LOWORD(msg->msg.win.wParam);
-
-    switch (id) {
-    case MENU_ITEM_AUDIO_MUTE: case CONTROL_ITEM_MUTE:
-        LVP_ToggleMute();
+    switch (button->id) {
+	case BUTTON_ID_OPEN:
+        if (LVP_IsStopped())
+            handleOpenFile();
+        else
+            LVP_TogglePause();
         break;
-    case MENU_ITEM_AUDIO_VOLUME_DOWN:
-        TestPlayer::SetVolumeDown();
-        break;
-    case MENU_ITEM_AUDIO_VOLUME_UP:
-        TestPlayer::SetVolumeUp();
-        break;
-    case MENU_ITEM_FILE_OPEN:
-        handleOpenFile();
-        break;
-    case MENU_ITEM_FILE_QUIT:
-        QUIT = true;
-        break;
-    case MENU_ITEM_HELP_ABOUT:
-        TestWindow::ShowAbout();
-        break;
-    case MENU_ITEM_PLAYBACK_PAUSE: case CONTROL_ITEM_PAUSE:
-        LVP_TogglePause();
-        break;
-    case MENU_ITEM_PLAYBACK_SEEK_BACK:
+	case BUTTON_ID_SEEK_BACK:
         TestPlayer::SeekBack();
         break;
-    case MENU_ITEM_PLAYBACK_SEEK_FORWARD:
+	case BUTTON_ID_SEEK_FORWARD:
         TestPlayer::SeekForward();
         break;
-    case MENU_ITEM_PLAYBACK_STOP: case CONTROL_ITEM_STOP:
-        handleStop();
+    case BUTTON_ID_STOP:
+        LVP_Stop();
         break;
     default:
-        if (id >= MENU_ITEM_PLAYBACK_CHAPTER1)
-            handleSeekToChapter(id, MENU_PLAYBACK_CHAPTER, MENU_ITEM_PLAYBACK_CHAPTER1);
-        else if (id >= MENU_ITEM_SUBTITLE_TRACK1)
-            handleSetTrack(TestWindow::GetSubtitleTrack(id), id, MENU_SUBTITLE_TRACK, MENU_ITEM_SUBTITLE_TRACK1);
-        else if (id >= MENU_ITEM_AUDIO_TRACK1)
-            handleSetTrack(TestWindow::GetAudioTrack(id), id, MENU_AUDIO_TRACK, MENU_ITEM_AUDIO_TRACK1);
-        else if (id >= MENU_ITEM_AUDIO_DEVICE1)
-            handleSetAudioDevice(id, MENU_AUDIO_DEVICE, MENU_ITEM_AUDIO_DEVICE1);
-        else if (id >= MENU_ITEM_PLAYBACK_SPEED_050X)
-            handleSetPlaybackSpeed(id);
-        break;
-    }
-
-    SetFocus(msg->msg.win.hwnd);
-}
-
-void handleSystemSliderEvent(SDL_SysWMmsg* msg)
-{
-    auto scrollType = LOWORD(msg->msg.win.wParam);
-    auto controlId  = TestWindow::GetControlId((HWND)msg->msg.win.lParam);
-
-    switch (scrollType) {
-    case TB_PAGEDOWN: case TB_PAGEUP:
-        switch (controlId) {
-        case CONTROL_ITEM_SEEK:
-            LVP_SeekTo(TestWindow::GetControlSliderClickPosition(CONTROL_SEEK));
-            break;
-        case CONTROL_ITEM_VOLUME:
-            LVP_SetVolume(TestWindow::GetControlSliderClickPosition(CONTROL_VOLUME));
-            break;
-        default:
-            break;
-        }
-        break;
-    case TB_THUMBTRACK:
-        switch (controlId) {
-        case CONTROL_ITEM_SEEK:
-            LVP_SeekTo((double)HIWORD(msg->msg.win.wParam) * 0.01);
-            break;
-        case CONTROL_ITEM_VOLUME:
-            LVP_SetVolume((double)HIWORD(msg->msg.win.wParam) * 0.01);
-            break;
-        default:
-            break;
-        }
-        break;
-    default:
-        break;
-    }
-
-    SetFocus(msg->msg.win.hwnd);
-}
-#endif
-
-void handleSystemEvent(const SDL_SysWMEvent &event)
-{
-    #if defined _windows
-        switch (event.msg->msg.win.msg) {
-        case WM_COMMAND:
-            handleSystemCommandEvent(event.msg);
-            break;
-        case WM_HSCROLL: case WM_VSCROLL:
-            handleSystemSliderEvent(event.msg);
-            break;
-        case WM_DESTROY: case WM_QUERYENDSESSION: case WM_ENDSESSION:
-            QUIT = true;
-            break;
-        default:
-            break;
-        }
-    #endif
+		break;
+	}
 }
 
 void handleUserEvent(const SDL_UserEvent &event)
@@ -278,8 +111,26 @@ void handleUserEvent(const SDL_UserEvent &event)
     auto eventType = (LVP_EventType)event.code;
 
     switch (eventType) {
-    case LVP_EVENT_MEDIA_TRACKS_UPDATED: case LVP_EVENT_METADATA_UPDATED:
-        handleOpenUI();
+    case LVP_EVENT_MEDIA_OPENED:
+        TestWindow::UpdateButton(BUTTON_ID_OPEN, "PAUSE");
+
+        TestWindow::EnableButton(BUTTON_ID_SEEK_BACK,    true);
+        TestWindow::EnableButton(BUTTON_ID_SEEK_FORWARD, true);
+        TestWindow::EnableButton(BUTTON_ID_STOP,         true);
+        break;
+    case LVP_EVENT_MEDIA_PAUSED:
+        TestWindow::UpdateButton(BUTTON_ID_OPEN, "PLAY");
+        break;
+    case LVP_EVENT_MEDIA_PLAYING:
+        TestWindow::UpdateButton(BUTTON_ID_OPEN, "PAUSE");
+        break;
+    case LVP_EVENT_MEDIA_STOPPED:
+        TestWindow::UpdateButton(BUTTON_ID_OPEN,     "OPEN");
+        TestWindow::UpdateButton(BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00");
+
+        TestWindow::EnableButton(BUTTON_ID_SEEK_BACK,    false);
+        TestWindow::EnableButton(BUTTON_ID_SEEK_FORWARD, false);
+        TestWindow::EnableButton(BUTTON_ID_STOP,         false);
         break;
     default:
         break;
@@ -289,24 +140,23 @@ void handleUserEvent(const SDL_UserEvent &event)
 void handleWindowEvent(const SDL_WindowEvent &event)
 {
     switch (event.event) {
-        case SDL_WINDOWEVENT_CLOSE:
-            QUIT = true;
-            break;
-        case SDL_WINDOWEVENT_MOVED: case SDL_WINDOWEVENT_SIZE_CHANGED:
-            TestWindow::Resize();
-            LVP_Resize();
-            break;
-		default:
-            break;
+    case SDL_WINDOWEVENT_CLOSE:
+        QUIT = true;
+        break;
+    case SDL_WINDOWEVENT_MOVED: case SDL_WINDOWEVENT_SIZE_CHANGED:
+        LVP_Resize();
+        break;
+	default:
+        break;
     }
 }
 
 int getSleepTime(uint32_t frameStart)
 {
-    auto timeToRenderFrame = (int)(SDL_GetTicks() - frameStart);
-    bool use60FPS          = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
-    auto timePerFrame      = (use60FPS ? MS_PER_FRAME_FPS60 : MS_PER_FRAME_IDLE);
-    auto sleepTime         = (timePerFrame - timeToRenderFrame);
+    auto timeToRender = (int)(SDL_GetTicks() - frameStart);
+    bool use60FPS     = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
+    auto timePerFrame = (use60FPS ? MS_PER_FRAME_FPS60 : MS_PER_FRAME_IDLE);
+    auto sleepTime    = (timePerFrame - timeToRender);
 
     return sleepTime;
 }
@@ -318,6 +168,9 @@ void handleEvents()
     while (SDL_PollEvent(&event))
     {
         switch (event.type) {
+        case SDL_QUIT:
+            QUIT = true;
+            break;
         case SDL_DROPFILE:
             handleDropFileEvent(event);
             break;
@@ -327,11 +180,8 @@ void handleEvents()
         case SDL_KEYUP:
             handleKeyUpEvent(event.key);
             break;
-        case SDL_MOUSEWHEEL:
-            handleMouseScrollEvent(event.wheel);
-            break;
-        case SDL_SYSWMEVENT:
-            handleSystemEvent(event.syswm);
+        case SDL_MOUSEBUTTONUP:
+            handleMouseUpEvent(event.button);
             break;
         case SDL_WINDOWEVENT:
             handleWindowEvent(event.window);
@@ -347,8 +197,6 @@ void handleEvents()
 void init() {
     TestWindow::Init(800, 600);
     TestPlayer::Init(TestWindow::GetRenderer());
-
-    TestWindow::InitSubMenuItems(LVP_GetAudioDevices(), MENU_AUDIO_DEVICE, MENU_ITEM_AUDIO_DEVICE1, MENU_LABEL_AUDIO_DEVICE_DEFAULT);
 }
 
 void quit() {
@@ -358,10 +206,13 @@ void quit() {
 
 void render()
 {
+    const int CONTROLS_HEIGHT = 34;
+
     bool     isPlayerActive = !LVP_IsStopped();
     auto     renderer       = TestWindow::GetRenderer();
     auto     window         = TestWindow::GetDimensions();
-    SDL_Rect player         = { 0, 0, window.w, window.h - PLAYER_CONTROLS_PANEL_HEIGHT };
+    SDL_Rect player         = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
+    SDL_Rect controls       = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
 
     SDL_SetRenderTarget(renderer, nullptr);
 
@@ -374,6 +225,8 @@ void render()
 
     if (isPlayerActive)
         TestPlayer::Render(renderer, player);
+
+    TestWindow::RenderControls(controls);
 
     SDL_RenderPresent(renderer);
 }
@@ -390,23 +243,12 @@ int SDL_main(int argc, char* argv[])
     {
         init();
 
-        const int MS_PER_FRAME_FPS60 = (1000 / 60);
-        const int MS_PER_FRAME_IDLE  = 200;
-
-        auto startTime = SDL_GetTicks();
-
         while (!QUIT)
         {
             auto frameStart = SDL_GetTicks();
 
             handleEvents();
-
-            auto deltaTime = (SDL_GetTicks() - startTime);
-
-            TestWindow::UpdateUI(deltaTime);
-
-            if (deltaTime >= UI_UDPATE_RATE_MS)
-                startTime = SDL_GetTicks();
+            TestWindow::UpdateProgress();
 
             if (QUIT)
                 break;

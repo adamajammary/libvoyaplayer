@@ -144,7 +144,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 
 /**
  * @throws invalid_argument
- * @throws exception
+ * @throws runtime_error
  */
 LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const std::string &filePath, bool parseStreams, System::LVP_TimeOut* timeOut)
 {
@@ -166,7 +166,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 			file.append(fileParts[i] + "|");
 
 		if (chdir(fileParts[0].c_str()) != 0)
-			throw std::invalid_argument(std::format("Failed to change directory: {}", fileParts[0]));
+			throw std::invalid_argument(System::LVP_Text::Format("Failed to change directory: %s", fileParts[0].c_str()));
 	}
 
 	if (timeOut != NULL) {
@@ -177,23 +177,23 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	formatContext->max_analyze_duration = (int64_t)(10 * AV_TIME_BASE);
 
-	int result = avformat_open_input(&formatContext, file.c_str(), NULL, NULL);
+	int result = LibFFmpeg::avformat_open_input(&formatContext, file.c_str(), NULL, NULL);
 
 	if ((result < 0) || (formatContext == NULL)) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception(std::format("[{}] Failed to open input: {}", result, file).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("[%d] Failed to open input: %s", result, file.c_str()).c_str());
 	}
 
 	result = formatContext->probe_score;
 
 	if (result < AVPROBE_SCORE_RETRY) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception(std::format("[{}] Invalid probe score: {}", result, file).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("[%d] Invalid probe score: %s", result, file.c_str()).c_str());
 	}
 
 	if (LVP_Media::isDRM(formatContext->metadata)) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception("Media is DRM encrypted.");
+		throw std::runtime_error("Media is DRM encrypted.");
 	}
 
 	// Try to fix MP3 files with invalid header and codec type
@@ -232,7 +232,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	if ((result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL)) < 0) {
 		FREE_AVFORMAT(formatContext);
-		throw std::exception(std::format("[{}] Failed to find stream info: {}", result, file).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("[%d] Failed to find stream info: %s", result, file.c_str()).c_str());
 	}
 
 	#if defined _DEBUG

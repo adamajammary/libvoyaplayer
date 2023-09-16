@@ -43,7 +43,7 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 
 	// FONT NAME
 	#if defined _windows
-		auto fontName16 = (wchar_t*)SDL_iconv_utf8_ucs2(data[SUB_STYLE_V4_FONT_NAME].c_str());
+		auto fontName16 = (wchar_t*)System::LVP_Text::ToUTF16(data[SUB_STYLE_V4_FONT_NAME].c_str());
 		this->fontName  = std::wstring(fontName16);
 
 		SDL_free(fontName16);
@@ -151,7 +151,12 @@ TTF_Font* MediaPlayer::LVP_SubStyle::getFont(LVP_SubtitleContext &subContext)
 		return NULL;
 
 	auto fontSize = this->getFontSizeScaled(subContext.scale.y);
-	auto fontName = FONT_NAME(this->fontName.c_str(), fontSize);
+
+	#if defined _windows
+		auto fontName = System::LVP_Text::FormatW(L"%s_%d", this->fontName.c_str(), fontSize);
+	#else
+		auto fontName = System::LVP_Text::Format("%s_%d", this->fontName.c_str(), fontSize);
+	#endif
 
 	if (!subContext.styleFonts.contains(fontName))
 		subContext.styleFonts[fontName] = this->openFontInternal(subContext, fontSize);

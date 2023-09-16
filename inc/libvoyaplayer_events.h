@@ -4,6 +4,9 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifndef LIB_SDL2_H
 #define LIB_SDL2_H

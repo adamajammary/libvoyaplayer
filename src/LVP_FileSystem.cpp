@@ -85,7 +85,7 @@ Strings System::LVP_FileSystem::getDirectoryContent(const std::string &directory
 		return directoyContent;
 
 	#if defined _windows
-		auto directoryPathUTF16 = (wchar_t*)SDL_iconv_utf8_ucs2(directoryPath.c_str());
+		auto directoryPathUTF16 = (wchar_t*)LVP_Text::ToUTF16(directoryPath.c_str());
 		DIR* directory          = opendir(directoryPathUTF16);
 
 		SDL_free(directoryPathUTF16);
@@ -176,8 +176,8 @@ size_t System::LVP_FileSystem::GetFileSize(const std::string &filePath)
 		stat_t fileStruct;
 
 		#if defined _windows
-			auto filePath16 = (wchar_t*)SDL_iconv_utf8_ucs2(filePath.c_str());
-			int  result     = fstatw(filePath16, &fileStruct);
+			auto filePath16 = (wchar_t*)LVP_Text::ToUTF16(filePath.c_str());
+			int  result     = fstat(filePath16, &fileStruct);
 
 			SDL_free(filePath16);
 		#else
@@ -210,7 +210,7 @@ Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string &vide
 			continue;
 		}
 
-		subtitleFiles.push_back(std::format("{}{}{}", directory.c_str(), PATH_SEPARATOR, file.c_str()));
+		subtitleFiles.push_back(LVP_Text::Format("%s%c%s", directory.c_str(), PATH_SEPARATOR, file.c_str()));
 
 		if (LVP_FileSystem::GetFileExtension(file, true) == "IDX")
 			idxFile = LVP_Text::ToUpper(LVP_FileSystem::getFileName(file, true));
@@ -232,7 +232,7 @@ bool System::LVP_FileSystem::IsBlurayAACS(const std::string &filePath, size_t fi
 	const size_t SECTOR_SIZE = 6144;
 	uint8_t      buffer[SECTOR_SIZE];
 
-	size_t nrSectors = min(1000, fileSize / SECTOR_SIZE);
+	size_t nrSectors = std::min((size_t)1000, fileSize / SECTOR_SIZE);
 	auto   file      = fopen(filePath.c_str(), "rb");
 	size_t result    = SECTOR_SIZE;
 	size_t sector    = 0;
@@ -272,12 +272,13 @@ bool System::LVP_FileSystem::IsDVDCSS(const std::string &filePath, size_t fileSi
 	if (filePath.empty() || (fileSize == 0))
 		return false;
 
-	const int SECTOR_SIZE = 2048;
-	char      buffer[SECTOR_SIZE];
-	size_t    nrSectors   = min(1000, fileSize / SECTOR_SIZE);
-	FILE*     file        = fopen(filePath.c_str(), "rb");
-	size_t    result      = SECTOR_SIZE;
-	size_t    sector = 0;
+	const size_t SECTOR_SIZE = 2048;
+	char         buffer[SECTOR_SIZE];
+
+	size_t nrSectors = std::min((size_t)1000, fileSize / SECTOR_SIZE);
+	auto   file      = fopen(filePath.c_str(), "rb");
+	size_t result    = SECTOR_SIZE;
+	size_t sector    = 0;
 
 	std::rewind(file);
 

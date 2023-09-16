@@ -506,7 +506,7 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 				font = font.substr(0, font.size() - 1);
 
 			#if defined _windows
-				auto font16          = (wchar_t*)SDL_iconv_utf8_ucs2(font.c_str());
+				auto font16          = (wchar_t*)System::LVP_Text::ToUTF16(font.c_str());
 				sub->style->fontName = std::wstring(font16);
 
 				SDL_free(font16);
@@ -746,8 +746,8 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 
 	drawRect.x = minDrawPosition.x;
 	drawRect.y = minDrawPosition.y;
-	drawRect.w = (max(maxDrawPosition.x, drawRect.x) - drawRect.x);
-	drawRect.h = (max(maxDrawPosition.y, drawRect.y) - drawRect.y);
+	drawRect.w = (std::max(maxDrawPosition.x, drawRect.x) - drawRect.x);
+	drawRect.h = (std::max(maxDrawPosition.y, drawRect.y) - drawRect.y);
 
 	if (style == NULL)
 		return drawRect;
@@ -797,8 +797,8 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 	{
 		drawRect.x = (startPosition.x + minDrawPosition.x);
 		drawRect.y = (startPosition.y + minDrawPosition.y);
-		drawRect.w = (max(startPosition.x + maxDrawPosition.x, drawRect.x) - drawRect.x);
-		drawRect.h = (max(startPosition.y + maxDrawPosition.y, drawRect.y) - drawRect.y);
+		drawRect.w = (std::max(startPosition.x + maxDrawPosition.x, drawRect.x) - drawRect.x);
+		drawRect.h = (std::max(startPosition.y + maxDrawPosition.y, drawRect.y) - drawRect.y);
 	}
 
 	if (fontScale.x > MIN_FLOAT_ZERO)
@@ -1263,10 +1263,10 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionAbsolute(const Graphics::LV
 				else if (subTexture->subtitle->isAlignedMiddle())
 					offsetY = (subTexture->locationRender.h / 2);
 
-				subTexture->subtitle->clip.x = max((subTexture->subtitle->clip.x - (position.x - offsetX)), 0);
-				subTexture->subtitle->clip.y = max((subTexture->subtitle->clip.y - (position.y - offsetY)), 0);
-				subTexture->subtitle->clip.w = min(subTexture->subtitle->clip.w, subTexture->locationRender.w);
-				subTexture->subtitle->clip.h = min(subTexture->subtitle->clip.h, subTexture->locationRender.h);
+				subTexture->subtitle->clip.x = std::max((subTexture->subtitle->clip.x - (position.x - offsetX)), 0);
+				subTexture->subtitle->clip.y = std::max((subTexture->subtitle->clip.y - (position.y - offsetY)), 0);
+				subTexture->subtitle->clip.w = std::min(subTexture->subtitle->clip.w, subTexture->locationRender.w);
+				subTexture->subtitle->clip.h = std::min(subTexture->subtitle->clip.h, subTexture->locationRender.h);
 			}
 
 			offsetX = (subTexture->locationRender.x + subTexture->locationRender.w + LVP_SubStyle::GetOffsetX(prevSub, subContext));
@@ -1571,7 +1571,7 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSub(uint16_t* subStringUTF16, i
 		}
 		else
 		{
-			subStrings16.push_back(SDL_iconv_utf8_ucs2(" "));
+			subStrings16.push_back(System::LVP_Text::ToUTF16(" "));
 			subStrings16.push_back(subStringUTF16);
 		}
 
@@ -1628,7 +1628,7 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByLines(const Stri
 
 		if (((i + 1) % wordsPerLine == 0) || (i == words.size() - 1))
 		{
-			auto line16 = SDL_iconv_utf8_ucs2(line.c_str());
+			auto line16 = System::LVP_Text::ToUTF16(line.c_str());
 
 			TTF_SizeUNICODE(font, line16, &lineWidth, &lineHeight);
 			
@@ -1672,7 +1672,7 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByWidth(const Stri
 			if (lineString1.empty())
 				lineString1 = " ";
 
-			auto line16 = SDL_iconv_utf8_ucs2(lineString1.c_str());
+			auto line16 = System::LVP_Text::ToUTF16(lineString1.c_str());
 
 			subStrings16.push_back(line16);
 
@@ -1683,7 +1683,7 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByWidth(const Stri
 
 		if (i == words.size() - 1)
 		{
-			auto endLine16 = SDL_iconv_utf8_ucs2(lineString2.c_str());
+			auto endLine16 = System::LVP_Text::ToUTF16(lineString2.c_str());
 
 			subStrings16.push_back(endLine16);
 		}
@@ -1761,7 +1761,7 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 			sub->text = LVP_SubTextRenderer::RemoveFormatting(subLine);
 
 			// UTF-16
-			sub->textUTF16 = SDL_iconv_utf8_ucs2(sub->text.c_str());
+			sub->textUTF16 = System::LVP_Text::ToUTF16(sub->text.c_str());
 
 			if (sub->textUTF16 == NULL) {
 				DELETE_POINTER(sub);
