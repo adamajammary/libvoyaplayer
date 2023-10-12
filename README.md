@@ -18,7 +18,7 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://www.libsdl.org/) | [2.28.2](https://www.libsdl.org/release/SDL2-2.28.2.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
+[SDL2](https://www.libsdl.org/) | [2.28.4](https://www.libsdl.org/release/SDL2-2.28.4.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
 [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) | [2.20.2](https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-2.20.2.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
 [FFmpeg](https://ffmpeg.org/) | [6.0](https://ffmpeg.org/releases/ffmpeg-6.0.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
 [libaom](https://aomedia.googlesource.com/aom/) | [3.6.1](https://storage.googleapis.com/aom-releases/libaom-3.6.1.tar.gz) | [Alliance for Open Media Patent License](https://aomedia.org/license/software-license/)
@@ -52,7 +52,7 @@ MSVC | 2019
 1. Open a command prompt or terminal.
 1. Create a **build** directory and enter it.
 1. Run `cmake` to create a **Makefile**, **Xcode** project or **Visual Studio** solution based on your target platform.
-1. After building, the **dist** directory will contain all the output resources in the **include**, **lib** and directories.
+1. After building, the **dist** directory will contain all the output resources in the **include**, **lib** and **bin** directories.
 
 ```bash
 mkdir build
@@ -85,9 +85,10 @@ You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos -
 -D CMAKE_OSX_ARCHITECTURES="arm64" \
 -D CMAKE_OSX_DEPLOYMENT_TARGET="13.0" \
 -D CMAKE_OSX_SYSROOT="/path/to/IOS_SDK" \
+-D CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="YOUR_DEVELOPMENT_TEAM_ID" \
 -D EXT_LIB_DIR="/path/to/libs"
 
-xcodebuild IPHONEOS_DEPLOYMENT_TARGET="13.0" CODE_SIGNING_ALLOWED=NO -configuration "Release" -arch "arm64" -project voyaplayer.xcodeproj
+xcodebuild IPHONEOS_DEPLOYMENT_TARGET="13.0" -project voyaplayer.xcodeproj -configuration Release -destination "generic/platform=iOS"
 ```
 
 ### macOS
@@ -101,7 +102,7 @@ You can get the macOS SDK path with the following command: `xcrun --sdk macosx -
 -D CMAKE_OSX_SYSROOT="/path/to/MACOSX_SDK" \
 -D EXT_LIB_DIR="/path/to/libs"
 
-xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -configuration "Release" -arch "x86_64" -project voyaplayer.xcodeproj
+xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -project voyaplayer.xcodeproj -configuration Release
 ```
 
 ### Linux
