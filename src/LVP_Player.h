@@ -88,7 +88,6 @@ namespace LibVoyaPlayer
 
 		private:
 			static LVP_AudioContext            audioContext;
-			static std::mutex                  audioFilterLock;
 			static LVP_CallbackContext         callbackContext;
 			static LibFFmpeg::AVFormatContext* formatContext;
 			static LibFFmpeg::AVFormatContext* formatContextExternal;
@@ -160,6 +159,7 @@ namespace LibVoyaPlayer
 			static SDL_Rect*                   getScaledVideoDestination(const SDL_Rect* destination);
 			static SDL_YUV_CONVERSION_MODE     getSdlYuvConversionMode(LibFFmpeg::AVFrame* frame);
 			static void                        handleSeek();
+			static void                        initAudioFilter();
 			static void                        initSubTextures();
 			static bool                        isPacketQueueFull();
 			static bool                        isPacketQueueFull(LibFFmpeg::AVMediaType streamType);
@@ -169,7 +169,6 @@ namespace LibVoyaPlayer
 			static void                        openSubExternal(int streamIndex);
 			static void                        openThreads();
 			static void                        openThreadAudio();
-			static void                        openThreadAudioFilter();
 			static void                        openThreadSub();
 			static void                        openThreadVideo();
 			static void                        packetAdd(LibFFmpeg::AVPacket* packet, LVP_MediaContext &mediaContext);

@@ -282,27 +282,71 @@ namespace LibVoyaPlayer
 			}
 		};
 
+		struct LVP_AudioSpecs
+		{
+			LibFFmpeg::AVChannelLayout channelLayout;
+			int                        format;
+			bool                       initContext;
+			double                     playbackSpeed;
+			int                        sampleRate;
+			LibFFmpeg::SwrContext*     swrContext;
+
+			LVP_AudioSpecs()
+			{
+				this->reset();
+			}
+
+			bool hasChanged(LibFFmpeg::AVFrame* frame, double playbackSpeed)
+			{
+				return (
+					(playbackSpeed != this->playbackSpeed) ||
+					(frame->ch_layout.nb_channels != this->channelLayout.nb_channels) ||
+					(frame->format != this->format) ||
+					(frame->sample_rate != this->sampleRate)
+				);
+			}
+
+			void init(LibFFmpeg::AVFrame* frame, double playbackSpeed)
+			{
+				this->initContext   = true;
+				this->playbackSpeed = playbackSpeed;
+				this->channelLayout = frame->ch_layout;
+				this->format        = frame->format;
+				this->sampleRate    = frame->sample_rate;
+			}
+
+			void reset()
+			{
+				this->channelLayout = {};
+				this->format        = 0;
+				this->initContext   = true;
+				this->playbackSpeed = 1.0;
+				this->sampleRate    = 0;
+				this->swrContext    = NULL;
+			}
+		};
+
 		struct LVP_AudioContext : LVP_MediaContext
 		{
-			int                    bufferOffset;
-			int                    bufferRemaining;
-			int                    bufferSize;
-			bool                   decodeFrame;
-			std::string            device;
-			SDL_AudioDeviceID      deviceID;
-			SDL_AudioSpec          deviceSpecs;
-			SDL_AudioSpec          deviceSpecsWanted;
-			LVP_AudioFilter        filter;
-			LibFFmpeg::AVFrame*    frame;
-			double                 frameDuration;
-			uint8_t*               frameEncoded;
-			bool                   isMuted;
-			bool                   isDeviceReady;
-			bool                   isDriverReady;
-			double                 lastPogress;
-			LibFFmpeg::SwrContext* resampleContext;
-			int                    volume;
-			int                    writtenToStream;
+			int                 bufferOffset;
+			int                 bufferRemaining;
+			int                 bufferSize;
+			bool                decodeFrame;
+			std::string         device;
+			SDL_AudioDeviceID   deviceID;
+			SDL_AudioSpec       deviceSpecs;
+			SDL_AudioSpec       deviceSpecsWanted;
+			LVP_AudioFilter     filter;
+			LibFFmpeg::AVFrame* frame;
+			double              frameDuration;
+			uint8_t*            frameEncoded;
+			bool                isMuted;
+			bool                isDeviceReady;
+			bool                isDriverReady;
+			double              lastPogress;
+			LVP_AudioSpecs      specs;
+			int                 volume;
+			int                 writtenToStream;
 
 			LVP_AudioContext()
 			{
@@ -311,6 +355,11 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
+				LVP_MediaContext::reset();
+
+				this->filter.reset();
+				this->specs.reset();
+
 				this->bufferOffset      = 0;
 				this->bufferRemaining   = 0;
 				this->bufferSize        = AUDIO_BUFFER_SIZE;
@@ -319,14 +368,12 @@ namespace LibVoyaPlayer
 				this->deviceID          = 0;
 				this->deviceSpecs       = {};
 				this->deviceSpecsWanted = {};
-				this->filter            = {};
 				this->frame             = NULL;
 				this->frameDuration     = 0.0;
 				this->frameEncoded      = NULL;
 				this->isDeviceReady     = true;
 				this->isDriverReady     = true;
 				this->lastPogress       = 0.0;
-				this->resampleContext   = NULL;
 				this->writtenToStream   = 0;
 			}
 		};
@@ -385,6 +432,8 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
+				LVP_MediaContext::reset();
+
 				this->available         = true;
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
@@ -426,6 +475,8 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
+				LVP_MediaContext::reset();
+
 				this->frame             = NULL;
 				this->frameEncoded      = NULL;
 				this->frameHardware     = NULL;
