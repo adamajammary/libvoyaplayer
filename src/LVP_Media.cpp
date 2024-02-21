@@ -520,7 +520,8 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 		auto value = System::LVP_Text::Replace(entry->value, "\r", "\\r");
 		value      = System::LVP_Text::Replace(value,        "\n", "\\n");
 
-		meta[key] = value;
+		if (!key.empty() && !value.empty())
+			meta[key] = value;
 	}
 
 	return meta;

@@ -8,7 +8,7 @@ const int MS_PER_FRAME_IDLE  = 200;
 
 bool QUIT = false;
 
-void handleOpenFile()
+static void handleOpenFile()
 {
     #if defined _linux || defined _macosx || defined _windows
         auto file = TestWindow::OpenFile();
@@ -20,13 +20,13 @@ void handleOpenFile()
         LVP_Open(file);
 }
 
-void handleDropFileEvent(const SDL_Event &event)
+static void handleDropFileEvent(const SDL_Event &event)
 {
     LVP_Open(event.drop.file);
     SDL_free(event.drop.file);
 }
 
-void handleKeyDownEvent(const SDL_KeyboardEvent &event)
+static void handleKeyDownEvent(const SDL_KeyboardEvent &event)
 {
     if (LVP_IsStopped())
         return;
@@ -43,7 +43,7 @@ void handleKeyDownEvent(const SDL_KeyboardEvent &event)
     }
 }
 
-void handleKeyUpEvent(const SDL_KeyboardEvent &event)
+static void handleKeyUpEvent(const SDL_KeyboardEvent &event)
 {
     // https://wiki.libsdl.org/SDL2/SDL_Keymod
     if (event.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL))
@@ -77,7 +77,7 @@ void handleKeyUpEvent(const SDL_KeyboardEvent &event)
     }
 }
 
-void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
+static void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
 {
     SDL_Point clickPosition = { event.x, event.y };
     auto      button        = TestWindow::GetClickedButton(clickPosition);
@@ -106,7 +106,7 @@ void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
 	}
 }
 
-void handleUserEvent(const SDL_UserEvent &event)
+static void handleUserEvent(const SDL_UserEvent &event)
 {
     auto eventType = (LVP_EventType)event.code;
 
@@ -137,7 +137,7 @@ void handleUserEvent(const SDL_UserEvent &event)
     }
 }
 
-void handleWindowEvent(const SDL_WindowEvent &event)
+static void handleWindowEvent(const SDL_WindowEvent &event)
 {
     switch (event.event) {
     case SDL_WINDOWEVENT_CLOSE:
@@ -151,7 +151,7 @@ void handleWindowEvent(const SDL_WindowEvent &event)
     }
 }
 
-int getSleepTime(uint32_t frameStart)
+static int getSleepTime(uint32_t frameStart)
 {
     auto timeToRender = (int)(SDL_GetTicks() - frameStart);
     bool use60FPS     = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
@@ -161,7 +161,7 @@ int getSleepTime(uint32_t frameStart)
     return sleepTime;
 }
 
-void handleEvents()
+static void handleEvents()
 {
     SDL_Event event = {};
 
@@ -194,17 +194,17 @@ void handleEvents()
     }
 }
 
-void init() {
+static void init() {
     TestWindow::Init(800, 600);
     TestPlayer::Init(TestWindow::GetRenderer());
 }
 
-void quit() {
+static void quit() {
     TestPlayer::Quit();
     TestWindow::Quit();
 }
 
-void render()
+static void render()
 {
     const int CONTROLS_HEIGHT = 34;
 
@@ -234,7 +234,7 @@ void render()
 #if defined _windows && defined _DEBUG
 int wmain(int argc, wchar_t* argv[])
 #elif defined _windows && defined NDEBUG
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
 #else
 int SDL_main(int argc, char* argv[])
 #endif
