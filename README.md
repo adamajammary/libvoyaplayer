@@ -18,10 +18,10 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://www.libsdl.org/) | [2.28.4](https://www.libsdl.org/release/SDL2-2.28.4.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
+[SDL2](https://www.libsdl.org/) | [2.28.5](https://www.libsdl.org/release/SDL2-2.28.5.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
 [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) | [2.20.2](https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-2.20.2.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
-[FFmpeg](https://ffmpeg.org/) | [6.0](https://ffmpeg.org/releases/ffmpeg-6.0.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
-[libaom](https://aomedia.googlesource.com/aom/) | [3.6.1](https://storage.googleapis.com/aom-releases/libaom-3.6.1.tar.gz) | [Alliance for Open Media Patent License](https://aomedia.org/license/software-license/)
+[FFmpeg](https://ffmpeg.org/) | [6.1](https://ffmpeg.org/releases/ffmpeg-6.1.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[libaom](https://aomedia.googlesource.com/aom/) | [3.8.0](https://storage.googleapis.com/aom-releases/libaom-3.8.0.tar.gz) | [Alliance for Open Media Patent License](https://aomedia.org/license/software-license/)
 [zLib](http://www.zlib.net/) | [1.3](https://www.zlib.net/zlib-1.3.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
 
 ## Platform-dependent Include Headers
