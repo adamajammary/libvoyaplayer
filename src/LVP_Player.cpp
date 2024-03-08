@@ -1337,7 +1337,7 @@ void MediaPlayer::LVP_Player::removeExpiredSubs()
 	if (isReadyForRender)
 		LVP_Player::subContext.isReadyForRender = true;
 
-	if (isReadyForPresent && LVP_Player::subContext.subs.empty())
+	if (isReadyForPresent || LVP_Player::subContext.subs.empty())
 	{
 		LVP_Player::clearSubTextures();
 
