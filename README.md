@@ -61,7 +61,14 @@ cd build
 
 ### Android
 
-Make sure you have [Android NDK](https://developer.android.com/ndk/downloads) installed.
+Make sure you have [Android SDK](https://developer.android.com/studio) and [Android NDK](https://developer.android.com/ndk/downloads) installed.
+
+Make sure the correct Android SDK path is set as either
+
+- an environment variable `ANDROID_HOME=/path/to/ANDROID_SDK` or
+- a local property `sdk.dir=/path/to/ANDROID_SDK` in the **android/local.properties** file
+
+> See [Android SDK Command-Line Tools](https://developer.android.com/tools) and [SDL2 Android README](https://wiki.libsdl.org/SDL2/README/android) for more details.
 
 ```bash
 cmake .. -G "Unix Makefiles" \
@@ -75,9 +82,33 @@ cmake .. -G "Unix Makefiles" \
 make
 ```
 
+#### ADB (Android Debug Bridge)
+
+> See [ADB (Android Debug Bridge)](https://developer.android.com/tools/adb) for more details.
+
+##### Install APK to device
+
+```bash
+/path/to/ANDROID_SDK/platform-tools/adb install dist/bin/testvoyaplayer-debug.apk
+```
+
+##### Re-install (update) APK to device
+
+```bash
+/path/to/ANDROID_SDK/platform-tools/adb install -r dist/bin/testvoyaplayer-debug.apk
+```
+
+##### Uninstall (remove) APK from device
+
+```bash
+/path/to/ANDROID_SDK/platform-tools/adb uninstall com.libvoyaplayer.test
+```
+
 ### iOS
 
 You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos --show-sdk-path`
+
+> See [SDL2 iOS README](https://wiki.libsdl.org/SDL2/README/ios) for more details.
 
 ```bash
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
@@ -90,6 +121,23 @@ You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos -
 
 xcodebuild IPHONEOS_DEPLOYMENT_TARGET="12.5" -project voyaplayer.xcodeproj -configuration Release -destination "generic/platform=iOS"
 ```
+
+#### Xcode - Devices and Simulators
+
+> See [Xcode - Running your app in Simulator or on a device](https://developer.apple.com/documentation/xcode/running-your-app-in-simulator-or-on-a-device) for more details.
+
+#### Install APP on device or simulator
+
+1. Connect the device to your Mac (optional if installing on a simulator).
+1. Open **Xcode**.
+1. Select `Window > Devices and Simulators` from the main menu.
+1. Select the device or simulator from the list on the left.
+1. Click the `+` icon under **Installed Apps**.
+1. Locate and select `dist/bin/testvoyaplayer.app`.
+
+The app should now be installed on the device or simulator with the name **testvoyaplayer**.
+
+> If the installation fails, most likely it means the app package was not signed correctly. Try opening `voyaplayer.xcodeproj` in Xcode to make sure all signing options have been set correctly.
 
 ### macOS
 
