@@ -141,11 +141,8 @@ namespace LibVoyaPlayer
 	{
 		#define ALIGN_CENTER(o, ts, s)      std::max(0, ((o) + (std::max(0, ((ts) - (s))) / 2)))
 		#define ARE_DIFFERENT_DOUBLES(a, b) ((a > (b + 0.01)) || (a < (b - 0.01)))
+		#define AVFRAME_IS_VALID(f)         ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
 		#define HEX_STR_TO_UINT(h)          (uint8_t)std::strtoul(std::string("0x" + h).c_str(), NULL, 16)
-
-		#define AV_SEEK_FLAGS(i)    (((i->flags & AVFMT_TS_DISCONT) || !i->read_seek) ? AVSEEK_FLAG_BYTE : 0)
-		#define AV_SEEK_BYTES(i, s) ((AV_SEEK_FLAGS(i) == AVSEEK_FLAG_BYTE) && (s > 0))
-		#define AVFRAME_IS_VALID(f) ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
 
 		#define FREE_AVCODEC(c)        if (c != NULL) { LibFFmpeg::avcodec_free_context(&c); c = NULL; }
 		#define FREE_AVDICT(d)         if (d != NULL) { LibFFmpeg::av_dict_free(&d); d = NULL; }
@@ -166,6 +163,7 @@ namespace LibVoyaPlayer
 
 		#define IS_ATTACHMENT(t)    (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
 		#define IS_AUDIO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
+		#define IS_BYTE_SEEK(i)     (!i->read_seek && !(i->flags & AVFMT_NO_BYTE_SEEK))
 		#define IS_SUB(t)           (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
 		#define IS_SUB_TEXT(t)      ((t == LibFFmpeg::SUBTITLE_ASS) || (t == LibFFmpeg::SUBTITLE_TEXT))
 		#define IS_VALID_TEXTURE(t) ((t != NULL) && (t->data != NULL))

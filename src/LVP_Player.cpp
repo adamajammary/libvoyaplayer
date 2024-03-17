@@ -627,21 +627,23 @@ void MediaPlayer::LVP_Player::handleSeek()
 	if (LVP_Player::subContext.codec != NULL)
 		LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
 
-	const int SEEK_FLAGS = AV_SEEK_FLAGS(LVP_Player::formatContext->iformat);
+	int  seekFlags    = 0;
+	auto seekPosition = LVP_Player::seekPosition;
 
-	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, SEEK_FLAGS) >= 0)
+	if (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0))
+	{
+		auto percent = (double)((double)LVP_Player::seekPosition / ((double)LVP_Player::state.duration * AV_TIME_BASE_D));
+
+		seekFlags    = AVSEEK_FLAG_BYTE;
+		seekPosition = (int64_t)((double)LVP_Player::state.fileSize * percent);
+	}
+
+	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, seekPosition, INT64_MAX, seekFlags) >= 0)
 	{
 		if (LVP_Player::subContext.index >= SUB_STREAM_EXTERNAL)
-			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, SEEK_FLAGS);
+			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, 0);
 
-		if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
-		{
-			auto percent = (double)((double)LVP_Player::seekPosition / (double)LVP_Player::state.fileSize);
-
-			LVP_Player::state.progress = (double)((double)LVP_Player::state.duration * percent);
-		} else {
-			LVP_Player::state.progress = (double)((double)LVP_Player::seekPosition / AV_TIME_BASE_D);
-		}
+		LVP_Player::state.progress = (double)((double)LVP_Player::seekPosition / AV_TIME_BASE_D);
 	}
 
 	SDL_Delay(DELAY_TIME_DEFAULT);
@@ -1674,15 +1676,10 @@ void MediaPlayer::LVP_Player::SeekTo(double percent)
 	if ((LVP_Player::formatContext == NULL) || LVP_Player::seekRequested)
 		return;
 	
-	int64_t position;
-	auto    validPercent = std::max(0.0, std::min(1.0, percent));
+	auto validPercent = std::max(0.0, std::min(1.0, percent));
+	auto seekPosition = (int64_t)((double)((double)LVP_Player::state.duration * AV_TIME_BASE_D) * validPercent);
 
-	if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
-		position = (int64_t)((double)LVP_Player::state.fileSize * validPercent);
-	else
-		position = (int64_t)((double)((double)LVP_Player::state.duration * AV_TIME_BASE_D) * validPercent);
-
-	LVP_Player::seekToPosition(position);
+	LVP_Player::seekToPosition(seekPosition);
 }
 
 void MediaPlayer::LVP_Player::seekToPosition(int64_t position)
