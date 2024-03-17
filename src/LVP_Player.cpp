@@ -1534,9 +1534,9 @@ void MediaPlayer::LVP_Player::renderVideo()
 	{
 		SDL_UpdateYUVTexture(
 			LVP_Player::videoContext.texture->data, NULL,
-			LVP_Player::videoContext.frame->data[0], LVP_Player::videoContext.frame->linesize[0],
-			LVP_Player::videoContext.frame->data[1], LVP_Player::videoContext.frame->linesize[1],
-			LVP_Player::videoContext.frame->data[2], LVP_Player::videoContext.frame->linesize[2]
+			LVP_Player::videoContext.frame->data[LVP_YUV_Y], LVP_Player::videoContext.frame->linesize[LVP_YUV_Y],
+			LVP_Player::videoContext.frame->data[LVP_YUV_U], LVP_Player::videoContext.frame->linesize[LVP_YUV_U],
+			LVP_Player::videoContext.frame->data[LVP_YUV_V], LVP_Player::videoContext.frame->linesize[LVP_YUV_V]
 		);
 
 		return;
@@ -1587,9 +1587,9 @@ void MediaPlayer::LVP_Player::renderVideo()
 	// Copy the converted frame to the texture
 	SDL_UpdateYUVTexture(
 		LVP_Player::videoContext.texture->data, NULL,
-		LVP_Player::videoContext.frameEncoded->data[0], LVP_Player::videoContext.frameEncoded->linesize[0],
-		LVP_Player::videoContext.frameEncoded->data[1], LVP_Player::videoContext.frameEncoded->linesize[1],
-		LVP_Player::videoContext.frameEncoded->data[2], LVP_Player::videoContext.frameEncoded->linesize[2]
+		LVP_Player::videoContext.frameEncoded->data[LVP_YUV_Y], LVP_Player::videoContext.frameEncoded->linesize[LVP_YUV_Y],
+		LVP_Player::videoContext.frameEncoded->data[LVP_YUV_U], LVP_Player::videoContext.frameEncoded->linesize[LVP_YUV_U],
+		LVP_Player::videoContext.frameEncoded->data[LVP_YUV_V], LVP_Player::videoContext.frameEncoded->linesize[LVP_YUV_V]
 	);
 }
 

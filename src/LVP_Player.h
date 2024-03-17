@@ -11,6 +11,12 @@ namespace LibVoyaPlayer
 {
 	namespace MediaPlayer
 	{
+		#if defined _android
+			enum LVP_YUV { LVP_YUV_Y, LVP_YUV_U = 2, LVP_YUV_V = 1 };
+		#else
+			enum LVP_YUV { LVP_YUV_Y, LVP_YUV_U, LVP_YUV_V };
+		#endif
+
 		// libavcodec/dvdsubdec.c
 		struct LVP_DVDSubContext
 		{

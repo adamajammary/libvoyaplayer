@@ -210,7 +210,7 @@ namespace LibVoyaPlayer
 		const int      SUB_STREAM_EXTERNAL     = 1000;
 
 		const auto     VIDEO_PIXEL_FORMAT_FFMPEG = LibFFmpeg::AV_PIX_FMT_YUV420P;
-		const uint32_t VIDEO_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_YV12;
+		const uint32_t VIDEO_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_IYUV;
 
 		class LVP_Subtitle;
 		class LVP_SubStyle;
@@ -220,10 +220,10 @@ namespace LibVoyaPlayer
 			std::string style;
 		};
 		
-		typedef std::vector<LVP_FontFace>         LVP_FontFaces;
-		typedef std::queue<LibFFmpeg::AVPacket*>  LVP_Packets;
-		typedef std::list<LVP_Subtitle*>          LVP_Subtitles;
-		typedef std::vector<LVP_SubStyle*>        LVP_SubStyles;
+		typedef std::vector<LVP_FontFace>        LVP_FontFaces;
+		typedef std::queue<LibFFmpeg::AVPacket*> LVP_Packets;
+		typedef std::list<LVP_Subtitle*>         LVP_Subtitles;
+		typedef std::vector<LVP_SubStyle*>       LVP_SubStyles;
 
 		#if defined _windows
 			typedef std::unordered_map<std::wstring, TTF_Font*>     LVP_FontMap;
