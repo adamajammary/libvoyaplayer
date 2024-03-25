@@ -1,0 +1,5 @@
+.gradle
+.idea
+testvoyaplayer/build
+testvoyaplayer/libs/arm64-v8a/*
+testvoyaplayer/src/main/assets/*

@@ -1,7 +1,6 @@
 ﻿#include "LVP_Player.h"
 
 MediaPlayer::LVP_AudioContext    MediaPlayer::LVP_Player::audioContext;
-std::mutex                       MediaPlayer::LVP_Player::audioFilterLock;
 LVP_CallbackContext              MediaPlayer::LVP_Player::callbackContext;
 LibFFmpeg::AVFormatContext*      MediaPlayer::LVP_Player::formatContext;
 LibFFmpeg::AVFormatContext*      MediaPlayer::LVP_Player::formatContextExternal;
@@ -130,7 +129,7 @@ void MediaPlayer::LVP_Player::closeAudio()
 	FREE_AVFILTER_GRAPH(LVP_Player::audioContext.filter.filterGraph);
 	FREE_AVFRAME(LVP_Player::audioContext.frame);
 	FREE_POINTER(LVP_Player::audioContext.frameEncoded);
-	FREE_SWR(LVP_Player::audioContext.resampleContext);
+	FREE_SWR(LVP_Player::audioContext.specs.swrContext);
 	FREE_THREAD_COND(LVP_Player::audioContext.condition);
 	FREE_THREAD_MUTEX(LVP_Player::audioContext.mutex);
 	
@@ -628,27 +627,72 @@ void MediaPlayer::LVP_Player::handleSeek()
 	if (LVP_Player::subContext.codec != NULL)
 		LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext.codec);
 
-	const int SEEK_FLAGS = AV_SEEK_FLAGS(LVP_Player::formatContext->iformat);
+	int  seekFlags    = 0;
+	auto seekPosition = LVP_Player::seekPosition;
 
-	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, SEEK_FLAGS) >= 0)
+	if (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0))
+	{
+		auto percent = (double)((double)LVP_Player::seekPosition / ((double)LVP_Player::state.duration * AV_TIME_BASE_D));
+
+		seekFlags    = AVSEEK_FLAG_BYTE;
+		seekPosition = (int64_t)((double)LVP_Player::state.fileSize * percent);
+	}
+
+	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, seekPosition, INT64_MAX, seekFlags) >= 0)
 	{
 		if (LVP_Player::subContext.index >= SUB_STREAM_EXTERNAL)
-			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, SEEK_FLAGS);
+			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, LVP_Player::seekPosition, INT64_MAX, 0);
 
-		if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
-		{
-			auto percent = (double)((double)LVP_Player::seekPosition / (double)LVP_Player::state.fileSize);
-
-			LVP_Player::state.progress = (double)((double)LVP_Player::state.duration * percent);
-		} else {
-			LVP_Player::state.progress = (double)((double)LVP_Player::seekPosition / AV_TIME_BASE_D);
-		}
+		LVP_Player::state.progress = (double)((double)LVP_Player::seekPosition / AV_TIME_BASE_D);
 	}
 
 	SDL_Delay(DELAY_TIME_DEFAULT);
 
 	LVP_Player::seekRequested = false;
 	LVP_Player::seekPosition  = -1;
+}
+
+/**
+ * @throws runtime_error
+ */
+void MediaPlayer::LVP_Player::initAudioFilter()
+{
+	auto abuffer     = LibFFmpeg::avfilter_get_by_name("abuffer");
+	auto abuffersink = LibFFmpeg::avfilter_get_by_name("abuffersink");
+	auto atempo      = LibFFmpeg::avfilter_get_by_name("atempo");
+
+	auto filterGraph  = LibFFmpeg::avfilter_graph_alloc();
+	auto bufferSource = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffer,     "src");
+	auto bufferSink   = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
+	auto filterATempo = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, atempo,      "atempo");
+
+	auto channelLayout = LVP_Media::GetAudioChannelLayout(LVP_Player::audioContext.specs.channelLayout);
+	auto sampleFormat  = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)LVP_Player::audioContext.specs.format);
+	auto sampleRate    = LVP_Player::audioContext.specs.sampleRate;
+	auto timeBase      = LVP_Player::audioContext.stream->time_base;
+
+	LibFFmpeg::av_opt_set(bufferSource,     "channel_layout", channelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set(bufferSource,     "sample_fmt",     sampleFormat,          AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set_int(bufferSource, "sample_rate",    sampleRate,            AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set_q(bufferSource,   "time_base",      timeBase,              AV_OPT_SEARCH_CHILDREN);
+
+	LibFFmpeg::av_opt_set_double(filterATempo, "tempo", LVP_Player::audioContext.specs.playbackSpeed, AV_OPT_SEARCH_CHILDREN);
+
+	LibFFmpeg::avfilter_init_str(bufferSource, NULL);
+	LibFFmpeg::avfilter_init_str(bufferSink,   NULL);
+	LibFFmpeg::avfilter_init_str(filterATempo, NULL);
+
+	LibFFmpeg::avfilter_link(bufferSource, 0, filterATempo, 0);
+	LibFFmpeg::avfilter_link(filterATempo, 0, bufferSink, 0);
+
+	if (LibFFmpeg::avfilter_graph_config(filterGraph, NULL) < 0)
+		throw std::runtime_error("Failed to initialize a valid audio filter.");
+
+	FREE_AVFILTER_GRAPH(LVP_Player::audioContext.filter.filterGraph);
+
+	LVP_Player::audioContext.filter.filterGraph  = filterGraph;
+	LVP_Player::audioContext.filter.bufferSource = bufferSource;
+	LVP_Player::audioContext.filter.bufferSink   = bufferSink;
 }
 
 void MediaPlayer::LVP_Player::initSubTextures()
@@ -956,58 +1000,6 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 
 	if (LVP_Player::audioContext.frameEncoded == NULL)
 		throw std::runtime_error("Failed to allocate an encoded audio context frame.");
-
-	LVP_Player::openThreadAudioFilter();
-}
-
-/**
- * @throws runtime_error
- */
-void MediaPlayer::LVP_Player::openThreadAudioFilter()
-{
-	if ((LVP_Player::audioContext.stream == NULL) || (LVP_Player::audioContext.stream->codecpar == NULL))
-		return;
-
-	auto abuffer     = LibFFmpeg::avfilter_get_by_name("abuffer");
-	auto abuffersink = LibFFmpeg::avfilter_get_by_name("abuffersink");
-	auto atempo      = LibFFmpeg::avfilter_get_by_name("atempo");
-
-	auto filterGraph  = LibFFmpeg::avfilter_graph_alloc();
-	auto bufferSource = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffer,     "src");
-	auto bufferSink   = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
-	auto filterATempo = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, atempo,      "atempo");
-
-	auto channelLayout = LVP_Media::GetAudioChannelLayout(LVP_Player::audioContext.stream->codecpar->ch_layout);
-	auto sampleFormat  = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)LVP_Player::audioContext.stream->codecpar->format);
-	auto sampleRate    = LVP_Player::audioContext.stream->codecpar->sample_rate;
-	auto timeBase      = LVP_Player::audioContext.stream->time_base;
-
-	LibFFmpeg::av_opt_set(bufferSource,     "channel_layout", channelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set(bufferSource,     "sample_fmt",     sampleFormat,          AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set_int(bufferSource, "sample_rate",    sampleRate,            AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set_q(bufferSource,   "time_base",      timeBase,              AV_OPT_SEARCH_CHILDREN);
-
-	LibFFmpeg::av_opt_set_double(filterATempo, "tempo", LVP_Player::state.playbackSpeed, AV_OPT_SEARCH_CHILDREN);
-
-	LibFFmpeg::avfilter_init_str(bufferSource, NULL);
-	LibFFmpeg::avfilter_init_str(bufferSink,   NULL);
-	LibFFmpeg::avfilter_init_str(filterATempo, NULL);
-
-	LibFFmpeg::avfilter_link(bufferSource, 0, filterATempo, 0);
-	LibFFmpeg::avfilter_link(filterATempo, 0, bufferSink, 0);
-
-	if (LibFFmpeg::avfilter_graph_config(filterGraph, NULL) < 0)
-		throw std::runtime_error("Failed to initialize a valid audio filter.");
-
-	LVP_Player::audioFilterLock.lock();
-
-	FREE_AVFILTER_GRAPH(LVP_Player::audioContext.filter.filterGraph);
-
-	LVP_Player::audioContext.filter.filterGraph  = filterGraph;
-	LVP_Player::audioContext.filter.bufferSource = bufferSource;
-	LVP_Player::audioContext.filter.bufferSink   = bufferSink;
-
-	LVP_Player::audioFilterLock.unlock();
 }
 
 /**
@@ -1347,7 +1339,7 @@ void MediaPlayer::LVP_Player::removeExpiredSubs()
 	if (isReadyForRender)
 		LVP_Player::subContext.isReadyForRender = true;
 
-	if (isReadyForPresent && LVP_Player::subContext.subs.empty())
+	if (isReadyForPresent || LVP_Player::subContext.subs.empty())
 	{
 		LVP_Player::clearSubTextures();
 
@@ -1542,9 +1534,9 @@ void MediaPlayer::LVP_Player::renderVideo()
 	{
 		SDL_UpdateYUVTexture(
 			LVP_Player::videoContext.texture->data, NULL,
-			LVP_Player::videoContext.frame->data[0], LVP_Player::videoContext.frame->linesize[0],
-			LVP_Player::videoContext.frame->data[1], LVP_Player::videoContext.frame->linesize[1],
-			LVP_Player::videoContext.frame->data[2], LVP_Player::videoContext.frame->linesize[2]
+			LVP_Player::videoContext.frame->data[LVP_YUV_Y], LVP_Player::videoContext.frame->linesize[LVP_YUV_Y],
+			LVP_Player::videoContext.frame->data[LVP_YUV_U], LVP_Player::videoContext.frame->linesize[LVP_YUV_U],
+			LVP_Player::videoContext.frame->data[LVP_YUV_V], LVP_Player::videoContext.frame->linesize[LVP_YUV_V]
 		);
 
 		return;
@@ -1595,9 +1587,9 @@ void MediaPlayer::LVP_Player::renderVideo()
 	// Copy the converted frame to the texture
 	SDL_UpdateYUVTexture(
 		LVP_Player::videoContext.texture->data, NULL,
-		LVP_Player::videoContext.frameEncoded->data[0], LVP_Player::videoContext.frameEncoded->linesize[0],
-		LVP_Player::videoContext.frameEncoded->data[1], LVP_Player::videoContext.frameEncoded->linesize[1],
-		LVP_Player::videoContext.frameEncoded->data[2], LVP_Player::videoContext.frameEncoded->linesize[2]
+		LVP_Player::videoContext.frameEncoded->data[LVP_YUV_Y], LVP_Player::videoContext.frameEncoded->linesize[LVP_YUV_Y],
+		LVP_Player::videoContext.frameEncoded->data[LVP_YUV_U], LVP_Player::videoContext.frameEncoded->linesize[LVP_YUV_U],
+		LVP_Player::videoContext.frameEncoded->data[LVP_YUV_V], LVP_Player::videoContext.frameEncoded->linesize[LVP_YUV_V]
 	);
 }
 
@@ -1684,15 +1676,10 @@ void MediaPlayer::LVP_Player::SeekTo(double percent)
 	if ((LVP_Player::formatContext == NULL) || LVP_Player::seekRequested)
 		return;
 	
-	int64_t position;
-	auto    validPercent = std::max(0.0, std::min(1.0, percent));
+	auto validPercent = std::max(0.0, std::min(1.0, percent));
+	auto seekPosition = (int64_t)((double)((double)LVP_Player::state.duration * AV_TIME_BASE_D) * validPercent);
 
-	if (AV_SEEK_BYTES(LVP_Player::formatContext->iformat, LVP_Player::state.fileSize))
-		position = (int64_t)((double)LVP_Player::state.fileSize * validPercent);
-	else
-		position = (int64_t)((double)((double)LVP_Player::state.duration * AV_TIME_BASE_D) * validPercent);
-
-	LVP_Player::seekToPosition(position);
+	LVP_Player::seekToPosition(seekPosition);
 }
 
 void MediaPlayer::LVP_Player::seekToPosition(int64_t position)
@@ -1753,14 +1740,12 @@ void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 {
 	auto newSpeed = std::max(0.5, std::min(2.0, speed));
 
-	if (ARE_DIFFERENT_DOUBLES(newSpeed, LVP_Player::state.playbackSpeed))
-	{
-		LVP_Player::state.playbackSpeed = newSpeed;
+	if (!ARE_DIFFERENT_DOUBLES(newSpeed, LVP_Player::state.playbackSpeed))
+		return;
 
-		LVP_Player::openThreadAudioFilter();
+	LVP_Player::state.playbackSpeed = newSpeed;
 
-		LVP_Player::callbackEvents(LVP_EVENT_PLAYBACK_SPEED_CHANGED);
-	}
+	LVP_Player::callbackEvents(LVP_EVENT_PLAYBACK_SPEED_CHANGED);
 }
 
 /**
@@ -1910,12 +1895,16 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 
 				// Apply atempo (speed) filter to frame
 
-				LVP_Player::audioFilterLock.lock();
+				bool specsHaveChanged = LVP_Player::audioContext.specs.hasChanged(LVP_Player::audioContext.frame, LVP_Player::state.playbackSpeed);
+
+				if (specsHaveChanged || (LVP_Player::audioContext.filter.filterGraph == NULL)) {
+					LVP_Player::audioContext.specs.init(LVP_Player::audioContext.frame, LVP_Player::state.playbackSpeed);
+					LVP_Player::initAudioFilter();
+				}
 
 				LibFFmpeg::av_buffersrc_add_frame(LVP_Player::audioContext.filter.bufferSource, LVP_Player::audioContext.frame);
+				
 				auto filterResult = LibFFmpeg::av_buffersink_get_frame(LVP_Player::audioContext.filter.bufferSink, LVP_Player::audioContext.frame);
-
-				LVP_Player::audioFilterLock.unlock();
 
 				// Get more frames if needed
 				if (filterResult == AVERROR(EAGAIN))
@@ -1960,23 +1949,30 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 				auto outSampleFormat = LVP_Player::getAudioSampleFormat(LVP_Player::audioContext.deviceSpecs.format);
 				auto outSampleRate   = LVP_Player::audioContext.deviceSpecs.freq;
 
-				auto allocResult = LibFFmpeg::swr_alloc_set_opts2(
-					&LVP_Player::audioContext.resampleContext,
-					&outChannelLayout, outSampleFormat, outSampleRate,
-					&inChannelLayout,  inSampleFormat,  inSampleRate,
-					0, NULL
-				);
-
-				if ((allocResult < 0) || (LVP_Player::audioContext.resampleContext == NULL)) {
-					LVP_Player::stop("Failed to allocate an audio resample context.");
-					break;
-				}
-
-				if (LibFFmpeg::swr_is_initialized(LVP_Player::audioContext.resampleContext) < 1)
+				if (LVP_Player::audioContext.specs.initContext || (LVP_Player::audioContext.specs.swrContext == NULL))
 				{
-					if (LibFFmpeg::swr_init(LVP_Player::audioContext.resampleContext) < 0) {
-						LVP_Player::stop("Failed to initialize the audio resample context.");
+					LVP_Player::audioContext.specs.initContext = false;
+
+					FREE_SWR(LVP_Player::audioContext.specs.swrContext);
+
+					auto allocResult = LibFFmpeg::swr_alloc_set_opts2(
+						&LVP_Player::audioContext.specs.swrContext,
+						&outChannelLayout, outSampleFormat, outSampleRate,
+						&inChannelLayout,  inSampleFormat,  inSampleRate,
+						0, NULL
+					);
+
+					if ((allocResult < 0) || (LVP_Player::audioContext.specs.swrContext == NULL)) {
+						LVP_Player::stop("Failed to allocate an audio resample context.");
 						break;
+					}
+
+					if (LibFFmpeg::swr_is_initialized(LVP_Player::audioContext.specs.swrContext) < 1)
+					{
+						if (LibFFmpeg::swr_init(LVP_Player::audioContext.specs.swrContext) < 0) {
+							LVP_Player::stop("Failed to initialize the audio resample context.");
+							break;
+						}
 					}
 				}
 
@@ -1986,7 +1982,7 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 				// Calculate needed frame buffer size for resampling
 				
 				auto bytesPerSample  = (LVP_Player::audioContext.deviceSpecs.channels * LibFFmpeg::av_get_bytes_per_sample(outSampleFormat));
-				auto nextSampleCount = LibFFmpeg::swr_get_out_samples(LVP_Player::audioContext.resampleContext, LVP_Player::audioContext.frame->nb_samples);
+				auto nextSampleCount = LibFFmpeg::swr_get_out_samples(LVP_Player::audioContext.specs.swrContext, LVP_Player::audioContext.frame->nb_samples);
 				auto nextBufferSize  = (nextSampleCount * bytesPerSample);
 
 				// Increase the frame buffer size if needed
@@ -2002,7 +1998,7 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 				// Resample the audio frame
 
 				auto samplesResampled = LibFFmpeg::swr_convert(
-					LVP_Player::audioContext.resampleContext,
+					LVP_Player::audioContext.specs.swrContext,
 					&LVP_Player::audioContext.frameEncoded, nextSampleCount,
 					(const uint8_t**)LVP_Player::audioContext.frame->extended_data, LVP_Player::audioContext.frame->nb_samples
 				);

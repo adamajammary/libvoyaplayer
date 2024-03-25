@@ -9,16 +9,23 @@ extern "C" {
     #include <SDL2/SDL_ttf.h>
 }
 
-#if defined _linux
-	#include <gtk/gtk.h>       // gtk_file_chooser_dialog_new(x), gtk_dialog_run(x), gtk_file_chooser_get_uri(x)
-#elif defined _macosx
-	#include <AppKit/AppKit.h> // NSOpenPanel
+#if defined _android
+    #include <android/asset_manager_jni.h> // AAsset*, JNI*, j*
+    #include <sys/stat.h>                  // mkdir(x)
 #elif defined _windows
-	#include <windows.h>
-    #include <Commdlg.h>       // GetOpenFileNameW(x)
+    #include <windows.h> // WinMain(x)
 #endif
 
 #include <libvoyaplayer.h>
+
+struct Icon {
+    static const int      depth  = 24;
+    static const uint32_t format = SDL_PIXELFORMAT_RGB24;
+    static const int      height = 64;
+    static const int      pitch  = 192;
+    static const size_t   size   = 12288;
+    static const int      width  = 64;
+};
 
 template<typename... Args>
 static std::string TextFormat(const char* formatString, const Args&... args)
@@ -46,7 +53,7 @@ static std::string TimeFormat(int64_t milliSeconds)
 enum ButtonId
 {
     BUTTON_ID_UNKNOWN = -1,
-    BUTTON_ID_OPEN,
+    BUTTON_ID_PLAY_PAUSE,
     BUTTON_ID_PROGRESS,
     BUTTON_ID_SEEK_BACK,
     BUTTON_ID_SEEK_FORWARD,
@@ -56,6 +63,8 @@ enum ButtonId
 struct Button
 {
     SDL_Rect      background = {};
+    const char*   basePath   = nullptr;
+    float         dpiScale   = 1.0f;
     bool          enabled    = true;
     ButtonId      id         = BUTTON_ID_UNKNOWN;
     std::string   label      = "";
@@ -63,8 +72,10 @@ struct Button
     SDL_Point     size       = {};
     SDL_Texture*  texture    = nullptr;
 
-    Button(SDL_Renderer* renderer, ButtonId id, const std::string& label, bool enabled = true)
+    Button(SDL_Renderer* renderer, float dpiScale, const char* basePath, ButtonId id, const std::string& label, bool enabled = true)
     {
+        this->basePath = basePath;
+        this->dpiScale = dpiScale;
         this->enabled  = enabled;
         this->id       = id;
         this->label    = label;
@@ -81,18 +92,21 @@ struct Button
     void create()
     {
         #if defined _android
-	        const auto FONT_PATH = "/system/fonts/DroidSans.ttf";
+    		const auto FONT_PATH = "/system/fonts/NotoSansCJK-Regular.ttc";
         #elif defined _ios
-	        const auto FONT_PATH = "/System/Library/Fonts/Cache/arialuni.ttf";
+		    auto       fullPath  = TextFormat("%s%s", this->basePath, "Arial Unicode.ttf");
+		    const auto FONT_PATH = fullPath.c_str();
         #elif defined _linux
-	        const auto FONT_PATH = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf";
+    		const auto FONT_PATH = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc";
         #elif defined  _macosx
 	        const auto FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
         #elif defined _windows
 	        const auto FONT_PATH = "C:\\Windows\\Fonts\\ARIALUNI.TTF";
         #endif
 
-		auto font = TTF_OpenFont(FONT_PATH, 14);
+        const auto FONT_SIZE = (int)(14.0f * this->dpiScale);
+
+        auto font = TTF_OpenFont(FONT_PATH, FONT_SIZE);
 
         if (!font)
             throw std::runtime_error(TextFormat("Failed to open font '%s': %s", FONT_PATH, TTF_GetError()));
@@ -153,23 +167,23 @@ private:
 
 public:
     static void          EnableButton(ButtonId id, bool enabled = true);
-    static Button*       GetClickedButton(const SDL_Point& clickPosition);
+    static Button*       GetClickedButton(const SDL_MouseButtonEvent& event);
     static SDL_Rect      GetDimensions();
+    static float         GetDPIScale();
     static SDL_Renderer* GetRenderer();
-    static void          Init(int width, int height);
+    static void          Init(int width, int height, const char* basePath);
     static void          Quit();
-    static void          RenderControls(const SDL_Rect& destination);
+    static void          RenderControls(const SDL_Rect& destination, float dpiScale);
     static void          UpdateButton(ButtonId id, const std::string& label);
     static void          UpdateProgress();
-
-    #if defined _windows
-        static std::wstring OpenFile();
-    #elif defined _linux || defined _macosx
-        static std::string OpenFile();
-    #endif
+    static void          UpdateTitle(const std::string& title = "");
 
 private:
-    static void initButtons();
+    static void initButtons(const char* basePath);
+
+    #if defined _linux || defined _macosx || defined _windows
+    static void initIcon(const char* basePath);
+    #endif
 
 };
 

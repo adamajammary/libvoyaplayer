@@ -14,8 +14,8 @@ BEGIN
 			VALUE "LegalCopyright",   "(c) 2021 Adam A. Jammary (Jammary Studio)"
 			VALUE "ProductName",      "libvoyaplayer"
 			VALUE "FileDescription",  "libvoyaplayer"
-			VALUE "FileVersion",      "1.3.0"
-			VALUE "ProductVersion",   "1.3.0"
+			VALUE "FileVersion",      "1.3.1"
+			VALUE "ProductVersion",   "1.3.1"
 			VALUE "InternalName",     "libvoyaplayer.dll"
 			VALUE "OriginalFilename", "libvoyaplayer.dll"
 		END

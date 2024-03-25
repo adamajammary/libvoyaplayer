@@ -12,10 +12,17 @@ void TestWindow::EnableButton(ButtonId id, bool enabled)
 		TestWindow::buttonIds[id]->enable(enabled);
 }
 
-Button* TestWindow::GetClickedButton(const SDL_Point& clickPosition)
+Button* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
 {
+	#if defined _ios || defined _macosx
+		auto      scale    = TestWindow::GetDPIScale();
+		SDL_Point position = { (int)((float)event.x * scale), (int)((float)event.y * scale) };
+	#else
+		SDL_Point position = { event.x, event.y };
+	#endif
+
 	for (const auto& button : TestWindow::buttons) {
-		if (button->enabled && SDL_PointInRect(&clickPosition, &button->background))
+		if (button->enabled && SDL_PointInRect(&position, &button->background))
 			return button;
 	}
 
@@ -32,12 +39,29 @@ SDL_Rect TestWindow::GetDimensions()
     return dimensions;
 }
 
+float TestWindow::GetDPIScale()
+{
+	#if defined _android
+		float dpi;
+		SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(TestWindow::window), &dpi, nullptr, nullptr);
+
+		return (dpi / 160.0f);
+	#else
+		auto sizeInPixels = TestWindow::GetDimensions();
+
+		SDL_Rect size = {};
+		SDL_GetWindowSize(TestWindow::window, &size.w, &size.h);
+
+		return ((float)sizeInPixels.w / (float)size.w);
+	#endif
+}
+
 SDL_Renderer* TestWindow::GetRenderer()
 {
     return TestWindow::renderer;
 }
 
-void TestWindow::Init(int width, int height)
+void TestWindow::Init(int width, int height, const char* basePath)
 {
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
         throw std::runtime_error(TextFormat("Failed to initialize SDL: %s", SDL_GetError()));
@@ -62,132 +86,64 @@ void TestWindow::Init(int width, int height)
     if (!TestWindow::renderer)
         throw std::runtime_error(TextFormat("Failed to create a renderer: %s", SDL_GetError()));
 
-	TestWindow::initButtons();
+	#if defined _linux || defined _macosx || defined _windows
+	TestWindow::initIcon(basePath);
+	#endif
+	
+	TestWindow::initButtons(basePath);
 }
 
-void TestWindow::initButtons()
+void TestWindow::initButtons(const char* basePath)
 {
-	auto open = new Button(TestWindow::renderer, BUTTON_ID_OPEN, "OPEN");
+	auto dpiScale = TestWindow::GetDPIScale();
 
-	TestWindow::buttonIds[BUTTON_ID_OPEN] = open;
+	auto open = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_PLAY_PAUSE, "PAUSE");
+
+	TestWindow::buttonIds[BUTTON_ID_PLAY_PAUSE] = open;
 	TestWindow::buttons.push_back(open);
 
-	auto stop = new Button(TestWindow::renderer, BUTTON_ID_STOP, "STOP", false);
+	auto stop = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_STOP, "STOP", false);
 
 	TestWindow::buttonIds[BUTTON_ID_STOP] = stop;
 	TestWindow::buttons.push_back(stop);
 
-	auto seekBack = new Button(TestWindow::renderer, BUTTON_ID_SEEK_BACK, "<< SEEK", false);
+	auto seekBack = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_SEEK_BACK, "<< SEEK", false);
 
 	TestWindow::buttonIds[BUTTON_ID_SEEK_BACK] = seekBack;
 	TestWindow::buttons.push_back(seekBack);
 
-	auto seekForward = new Button(TestWindow::renderer, BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
+	auto seekForward = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
 
 	TestWindow::buttonIds[BUTTON_ID_SEEK_FORWARD] = seekForward;
 	TestWindow::buttons.push_back(seekForward);
 
-	auto progress = new Button(TestWindow::renderer, BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
+	auto progress = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
 
 	TestWindow::buttonIds[BUTTON_ID_PROGRESS] = progress;
 	TestWindow::buttons.push_back(progress);
 }
 
-#if defined _linux
-std::string TestWindow::OpenFile()
+#if defined _linux || defined _macosx || defined _windows
+void TestWindow::initIcon(const char* basePath)
 {
-	std::string directoryPath = "";
+	auto icon   = TextFormat("%s%s", basePath, "icon.ppm");
+	auto file   = std::fopen(icon.c_str(), "rb");
+	auto pixels = (uint8_t*)std::malloc(Icon::size);
 
-	if (strlen(std::getenv("DISPLAY")) == 0)
-		SDL_setenv("DISPLAY", ":0", 1);
+	std::fseek(file, 13, SEEK_SET);
 
-	if (!gtk_init_check(0, NULL))
-		return directoryPath;
+	if (pixels)
+		std::fread(pixels, 1, Icon::size, file);
 
-	GtkWidget* dialog = gtk_file_chooser_dialog_new(
-		"Select a file", NULL, GTK_FILE_CHOOSER_ACTION_OPEN,
-		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL
-	);
+	std::fclose(file);
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
-	{
-		char* selectedPath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+	auto surface = SDL_CreateRGBSurfaceWithFormatFrom(pixels, Icon::width, Icon::height, Icon::depth, Icon::pitch, Icon::format);
 
-		if (selectedPath != NULL) {
-			directoryPath = std::string(selectedPath);
-			g_free(selectedPath);
-		}
-	}
+	if (surface)
+		SDL_SetWindowIcon(TestWindow::window, surface);
 
-	gtk_widget_destroy(GTK_WIDGET(dialog));
-
-	while (gtk_events_pending())
-		gtk_main_iteration();
-
-	if (directoryPath.substr(0, 7) == "file://")
-		directoryPath = directoryPath.substr(7);
-
-	return directoryPath;
-}
-#elif defined _macosx
-std::string TestWindow::OpenFile()
-{
-	std::string  directoryPath = "";
-	NSOpenPanel* panel         = [NSOpenPanel openPanel];
-
-	if (!panel)
-		return directoryPath;
-
-	[panel setAllowsMultipleSelection: NO];
-	[panel setCanChooseDirectories: NO];
-	[panel setCanChooseFiles: YES];
-
-	if ([panel runModal] != NSOKButton)
-		return directoryPath;
-
-	CFURLRef selectedURL = (CFURLRef) [[panel URLs]firstObject];
-
-	if (!selectedURL)
-		return directoryPath;
-
-	const int MAX_FILE_PATH = 260;
-	char selectedPath[MAX_FILE_PATH] = {};
-
-	CFURLGetFileSystemRepresentation(selectedURL, TRUE, (UInt8*)selectedPath, MAX_FILE_PATH);
-
-	directoryPath = std::string(selectedPath);
-
-	if (directoryPath.substr(0, 7) == "file://")
-		directoryPath = directoryPath.substr(7);
-
-	return directoryPath;
-}
-#elif defined _windows
-std::wstring TestWindow::OpenFile()
-{
-	const int MAX_FILE_PATH = 260;
-	wchar_t selectedPath[MAX_FILE_PATH] = {};
-
-	OPENFILENAMEW browseDialog;
-	memset(&browseDialog, 0, sizeof(browseDialog));
-
-	browseDialog.lStructSize  = sizeof(browseDialog);
-	browseDialog.lpstrFile    = selectedPath;
-	browseDialog.lpstrFile[0] = '\0';
-	browseDialog.nMaxFile     = sizeof(selectedPath);
-	browseDialog.lpstrFilter  = L"All\0*.*\0";
-	browseDialog.nFilterIndex = 1;
-	browseDialog.Flags        = (OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NODEREFERENCELINKS | OFN_EXPLORER);
-
-	std::wstring directoryPath = L"";
-
-	if (GetOpenFileNameW(&browseDialog))
-		directoryPath = std::wstring(selectedPath);
-
-	if (directoryPath.substr(0, 7) == L"file://")
-		directoryPath = directoryPath.substr(7);
-
-	return directoryPath;
+	SDL_FreeSurface(surface);
+	std::free(pixels);
 }
 #endif
 
@@ -213,7 +169,7 @@ void TestWindow::Quit()
     SDL_Quit();
 }
 
-void TestWindow::RenderControls(const SDL_Rect& destination)
+void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 {
 	SDL_Point mousePosition = {};
 	SDL_GetMouseState(&mousePosition.x, &mousePosition.y);
@@ -222,7 +178,10 @@ void TestWindow::RenderControls(const SDL_Rect& destination)
 	SDL_Color highlightColor  = { 0x40, 0x40, 0x40, 0xFF };
 	SDL_Color lineColor       = { 0x80, 0x80, 0x80, 0xFF };
 
-	auto controlsSize = ((int)TestWindow::buttons.size() * 2 * 10);
+	auto padding10 = (int)(10.0f * dpiScale);
+	auto padding5  = (int)(5.0f  * dpiScale);
+
+	auto controlsSize = ((int)TestWindow::buttons.size() * 2 * padding10);
 
 	for (const auto& button : TestWindow::buttons)
 		controlsSize += button->size.x;
@@ -232,35 +191,37 @@ void TestWindow::RenderControls(const SDL_Rect& destination)
 	SDL_SetRenderDrawColor(TestWindow::renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 	SDL_RenderFillRect(TestWindow::renderer, &destination);
 
-	int lineY      = (!TestWindow::buttons.empty() ? TestWindow::buttons[0]->background.y : 0);
-	int lineHeight = (!TestWindow::buttons.empty() ? TestWindow::buttons[0]->background.h : 0);
+	int lineY      = (destination.y + padding5);
+	int lineHeight = (destination.h - padding10);
 
 	if (!TestWindow::buttons.empty()) {
 		SDL_SetRenderDrawColor(TestWindow::renderer, lineColor.r, lineColor.g, lineColor.b, lineColor.a);
 		SDL_RenderDrawLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
 	}
 
-	offsetX += 10;
+	offsetX += padding10;
 
 	for (const auto& button : TestWindow::buttons)
 	{
-		SDL_Rect highlightArea = { button->background.x - 5, button->background.y, button->background.w + 10, button->background.h };
+		#if defined _linux || defined _macosx || defined _windows
+		SDL_Rect highlightArea = { (button->background.x - padding5), lineY, (button->background.w + padding10), lineHeight };
 
 		if (button->enabled && SDL_PointInRect(&mousePosition, &highlightArea)) {
 			SDL_SetRenderDrawColor(TestWindow::renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
 			SDL_RenderFillRect(TestWindow::renderer, &highlightArea);
 		}
+		#endif
 
-		button->background = { offsetX, (destination.y + 7), button->size.x, button->size.y };
+		button->background = { offsetX, (lineY + ((lineHeight - button->size.y) / 2)), button->size.x, button->size.y };
 
 		SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
 
-		offsetX += (button->background.w + 10);
+		offsetX += (button->background.w + padding10);
 
 		SDL_SetRenderDrawColor(TestWindow::renderer, lineColor.r, lineColor.g, lineColor.b, lineColor.a);
 		SDL_RenderDrawLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
 
-		offsetX += 10;
+		offsetX += padding10;
 	}
 }
 
@@ -275,8 +236,16 @@ void TestWindow::UpdateProgress()
 	if (LVP_IsStopped())
 		return;
 
-	auto durationLabel = TimeFormat(LVP_GetDuration());
-	auto progressLabel = TimeFormat(LVP_GetProgress());
+	auto duration = TimeFormat(LVP_GetDuration());
+	auto progress = TimeFormat(LVP_GetProgress());
 
-	TestWindow::UpdateButton(BUTTON_ID_PROGRESS, TextFormat("%s / %s", progressLabel.c_str(), durationLabel.c_str()));
+	TestWindow::UpdateButton(BUTTON_ID_PROGRESS, TextFormat("%s / %s", progress.c_str(), duration.c_str()));
+}
+
+void TestWindow::UpdateTitle(const std::string& title)
+{
+	if (!title.empty())
+		SDL_SetWindowTitle(TestWindow::window, TextFormat("%s - %s", TestWindow::title.c_str(), title.c_str()).c_str());
+	else
+		SDL_SetWindowTitle(TestWindow::window, TestWindow::title.c_str());
 }

@@ -303,10 +303,11 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	}
 	else
 	{
-		auto seekPos = LVP_Media::GetMediaThumbnailSeekPos(formatContext);
+		auto seekFlags = (IS_BYTE_SEEK(formatContext->iformat) ? AVSEEK_FLAG_BYTE : 0);
+		auto seekPos   = LVP_Media::GetMediaThumbnailSeekPos(formatContext);
 
 		if (seekPos > 0)
-			avformat_seek_file(formatContext, -1, INT64_MIN, seekPos, INT64_MAX, AV_SEEK_FLAGS(formatContext->iformat));
+			LibFFmpeg::avformat_seek_file(formatContext, -1, INT64_MIN, seekPos, INT64_MAX, seekFlags);
 
 		auto packet = LibFFmpeg::av_packet_alloc();
 
@@ -370,6 +371,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	}
 
 	FREE_SWS(contextRGB);
+	FREE_AVPOINTER(frameRGB->data[0]);
 	FREE_AVFRAME(frameRGB);
 	FREE_AVFRAME(frame);
 	FREE_AVCODEC(codec);
@@ -395,7 +397,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaThumbnailSeekPos(LibFFmpeg::AVFormatCont
 	else if (formatContext->duration > AV_TIME_10)
 		seekPos = AV_TIME_10;
 
-	if (AV_SEEK_FLAGS(formatContext->iformat) != AVSEEK_FLAG_BYTE)
+	if (!IS_BYTE_SEEK(formatContext->iformat))
 		return seekPos;
 
 	auto fileSize = System::LVP_FileSystem::GetFileSize(formatContext->url);
@@ -519,7 +521,8 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 		auto value = System::LVP_Text::Replace(entry->value, "\r", "\\r");
 		value      = System::LVP_Text::Replace(value,        "\n", "\\n");
 
-		meta[key] = value;
+		if (!key.empty() && !value.empty())
+			meta[key] = value;
 	}
 
 	return meta;

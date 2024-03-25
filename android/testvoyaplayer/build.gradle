@@ -1,0 +1,18 @@
+apply plugin: "com.android.application"
+
+android {
+  namespace "com.libvoyaplayer.test"
+
+  defaultConfig {
+    applicationId "com.libvoyaplayer.test"
+    compileSdk 33
+    minSdkVersion 29
+    targetSdkVersion 33
+    versionCode 1
+    versionName "1.0.0"
+  }
+
+  sourceSets.main {
+    jniLibs.srcDir "libs"
+  }
+}

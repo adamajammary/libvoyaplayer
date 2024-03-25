@@ -141,11 +141,8 @@ namespace LibVoyaPlayer
 	{
 		#define ALIGN_CENTER(o, ts, s)      std::max(0, ((o) + (std::max(0, ((ts) - (s))) / 2)))
 		#define ARE_DIFFERENT_DOUBLES(a, b) ((a > (b + 0.01)) || (a < (b - 0.01)))
+		#define AVFRAME_IS_VALID(f)         ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
 		#define HEX_STR_TO_UINT(h)          (uint8_t)std::strtoul(std::string("0x" + h).c_str(), NULL, 16)
-
-		#define AV_SEEK_FLAGS(i)    (((i->flags & AVFMT_TS_DISCONT) || !i->read_seek) ? AVSEEK_FLAG_BYTE : 0)
-		#define AV_SEEK_BYTES(i, s) ((AV_SEEK_FLAGS(i) == AVSEEK_FLAG_BYTE) && (s > 0))
-		#define AVFRAME_IS_VALID(f) ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
 
 		#define FREE_AVCODEC(c)        if (c != NULL) { LibFFmpeg::avcodec_free_context(&c); c = NULL; }
 		#define FREE_AVDICT(d)         if (d != NULL) { LibFFmpeg::av_dict_free(&d); d = NULL; }
@@ -166,6 +163,7 @@ namespace LibVoyaPlayer
 
 		#define IS_ATTACHMENT(t)    (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
 		#define IS_AUDIO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
+		#define IS_BYTE_SEEK(i)     (!i->read_seek && !(i->flags & AVFMT_NO_BYTE_SEEK))
 		#define IS_SUB(t)           (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
 		#define IS_SUB_TEXT(t)      ((t == LibFFmpeg::SUBTITLE_ASS) || (t == LibFFmpeg::SUBTITLE_TEXT))
 		#define IS_VALID_TEXTURE(t) ((t != NULL) && (t->data != NULL))
@@ -212,7 +210,7 @@ namespace LibVoyaPlayer
 		const int      SUB_STREAM_EXTERNAL     = 1000;
 
 		const auto     VIDEO_PIXEL_FORMAT_FFMPEG = LibFFmpeg::AV_PIX_FMT_YUV420P;
-		const uint32_t VIDEO_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_YV12;
+		const uint32_t VIDEO_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_IYUV;
 
 		class LVP_Subtitle;
 		class LVP_SubStyle;
@@ -222,10 +220,10 @@ namespace LibVoyaPlayer
 			std::string style;
 		};
 		
-		typedef std::vector<LVP_FontFace>         LVP_FontFaces;
-		typedef std::queue<LibFFmpeg::AVPacket*>  LVP_Packets;
-		typedef std::list<LVP_Subtitle*>          LVP_Subtitles;
-		typedef std::vector<LVP_SubStyle*>        LVP_SubStyles;
+		typedef std::vector<LVP_FontFace>        LVP_FontFaces;
+		typedef std::queue<LibFFmpeg::AVPacket*> LVP_Packets;
+		typedef std::list<LVP_Subtitle*>         LVP_Subtitles;
+		typedef std::vector<LVP_SubStyle*>       LVP_SubStyles;
 
 		#if defined _windows
 			typedef std::unordered_map<std::wstring, TTF_Font*>     LVP_FontMap;
@@ -282,27 +280,71 @@ namespace LibVoyaPlayer
 			}
 		};
 
+		struct LVP_AudioSpecs
+		{
+			LibFFmpeg::AVChannelLayout channelLayout;
+			int                        format;
+			bool                       initContext;
+			double                     playbackSpeed;
+			int                        sampleRate;
+			LibFFmpeg::SwrContext*     swrContext;
+
+			LVP_AudioSpecs()
+			{
+				this->reset();
+			}
+
+			bool hasChanged(LibFFmpeg::AVFrame* frame, double playbackSpeed)
+			{
+				return (
+					(playbackSpeed != this->playbackSpeed) ||
+					(frame->ch_layout.nb_channels != this->channelLayout.nb_channels) ||
+					(frame->format != this->format) ||
+					(frame->sample_rate != this->sampleRate)
+				);
+			}
+
+			void init(LibFFmpeg::AVFrame* frame, double playbackSpeed)
+			{
+				this->initContext   = true;
+				this->playbackSpeed = playbackSpeed;
+				this->channelLayout = frame->ch_layout;
+				this->format        = frame->format;
+				this->sampleRate    = frame->sample_rate;
+			}
+
+			void reset()
+			{
+				this->channelLayout = {};
+				this->format        = 0;
+				this->initContext   = true;
+				this->playbackSpeed = 1.0;
+				this->sampleRate    = 0;
+				this->swrContext    = NULL;
+			}
+		};
+
 		struct LVP_AudioContext : LVP_MediaContext
 		{
-			int                    bufferOffset;
-			int                    bufferRemaining;
-			int                    bufferSize;
-			bool                   decodeFrame;
-			std::string            device;
-			SDL_AudioDeviceID      deviceID;
-			SDL_AudioSpec          deviceSpecs;
-			SDL_AudioSpec          deviceSpecsWanted;
-			LVP_AudioFilter        filter;
-			LibFFmpeg::AVFrame*    frame;
-			double                 frameDuration;
-			uint8_t*               frameEncoded;
-			bool                   isMuted;
-			bool                   isDeviceReady;
-			bool                   isDriverReady;
-			double                 lastPogress;
-			LibFFmpeg::SwrContext* resampleContext;
-			int                    volume;
-			int                    writtenToStream;
+			int                 bufferOffset;
+			int                 bufferRemaining;
+			int                 bufferSize;
+			bool                decodeFrame;
+			std::string         device;
+			SDL_AudioDeviceID   deviceID;
+			SDL_AudioSpec       deviceSpecs;
+			SDL_AudioSpec       deviceSpecsWanted;
+			LVP_AudioFilter     filter;
+			LibFFmpeg::AVFrame* frame;
+			double              frameDuration;
+			uint8_t*            frameEncoded;
+			bool                isMuted;
+			bool                isDeviceReady;
+			bool                isDriverReady;
+			double              lastPogress;
+			LVP_AudioSpecs      specs;
+			int                 volume;
+			int                 writtenToStream;
 
 			LVP_AudioContext()
 			{
@@ -311,6 +353,11 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
+				LVP_MediaContext::reset();
+
+				this->filter.reset();
+				this->specs.reset();
+
 				this->bufferOffset      = 0;
 				this->bufferRemaining   = 0;
 				this->bufferSize        = AUDIO_BUFFER_SIZE;
@@ -319,14 +366,12 @@ namespace LibVoyaPlayer
 				this->deviceID          = 0;
 				this->deviceSpecs       = {};
 				this->deviceSpecsWanted = {};
-				this->filter            = {};
 				this->frame             = NULL;
 				this->frameDuration     = 0.0;
 				this->frameEncoded      = NULL;
 				this->isDeviceReady     = true;
 				this->isDriverReady     = true;
 				this->lastPogress       = 0.0;
-				this->resampleContext   = NULL;
 				this->writtenToStream   = 0;
 			}
 		};
@@ -385,6 +430,8 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
+				LVP_MediaContext::reset();
+
 				this->available         = true;
 				this->formatContext     = NULL;
 				this->isReadyForRender  = false;
@@ -426,6 +473,8 @@ namespace LibVoyaPlayer
 
 			void reset()
 			{
+				LVP_MediaContext::reset();
+
 				this->frame             = NULL;
 				this->frameEncoded      = NULL;
 				this->frameHardware     = NULL;
