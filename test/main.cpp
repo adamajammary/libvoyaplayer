@@ -6,24 +6,103 @@
 const int MS_PER_FRAME_FPS60 = (1000 / 60);
 const int MS_PER_FRAME_IDLE  = 200;
 
-bool QUIT = false;
+char*       BASE_PATH  = nullptr;
+bool        QUIT       = false;
+const char* VIDEO_FILE = "caminandes_1_llama_drama_2013_300p.ogv";
 
-static void handleOpenFile()
+#if defined _android
+jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
 {
-    #if defined _linux || defined _macosx || defined _windows
-        auto file = TestWindow::OpenFile();
-    #else
-        auto file = std::string("");
-    #endif
+    auto jniClass = environment->FindClass(classPath.c_str());
 
-    if (!file.empty())
-        LVP_Open(file);
+    if (!jniClass)
+        throw std::runtime_error(TextFormat("Failed to find Android JNI class: '%s'", classPath.c_str()));
+
+    return jniClass;
 }
 
-static void handleDropFileEvent(const SDL_Event &event)
+JNIEnv* getAndroidJniEnvironment()
 {
-    LVP_Open(event.drop.file);
-    SDL_free(event.drop.file);
+    auto jniEnvironment = (JNIEnv*)SDL_AndroidGetJNIEnv();
+
+    if (!jniEnvironment)
+        throw std::runtime_error("Failed to get a valid Android JNI Environment.");
+
+    return jniEnvironment;
+}
+
+AAssetManager* getAndroidJniAssetManager()
+{
+	auto jniEnvironment    = getAndroidJniEnvironment();
+	auto jniObjectActivity = (jobject)SDL_AndroidGetActivity();
+
+	if (!jniObjectActivity)
+		throw std::runtime_error("Failed to get a valid Android JNI Activity.");
+
+	auto jniClassActivity  = getAndroidJniClass("android/app/Activity",          jniEnvironment);
+	auto jniClassResources = getAndroidJniClass("android/content/res/Resources", jniEnvironment);
+
+	auto jniMethodGetAssets    = jniEnvironment->GetMethodID(jniClassResources, "getAssets",    "()Landroid/content/res/AssetManager;");
+	auto jniMethodGetResources = jniEnvironment->GetMethodID(jniClassActivity,  "getResources", "()Landroid/content/res/Resources;");
+
+	auto jniObjectResources    = jniEnvironment->CallObjectMethod(jniObjectActivity,  jniMethodGetResources);
+	auto jniObjectAssetManager = jniEnvironment->CallObjectMethod(jniObjectResources, jniMethodGetAssets);
+
+	auto jniAssetManager = AAssetManager_fromJava(jniEnvironment, jniObjectAssetManager);
+
+	if (!jniAssetManager)
+		throw std::runtime_error("Failed to get a valid Android JNI Asset Manager.");
+
+	jniEnvironment->DeleteLocalRef(jniObjectAssetManager);
+	jniEnvironment->DeleteLocalRef(jniObjectResources);
+	jniEnvironment->DeleteLocalRef(jniObjectActivity);
+	jniEnvironment->DeleteLocalRef(jniClassResources);
+	jniEnvironment->DeleteLocalRef(jniClassActivity);
+
+	return jniAssetManager;
+}
+
+static void initBasePath()
+{
+    BASE_PATH = SDL_GetPrefPath(nullptr, nullptr);
+
+	if (!BASE_PATH)
+		throw std::runtime_error("Failed to get an app-specific location where files can be written.");
+
+    auto jniAssetManager = getAndroidJniAssetManager();
+	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE, AASSET_MODE_STREAMING);
+
+	if (!videoAsset)
+		throw std::runtime_error(TextFormat("Failed to open asset: %s", VIDEO_FILE));
+
+	auto destinationPath = TextFormat("%s%s", BASE_PATH, VIDEO_FILE);
+	auto destinationFile = SDL_RWFromFile(destinationPath.c_str(), "w");
+
+	if (!destinationFile)
+		throw std::runtime_error(TextFormat("Failed to write file '%s': %s", destinationPath.c_str(), SDL_GetError()));
+
+	char destinationBuffer[BUFSIZ] = {};
+	int  fileReadSize = 0;
+
+	while ((fileReadSize = AAsset_read(videoAsset, destinationBuffer, BUFSIZ)) > 0)
+		SDL_RWwrite(destinationFile, destinationBuffer, fileReadSize, 1);
+
+	SDL_RWclose(destinationFile);
+	AAsset_close(videoAsset);
+}
+#else
+static void initBasePath()
+{
+    BASE_PATH = SDL_GetBasePath();
+
+    if (!BASE_PATH)
+        throw std::runtime_error("Failed to get the runtime location.");
+}
+#endif
+
+static void openVideo()
+{
+    LVP_Open(TextFormat("%s%s", BASE_PATH, VIDEO_FILE));
 }
 
 static void handleKeyDownEvent(const SDL_KeyboardEvent &event)
@@ -45,32 +124,16 @@ static void handleKeyDownEvent(const SDL_KeyboardEvent &event)
 
 static void handleKeyUpEvent(const SDL_KeyboardEvent &event)
 {
-    // https://wiki.libsdl.org/SDL2/SDL_Keymod
-    if (event.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL))
-    {
-        switch (event.keysym.sym) {
-        case SDLK_o:
-            handleOpenFile();
-            break;
-        case SDLK_q:
-            QUIT = true; 
-            break;
-        default:
-            break;
-        }
-
-        return;
-    }
-
-    if (LVP_IsStopped())
-        return;
-
     switch (event.keysym.sym) {
-    case SDLK_s: case SDLK_AUDIOSTOP:
-        LVP_Stop();
-        break;
     case SDLK_SPACE: case SDLK_AUDIOPLAY:
-        LVP_TogglePause();
+        if (LVP_IsStopped())
+            openVideo();
+        else
+            LVP_TogglePause();
+        break;
+    case SDLK_s: case SDLK_AUDIOSTOP:
+        if (!LVP_IsStopped())
+            LVP_Stop();
         break;
     default:
         break;
@@ -79,16 +142,15 @@ static void handleKeyUpEvent(const SDL_KeyboardEvent &event)
 
 static void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
 {
-    SDL_Point clickPosition = { event.x, event.y };
-    auto      button        = TestWindow::GetClickedButton(clickPosition);
+    auto button = TestWindow::GetClickedButton(event);
 
     if (!button)
         return;
 
     switch (button->id) {
-	case BUTTON_ID_OPEN:
+	case BUTTON_ID_PLAY_PAUSE:
         if (LVP_IsStopped())
-            handleOpenFile();
+            openVideo();
         else
             LVP_TogglePause();
         break;
@@ -112,21 +174,25 @@ static void handleUserEvent(const SDL_UserEvent &event)
 
     switch (eventType) {
     case LVP_EVENT_MEDIA_OPENED:
-        TestWindow::UpdateButton(BUTTON_ID_OPEN, "PAUSE");
+        TestWindow::UpdateTitle("Caminandes 1: Llama Drama (2013)");
+
+        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PAUSE");
 
         TestWindow::EnableButton(BUTTON_ID_SEEK_BACK,    true);
         TestWindow::EnableButton(BUTTON_ID_SEEK_FORWARD, true);
         TestWindow::EnableButton(BUTTON_ID_STOP,         true);
         break;
     case LVP_EVENT_MEDIA_PAUSED:
-        TestWindow::UpdateButton(BUTTON_ID_OPEN, "PLAY");
+        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PLAY");
         break;
     case LVP_EVENT_MEDIA_PLAYING:
-        TestWindow::UpdateButton(BUTTON_ID_OPEN, "PAUSE");
+        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PAUSE");
         break;
     case LVP_EVENT_MEDIA_STOPPED:
-        TestWindow::UpdateButton(BUTTON_ID_OPEN,     "OPEN");
-        TestWindow::UpdateButton(BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00");
+        TestWindow::UpdateTitle();
+
+        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PLAY");
+        TestWindow::UpdateButton(BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00");
 
         TestWindow::EnableButton(BUTTON_ID_SEEK_BACK,    false);
         TestWindow::EnableButton(BUTTON_ID_SEEK_FORWARD, false);
@@ -171,9 +237,6 @@ static void handleEvents()
         case SDL_QUIT:
             QUIT = true;
             break;
-        case SDL_DROPFILE:
-            handleDropFileEvent(event);
-            break;
         case SDL_KEYDOWN:
             handleKeyDownEvent(event.key);
             break;
@@ -195,8 +258,12 @@ static void handleEvents()
 }
 
 static void init() {
-    TestWindow::Init(800, 600);
+    initBasePath();
+
+    TestWindow::Init(800, 600, BASE_PATH);
     TestPlayer::Init(TestWindow::GetRenderer());
+
+    openVideo();
 }
 
 static void quit() {
@@ -206,13 +273,15 @@ static void quit() {
 
 static void render()
 {
-    const int CONTROLS_HEIGHT = 34;
+    bool isPlayerActive = !LVP_IsStopped();
+    auto renderer       = TestWindow::GetRenderer();
+    auto window         = TestWindow::GetDimensions();
+    auto windowDPIScale = TestWindow::GetDPIScale();
 
-    bool     isPlayerActive = !LVP_IsStopped();
-    auto     renderer       = TestWindow::GetRenderer();
-    auto     window         = TestWindow::GetDimensions();
-    SDL_Rect player         = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
-    SDL_Rect controls       = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
+    const auto CONTROLS_HEIGHT = (int)(40.0f * windowDPIScale);
+
+    SDL_Rect player   = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
+    SDL_Rect controls = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
 
     SDL_SetRenderTarget(renderer, nullptr);
 
@@ -226,7 +295,7 @@ static void render()
     if (isPlayerActive)
         TestPlayer::Render(renderer, player);
 
-    TestWindow::RenderControls(controls);
+    TestWindow::RenderControls(controls, windowDPIScale);
 
     SDL_RenderPresent(renderer);
 }
