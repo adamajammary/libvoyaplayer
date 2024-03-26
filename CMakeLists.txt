@@ -85,8 +85,8 @@ if (WIN32)
 else()
     set(LIB_PREP "lib")
 
-    set(LIBS      -lSDL2 -lSDL2_ttf -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lswresample -lswscale -lz)
-    set(TEST_LIBS -lSDL2 -lSDL2_ttf)
+    set(LIBS      "-lSDL2 -lSDL2_ttf -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lswresample -lswscale -lz")
+    set(TEST_LIBS "-lSDL2 -lSDL2_ttf")
 endif()
 
 if (ANDROID)
