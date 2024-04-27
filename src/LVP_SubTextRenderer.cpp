@@ -201,16 +201,27 @@ bool MediaPlayer::LVP_SubTextRenderer::formatAnimationsContain(const Strings &an
 	return false;
 }
 
-std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dialogueText, size_t nrStyles)
+std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dialogueText, size_t nrStyles, LVP_SubStyleVersion version)
 {
+	auto textPropIndex = -1;
+
+	switch (version) {
+		case SUB_STYLE_VERSION_4PLUS_ASS: textPropIndex = SUB_DIALOGUE_V4PLUS_TEXT; break;
+		case SUB_STYLE_VERSION_4_SSA:     textPropIndex = SUB_DIALOGUE_V4_TEXT; break;
+		default: break;
+	}
+
+	if (textPropIndex < 0)
+		return dialogueText;
+
 	std::string subText = std::string(dialogueText);
 
 	// ",,,,,,,,text" => "text"
-	for (int i = 0; i < SUB_DIALOGUE_TEXT; i++)
+	for (int i = 0; i < textPropIndex; i++)
 		subText = subText.substr(subText.find(",") + 1);
 
 	if (subText.empty())
-		return subText;
+		return "";
 
 	subText = System::LVP_Text::Replace(subText, "\\N", "^");
 	subText = System::LVP_Text::Replace(subText, "\\n", (subText.find("\\q2") != std::string::npos ? "^" : " "));
@@ -1698,7 +1709,7 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByWidth(const Stri
 }
 
 // https://aegi.vmoe.info/docs/3.0/ASS_Tags/
-// https://en.wikipedia.org/wiki/SubStation_Alpha
+// http://www.tcax.org/docs/ass-specs.htm
 MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(const Strings &subTexts, LVP_SubtitleContext &subContext)
 {
 	LVP_Subtitles subs;
@@ -1713,16 +1724,17 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 
 		LVP_Subtitle* prevSub = NULL;
 		
-		// Split and format the dialogue properties:
-		//   ReadOrder, Layer, Style, Speaker, MarginL, MarginR, MarginV, Effect, Text
+		// Split and format the dialogue properties
 		auto dialogueSplit = System::LVP_Text::Split(dialogueLine, ",");
+		auto defaultStyle  = LVP_SubTextRenderer::getSubStyle(subContext.styles, dialogueSplit);
+		bool isV4          = (defaultStyle->version == SUB_STYLE_VERSION_4_SSA);
+		bool isV4Plus      = (defaultStyle->version == SUB_STYLE_VERSION_4PLUS_ASS);
 
-		if (dialogueSplit.size() < SUB_DIALOGUE_TEXT)
+		if ((isV4Plus && (dialogueSplit.size() < NR_OF_SUB_DIALOGUE_V4PLUS_PROPERTIES)) || (isV4 && (dialogueSplit.size() < NR_OF_SUB_DIALOGUE_V4_PROPERTIES)))
 			continue;
 
-		auto defaultStyle = LVP_SubTextRenderer::getSubStyle(subContext.styles, dialogueSplit);
-		auto subText      = LVP_SubTextRenderer::getSubText(dialogueLine, subContext.styles.size());
-		auto subID        = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
+		auto subText = LVP_SubTextRenderer::getSubText(dialogueLine, subContext.styles.size(), defaultStyle->version);
+		auto subID   = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
 
 		// Split by partial formatting ({\f1}t1{\f2}t2)
 		Strings subLines = LVP_SubTextRenderer::formatSplitStyling(subText, defaultStyle, subContext);
@@ -1738,8 +1750,10 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 
 			auto sub = new LVP_Subtitle();
 
-			sub->id    = subID;
-			sub->layer = std::atoi(dialogueSplit[SUB_DIALOGUE_LAYER].c_str());
+			sub->id = subID;
+
+			if (isV4Plus)
+				sub->layer = std::atoi(dialogueSplit[SUB_DIALOGUE_V4PLUS_LAYER].c_str());
 
 			if (subLine.empty())
 				subLine = " ";

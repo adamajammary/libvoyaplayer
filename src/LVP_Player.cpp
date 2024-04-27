@@ -1035,10 +1035,19 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		scriptWidth  = (posResX != std::string::npos ? std::atoi(subHeader.substr(posResX + 9).c_str()) : 0);
 		scriptHeight = (posResY != std::string::npos ? std::atoi(subHeader.substr(posResY + 9).c_str()) : 0);
 
-		if (subHeader.find("[V4+ Styles]") != std::string::npos)
-			styleVersion = SUB_STYLE_VERSION_4PLUS_ASS;
-		else if (subHeader.find("[V4 Styles]") != std::string::npos)
-			styleVersion = SUB_STYLE_VERSION_4_SSA;
+		auto posStyle   = subHeader.find("Format: Name,");
+		auto styleProps = 0;
+
+		if (posStyle != std::string::npos) {
+			auto format = subHeader.substr(posStyle);
+			styleProps  = (int)System::LVP_Text::Split(format.substr(0, format.find("\n")), ",").size();
+		}
+
+		switch (styleProps) {
+			case NR_OF_V4PLUS_SUB_STYLES: styleVersion = SUB_STYLE_VERSION_4PLUS_ASS; break;
+			case NR_OF_V4_SUB_STYLES:     styleVersion = SUB_STYLE_VERSION_4_SSA; break;
+			default: break;
+		}
 	}
 
 	if ((scriptWidth > 0) && (scriptHeight > 0)) {

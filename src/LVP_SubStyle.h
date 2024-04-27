@@ -21,51 +21,57 @@ namespace LibVoyaPlayer
 			SUB_STYLE_VERSION_UNKNOWN = -1, SUB_STYLE_VERSION_4_SSA, SUB_STYLE_VERSION_4PLUS_ASS
 		};
 
-		// Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour,
-		// Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV,
+		// Name, Fontname, Fontsize,
+		// PrimaryColour, SecondaryColour, OutlineColour, BackColour,
+		// Bold, Italic, Underline,
+		// BorderStyle, Outline, Shadow, Alignment,
+		// MarginL, MarginR, MarginV,
 		// AlphaLevel, Encoding
 		enum LVP_SubStyleV4
 		{
-			SUB_STYLE_V4_NAME,
-			SUB_STYLE_V4_FONT_NAME,
-			SUB_STYLE_V4_FONT_SIZE,
-			SUB_STYLE_V4_COLOR_PRIMARY,
-			SUB_STYLE_V4_COLOR_SECONDARY,
-			SUB_STYLE_V4_COLOR_BORDER,
-			SUB_STYLE_V4_COLOR_SHADOW,
-			SUB_STYLE_V4_FONT_BOLD,
-			SUB_STYLE_V4_FONT_ITALIC,
-			SUB_STYLE_V4_FONT_BORDER_STYLE,
-			SUB_STYLE_V4_FONT_OUTLINE,
-			SUB_STYLE_V4_FONT_SHADOW,
-			SUB_STYLE_V4_FONT_ALIGNMENT,
-			SUB_STYLE_V4_FONT_MARGINL,
-			SUB_STYLE_V4_FONT_MARGINR,
-			SUB_STYLE_V4_FONT_MARGINV,
-			SUB_STYLE_V4_FONT_ALPHA_LEVEL,
-			SUB_STYLE_V4_FONT_ENCODING,
+			SUB_STYLE_NAME,
+			SUB_STYLE_FONT_NAME,
+			SUB_STYLE_FONT_SIZE,
+			SUB_STYLE_COLOR_PRIMARY,
+			SUB_STYLE_COLOR_SECONDARY,
+			SUB_STYLE_COLOR_BORDER,
+			SUB_STYLE_COLOR_SHADOW,
+			SUB_STYLE_BOLD,
+			SUB_STYLE_ITALIC,
+			SUB_STYLE_UNDERLINE,
+			SUB_STYLE_V4_BORDER_STYLE = 10,
+			SUB_STYLE_V4_OUTLINE,
+			SUB_STYLE_V4_SHADOW,
+			SUB_STYLE_V4_ALIGNMENT,
+			SUB_STYLE_V4_MARGINL,
+			SUB_STYLE_V4_MARGINR,
+			SUB_STYLE_V4_MARGINV,
+			SUB_STYLE_V4_ALPHA_LEVEL,
+			SUB_STYLE_V4_ENCODING,
 			NR_OF_V4_SUB_STYLES
 		};
 
-		// Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour,
-		// Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow,
-		// Alignment, MarginL, MarginR, MarginV, Encoding
+		// Name, ..., Underline,
+		// StrikeOut,
+		// ScaleX, ScaleY,
+		// Spacing, Angle, BorderStyle, Outline, Shadow, Alignment,
+		// MarginL, MarginR, MarginV,
+		// Encoding
 		enum LVP_SubStyleV4Plus
 		{
-			SUB_STYLE_V4PLUS_FONT_UNDERLINE = 9,
-			SUB_STYLE_V4PLUS_FONT_STRIKEOUT,
-			SUB_STYLE_V4PLUS_FONT_SCALE_X,
-			SUB_STYLE_V4PLUS_FONT_SCALE_Y,
-			SUB_STYLE_V4PLUS_FONT_LETTER_SPACING,
-			SUB_STYLE_V4PLUS_FONT_ROTATION_ANGLE,
-			SUB_STYLE_V4PLUS_FONT_BORDER_STYLE,
-			SUB_STYLE_V4PLUS_FONT_OUTLINE,
-			SUB_STYLE_V4PLUS_FONT_SHADOW,
-			SUB_STYLE_V4PLUS_FONT_ALIGNMENT,
-			SUB_STYLE_V4PLUS_FONT_MARGINL,
-			SUB_STYLE_V4PLUS_FONT_MARGINR,
-			SUB_STYLE_V4PLUS_FONT_MARGINV,
-			SUB_STYLE_V4PLUS_FONT_ENCODING,
+			SUB_STYLE_V4PLUS_STRIKEOUT = 10,
+			SUB_STYLE_V4PLUS_SCALE_X,
+			SUB_STYLE_V4PLUS_SCALE_Y,
+			SUB_STYLE_V4PLUS_LETTER_SPACING,
+			SUB_STYLE_V4PLUS_ROTATION_ANGLE,
+			SUB_STYLE_V4PLUS_BORDER_STYLE,
+			SUB_STYLE_V4PLUS_OUTLINE,
+			SUB_STYLE_V4PLUS_SHADOW,
+			SUB_STYLE_V4PLUS_ALIGNMENT,
+			SUB_STYLE_V4PLUS_MARGINL,
+			SUB_STYLE_V4PLUS_MARGINR,
+			SUB_STYLE_V4PLUS_MARGINV,
+			SUB_STYLE_V4PLUS_ENCODING,
 			NR_OF_V4PLUS_SUB_STYLES
 		};
 
@@ -93,6 +99,7 @@ namespace LibVoyaPlayer
 			int                 outline;
 			double              rotation;
 			SDL_Point           shadow;
+			LVP_SubStyleVersion version;
 
 			#if defined _windows
 				std::wstring fontName;

@@ -37,86 +37,80 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	this->outline   = 0;
 	this->rotation  = 0;
 	this->shadow    = {};
+	this->version   = version;
 
 	// STYLE NAME
-	this->name = data[SUB_STYLE_V4_NAME];
+	this->name = data[SUB_STYLE_NAME];
 
 	// FONT NAME
 	#if defined _windows
-		auto fontName16 = (wchar_t*)System::LVP_Text::ToUTF16(data[SUB_STYLE_V4_FONT_NAME].c_str());
+		auto fontName16 = (wchar_t*)System::LVP_Text::ToUTF16(data[SUB_STYLE_FONT_NAME].c_str());
 		this->fontName  = std::wstring(fontName16);
 
 		SDL_free(fontName16);
 	#else
-		this->fontName = data[SUB_STYLE_V4_FONT_NAME];
+		this->fontName = data[SUB_STYLE_FONT_NAME];
 	#endif
 
 	// FONT SIZE
-	this->fontSize = std::atoi(data[SUB_STYLE_V4_FONT_SIZE].c_str());
+	this->fontSize = std::atoi(data[SUB_STYLE_FONT_SIZE].c_str());
 
 	// FONT COLORS
-	this->colorPrimary = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_V4_COLOR_PRIMARY]);
-	this->colorOutline = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_V4_COLOR_BORDER]);
-	this->colorShadow  = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_V4_COLOR_SHADOW]);
+	this->colorPrimary = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_PRIMARY]);
+	this->colorOutline = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_BORDER]);
+	this->colorShadow  = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_SHADOW]);
+
+	// FONT STYLE
+	if (std::atoi(data[SUB_STYLE_BOLD].c_str()) != 0)
+		this->fontStyle |= TTF_STYLE_BOLD;
+
+	if (std::atoi(data[SUB_STYLE_ITALIC].c_str()) != 0)
+		this->fontStyle |= TTF_STYLE_ITALIC;
+
+	if (std::atoi(data[SUB_STYLE_UNDERLINE].c_str()) != 0)
+		this->fontStyle |= TTF_STYLE_UNDERLINE;
 
 	int shadow;
 
-	switch (version) {
-	// Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour,
-	// Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow,
-	// Alignment, MarginL, MarginR, MarginV, Encoding
+	switch (this->version) {
 	case SUB_STYLE_VERSION_4PLUS_ASS:
-		this->alignment = (LVP_SubAlignment)std::atoi(data[SUB_STYLE_V4PLUS_FONT_ALIGNMENT].c_str());
+		this->alignment = (LVP_SubAlignment)std::atoi(data[SUB_STYLE_V4PLUS_ALIGNMENT].c_str());
 
 		this->fontScale = {
-			(float)(std::atof(data[SUB_STYLE_V4PLUS_FONT_SCALE_X].c_str()) * 0.01),
-			(float)(std::atof(data[SUB_STYLE_V4PLUS_FONT_SCALE_Y].c_str()) * 0.01)
+			(float)(std::atof(data[SUB_STYLE_V4PLUS_SCALE_X].c_str()) * 0.01),
+			(float)(std::atof(data[SUB_STYLE_V4PLUS_SCALE_Y].c_str()) * 0.01)
 		};
 
-		if (std::atoi(data[SUB_STYLE_V4_FONT_BOLD].c_str()) != 0)
-			this->fontStyle |= TTF_STYLE_BOLD;
-		if (std::atoi(data[SUB_STYLE_V4_FONT_ITALIC].c_str()) != 0)
-			this->fontStyle |= TTF_STYLE_ITALIC;
-		if (std::atoi(data[SUB_STYLE_V4PLUS_FONT_STRIKEOUT].c_str()) != 0)
+		if (std::atoi(data[SUB_STYLE_V4PLUS_STRIKEOUT].c_str()) != 0)
 			this->fontStyle |= TTF_STYLE_STRIKETHROUGH;
-		if (std::atoi(data[SUB_STYLE_V4PLUS_FONT_UNDERLINE].c_str()) != 0)
-			this->fontStyle |= TTF_STYLE_UNDERLINE;
 
-		this->borderStyle = (LVP_SubBorderStyle)std::atoi(data[SUB_STYLE_V4PLUS_FONT_BORDER_STYLE].c_str());
+		this->borderStyle = (LVP_SubBorderStyle)std::atoi(data[SUB_STYLE_V4PLUS_BORDER_STYLE].c_str());
 
-		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_FONT_OUTLINE].c_str()));
+		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_OUTLINE].c_str()));
 
-		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_FONT_SHADOW].c_str()));
+		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_SHADOW].c_str()));
 		this->shadow = { shadow, shadow };
 
-		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_FONT_MARGINL].c_str()));
-		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_FONT_MARGINR].c_str()));
-		this->marginV = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_FONT_MARGINV].c_str()));
+		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINL].c_str()));
+		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINR].c_str()));
+		this->marginV = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINV].c_str()));
 
-		this->rotation = (std::atof(data[SUB_STYLE_V4PLUS_FONT_ROTATION_ANGLE].c_str()) * -1.0f);
+		this->rotation = (std::atof(data[SUB_STYLE_V4PLUS_ROTATION_ANGLE].c_str()) * -1.0f);
 
 		break;
-	// Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour,
-	// Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV,
-	// AlphaLevel, Encoding
 	case SUB_STYLE_VERSION_4_SSA:
-		this->alignment = LVP_SubStyle::ToSubAlignment(std::atoi(data[SUB_STYLE_V4_FONT_ALIGNMENT].c_str()));
+		this->alignment = LVP_SubStyle::ToSubAlignment(std::atoi(data[SUB_STYLE_V4_ALIGNMENT].c_str()));
 
-		if (std::atoi(data[SUB_STYLE_V4_FONT_BOLD].c_str()) != 0)
-			this->fontStyle |= TTF_STYLE_BOLD;
-		if (std::atoi(data[SUB_STYLE_V4_FONT_ITALIC].c_str()) != 0)
-			this->fontStyle |= TTF_STYLE_ITALIC;
+		this->borderStyle = (LVP_SubBorderStyle)std::atoi(data[SUB_STYLE_V4_BORDER_STYLE].c_str());
 
-		this->borderStyle = (LVP_SubBorderStyle)std::atoi(data[SUB_STYLE_V4_FONT_BORDER_STYLE].c_str());
+		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4_OUTLINE].c_str()));
 
-		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4_FONT_SHADOW].c_str()));
-
-		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4_FONT_SHADOW].c_str()));
+		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4_SHADOW].c_str()));
 		this->shadow = { shadow, shadow };
 
-		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4_FONT_MARGINL].c_str()));
-		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4_FONT_MARGINR].c_str()));
-		this->marginV = (int)std::round(std::atof(data[SUB_STYLE_V4_FONT_MARGINV].c_str()));
+		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINL].c_str()));
+		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINR].c_str()));
+		this->marginV = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINV].c_str()));
 
 		break;
 	default:

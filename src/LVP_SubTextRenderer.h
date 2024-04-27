@@ -9,18 +9,27 @@ namespace LibVoyaPlayer
 {
 	namespace MediaPlayer
 	{
-		enum LVP_SubDialogueProperty
+		// [Start, End] ReadOrder, Marked, Style, Text
+		enum LVP_SubDialoguePropertyV4
 		{
 			SUB_DIALOGUE_READORDER,
-			SUB_DIALOGUE_LAYER,
+			SUB_DIALOGUE_V4_MARKED,
 			SUB_DIALOGUE_STYLE,
-			SUB_DIALOGUE_SPEAKER,
-			SUB_DIALOGUE_MARGINL,
-			SUB_DIALOGUE_MARGINR,
-			SUB_DIALOGUE_MARGINV,
-			SUB_DIALOGUE_EFFECTS,
-			SUB_DIALOGUE_TEXT,
-			NR_OF_SUB_DIALOGUE_PROPERTIES
+			SUB_DIALOGUE_V4_TEXT,
+			NR_OF_SUB_DIALOGUE_V4_PROPERTIES
+		};
+
+		// [Start, End] ReadOrder, Layer, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+		enum LVP_SubDialoguePropertyV4Plus
+		{
+			SUB_DIALOGUE_V4PLUS_LAYER   = 1,
+			SUB_DIALOGUE_V4PLUS_SPEAKER = 3,
+			SUB_DIALOGUE_V4PLUS_MARGINL,
+			SUB_DIALOGUE_V4PLUS_MARGINR,
+			SUB_DIALOGUE_V4PLUS_MARGINV,
+			SUB_DIALOGUE_V4PLUS_EFFECTS,
+			SUB_DIALOGUE_V4PLUS_TEXT,
+			NR_OF_SUB_DIALOGUE_V4PLUS_PROPERTIES
 		};
 
 		class LVP_SubTextRenderer
@@ -55,7 +64,7 @@ namespace LibVoyaPlayer
 			static Strings                   formatSplitStyling(const std::string &subText, LVP_SubStyle* subStyle, LVP_SubtitleContext &subContext);
 			static SDL_Rect                  getDrawRect(const std::string &subLine, LVP_SubStyle* style);
 			static LVP_SubStyle*             getSubStyle(const LVP_SubStyles &subStyles, const Strings &subSplit);
-			static std::string               getSubText(const std::string &dialogueText, size_t nrStyles);
+			static std::string               getSubText(const std::string &dialogueText, size_t nrStyles, LVP_SubStyleVersion version);
 			static void                      handleSubCollisions(const Graphics::LVP_SubTextureId &subTextures, const Graphics::LVP_SubTexturesId &subs);
 			static void                      handleSubsOutOfBound(const Graphics::LVP_SubTextureId &subTextures);
 			static std::string               removeInvalidFormatting(const std::string &subtitleString);

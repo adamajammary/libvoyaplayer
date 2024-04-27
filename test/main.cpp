@@ -11,7 +11,7 @@ bool        QUIT       = false;
 const char* VIDEO_FILE = "caminandes_1_llama_drama_2013_300p.ogv";
 
 #if defined _android
-jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
+static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
 {
     auto jniClass = environment->FindClass(classPath.c_str());
 
@@ -21,7 +21,7 @@ jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
     return jniClass;
 }
 
-JNIEnv* getAndroidJniEnvironment()
+static JNIEnv* getAndroidJniEnvironment()
 {
     auto jniEnvironment = (JNIEnv*)SDL_AndroidGetJNIEnv();
 
@@ -31,7 +31,7 @@ JNIEnv* getAndroidJniEnvironment()
     return jniEnvironment;
 }
 
-AAssetManager* getAndroidJniAssetManager()
+static AAssetManager* getAndroidJniAssetManager()
 {
 	auto jniEnvironment    = getAndroidJniEnvironment();
 	auto jniObjectActivity = (jobject)SDL_AndroidGetActivity();
