@@ -133,15 +133,15 @@ uint16_t* System::LVP_Text::ToUTF16(const std::string &text)
 
 std::string System::LVP_Text::Trim(const std::string &text)
 {
-	auto stringTrimmed = std::string(text);
+	auto trimmed = std::string(text);
 
 	// TRIM FRONT
-	while (!stringTrimmed.empty() && std::isspace(stringTrimmed[0]))
-		stringTrimmed = stringTrimmed.substr(1);
+	while (!trimmed.empty() && std::isspace((uint8_t)trimmed[0]))
+		trimmed = trimmed.substr(1);
 
 	// TRIM END
-	while (!stringTrimmed.empty() && std::isspace(stringTrimmed[stringTrimmed.size() - 1]))
-		stringTrimmed = stringTrimmed.substr(0, stringTrimmed.size() - 1);
+	while (!trimmed.empty() && std::isspace((uint8_t)trimmed[trimmed.size() - 1]))
+		trimmed = trimmed.substr(0, trimmed.size() - 1);
 	
-	return stringTrimmed;
+	return trimmed;
 }
