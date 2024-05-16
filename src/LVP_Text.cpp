@@ -125,9 +125,9 @@ std::string System::LVP_Text::ToUpper(const std::string &text)
 uint16_t* System::LVP_Text::ToUTF16(const std::string &text)
 {
 	#if defined _linux
-		return (uint16_t*)SDL_iconv_string("UCS-2", "UTF-8", text.c_str(), SDL_strlen(text.c_str()) + 1);
+		return (uint16_t*)SDL_iconv_string("UCS-2", "UTF-8", text.c_str(), text.size() + 1);
 	#else
-		return (uint16_t*)SDL_iconv_string("UCS-2-INTERNAL", "UTF-8", text.c_str(), SDL_strlen(text.c_str()) + 1);
+		return (uint16_t*)SDL_iconv_string("UCS-2-INTERNAL", "UTF-8", text.c_str(), text.size() + 1);
 	#endif
 }
 
