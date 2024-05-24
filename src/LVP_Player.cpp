@@ -1776,11 +1776,8 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		return;
 
 	// Disable subs
-	if (IS_SUB(mediaType) && (trackIndex < 0))
-	{
+	if (IS_SUB(mediaType) && (trackIndex < 0)) {
 		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
-		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
-
 		return;
 	}
 
@@ -1810,8 +1807,6 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		if (!isPaused)
 			SDL_PauseAudioDevice(LVP_Player::audioContext.deviceID, 0);
 
-		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
-
 		break;
 	case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
 		LVP_Player::closeSub();
@@ -1824,8 +1819,6 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 
 		LVP_Player::openThreadSub();
 		LVP_Player::SeekTo(lastProgress);
-
-		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
 
 		break;
 	default:
