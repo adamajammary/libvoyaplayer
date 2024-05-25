@@ -307,20 +307,16 @@ std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
 			continue;
 
 		lastChapterEnd = chapter->end;
-			
-		auto title = LibFFmpeg::av_dict_get(chapter->metadata, "title", NULL, 0);
-
-		if (title == NULL)
-			continue;
 
 		auto timeBase = LibFFmpeg::av_q2d(chapter->time_base);
-		auto end      = (double)((double)chapter->end   * timeBase);
-		auto start    = (double)((double)chapter->start * timeBase);
+		auto end      = (int64_t)((double)chapter->end   * timeBase * 1000.0);
+		auto start    = (int64_t)((double)chapter->start * timeBase * 1000.0);
+		auto title    = LibFFmpeg::av_dict_get(chapter->metadata, "title", NULL, 0);
 
 		chapters.push_back({
-			.title     = std::string(title->value),
-			.startTime = (int64_t)(start * 1000.0),
-			.endTime   = (int64_t)(end   * 1000.0),
+			.title     = (title ? std::string(title->value) : ""),
+			.startTime = start,
+			.endTime   = end,
 		});
 	}
 
