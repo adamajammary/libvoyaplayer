@@ -5,6 +5,7 @@ LVP_CallbackContext              MediaPlayer::LVP_Player::callbackContext;
 LibFFmpeg::AVFormatContext*      MediaPlayer::LVP_Player::formatContext;
 LibFFmpeg::AVFormatContext*      MediaPlayer::LVP_Player::formatContextExternal;
 bool                             MediaPlayer::LVP_Player::isStopping;
+std::mutex                       MediaPlayer::LVP_Player::packetsLock;
 SDL_Thread*                      MediaPlayer::LVP_Player::packetsThread;
 MediaPlayer::LVP_RenderContext   MediaPlayer::LVP_Player::renderContext;
 bool                             MediaPlayer::LVP_Player::seekRequested;
@@ -605,6 +606,8 @@ double MediaPlayer::LVP_Player::GetVolume()
 
 void MediaPlayer::LVP_Player::handleSeek()
 {
+	LVP_Player::packetsLock.lock();
+
 	LVP_Player::clearSubTextures();
 	LVP_Player::clearSubs();
 
@@ -644,8 +647,10 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 	SDL_Delay(DELAY_TIME_DEFAULT);
 
-	LVP_Player::seekRequested = false;
 	LVP_Player::seekPosition  = -1;
+	LVP_Player::seekRequested = false;
+
+	LVP_Player::packetsLock.unlock();
 }
 
 /**
@@ -1603,8 +1608,10 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect* destination)
 	if (LVP_Player::state.isStopped || LVP_Player::state.quit)
 		return;
 
-	if (LVP_Player::seekRequested)
+	if (LVP_Player::seekRequested) {
 		LVP_Player::handleSeek();
+		return;
+	}
 
 	if (LVP_Player::videoContext.isReadyForRender) {
 		LVP_Player::videoContext.isReadyForRender = false;
@@ -2111,7 +2118,11 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 
 		// Read and fill in the packet
 
+		LVP_Player::packetsLock.lock();
+
 		auto result = LibFFmpeg::av_read_frame(LVP_Player::formatContext, packet);
+
+		LVP_Player::packetsLock.unlock();
 
 		if ((result < 0) || LVP_Player::state.quit)
 		{
@@ -2189,10 +2200,14 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			{
 				int extSubIntIdx = ((LVP_Player::subContext.index - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
 
+				LVP_Player::packetsLock.lock();
+
 				if ((av_read_frame(LVP_Player::formatContextExternal, packet) == 0) && (packet->stream_index == extSubIntIdx))
 					LVP_Player::packetAdd(packet, LVP_Player::subContext);
 				else
 					FREE_AVPACKET(packet);
+
+				LVP_Player::packetsLock.unlock();
 			}
 		}
 

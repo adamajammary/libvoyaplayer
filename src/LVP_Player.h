@@ -98,6 +98,7 @@ namespace LibVoyaPlayer
 			static LibFFmpeg::AVFormatContext* formatContext;
 			static LibFFmpeg::AVFormatContext* formatContextExternal;
 			static bool                        isStopping;
+			static std::mutex                  packetsLock;
 			static SDL_Thread*                 packetsThread;
 			static LVP_RenderContext           renderContext;
 			static bool                        seekRequested;
