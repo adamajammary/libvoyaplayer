@@ -2108,7 +2108,10 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 
 		auto packet = LibFFmpeg::av_packet_alloc();
 
-		if (packet == NULL) {
+		if (packet == NULL)
+		{
+			errorCount = MAX_ERRORS;
+
 			LVP_Player::stop("Failed to allocate packet.");
 			break;
 		}
@@ -2161,13 +2164,10 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 
 				// Stop media playback
 
-				if (errorCount >= MAX_ERRORS) {
+				if (errorCount >= MAX_ERRORS)
 					LVP_Player::stop("Too many errors occured while reading packets.");
-					LVP_Player::callbackEvents(LVP_EVENT_MEDIA_COMPLETED_WITH_ERRORS);
-				} else {
+				else
 					LVP_Player::stop();
-					LVP_Player::callbackEvents(LVP_EVENT_MEDIA_COMPLETED);
-				}
 
 				break;
 			}
@@ -2231,7 +2231,15 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			SDL_Delay(DELAY_TIME_ONE_MS);
 	}
 
-	LVP_Player::Close();
+	if (endOfFile || (errorCount >= MAX_ERRORS))
+	{
+		LVP_Player::Close();
+
+		if (errorCount >= MAX_ERRORS)
+			LVP_Player::callbackEvents(LVP_EVENT_MEDIA_COMPLETED_WITH_ERRORS);
+		else
+			LVP_Player::callbackEvents(LVP_EVENT_MEDIA_COMPLETED);
+	}
 
 	return 0;
 }
