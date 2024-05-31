@@ -1013,8 +1013,8 @@ void MediaPlayer::LVP_Player::openThreadSub()
 
 	// ASS/SSA STYLES
 
-	int  scriptWidth  = 0;
-	int  scriptHeight = 0;
+	int  scriptWidth  = 384;
+	int  scriptHeight = 288;
 	auto styleVersion = SUB_STYLE_VERSION_UNKNOWN;
 	int  subWidth     = LVP_Player::subContext.stream->codecpar->width;
 	int  subHeight    = LVP_Player::subContext.stream->codecpar->height;
@@ -1033,8 +1033,11 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		auto posResX = subHeader.find("PlayResX:");
 		auto posResY = subHeader.find("PlayResY:");
 
-		scriptWidth  = (posResX != std::string::npos ? std::atoi(subHeader.substr(posResX + 9).c_str()) : 0);
-		scriptHeight = (posResY != std::string::npos ? std::atoi(subHeader.substr(posResY + 9).c_str()) : 0);
+		if (posResX != std::string::npos)
+			scriptWidth = std::atoi(subHeader.substr(posResX + 9).c_str());
+
+		if (posResY != std::string::npos)
+			scriptHeight = std::atoi(subHeader.substr(posResY + 9).c_str());
 
 		auto posStyle   = subHeader.find("Format: Name,");
 		auto styleProps = 0;
