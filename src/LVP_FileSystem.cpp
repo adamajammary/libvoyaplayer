@@ -316,12 +316,10 @@ bool System::LVP_FileSystem::IsSystemFile(const std::string &fileName)
 	if (fileName.empty())
 		return true;
 
-	auto extension = LVP_FileSystem::GetFileExtension(fileName, true);
+	auto extension = LVP_FileSystem::GetFileExtension(fileName, false);
 
 	if (LVP_Text::VectorContains(LVP_FileSystem::systemFileExtensions, extension))
 		return true;
 
-	auto file = LVP_Text::ToUpper(fileName);
-
-	return ((file[0] == '.') || (file[0] == '$') || (file == "RECYCLER") || (file == "WINSXS"));
+	return false;
 }

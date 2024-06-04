@@ -151,6 +151,9 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
+	if (System::LVP_FileSystem::IsSystemFile(filePath))
+		throw std::runtime_error(System::LVP_Text::Format("Invalid media file: %s", filePath.c_str()).c_str());
+
 	Strings fileParts;
 	auto    file          = std::string(filePath);
 	auto    formatContext = LibFFmpeg::avformat_alloc_context();

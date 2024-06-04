@@ -785,9 +785,6 @@ void MediaPlayer::LVP_Player::Open(const std::string &filePath)
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
-	if (System::LVP_FileSystem::IsSystemFile(filePath))
-		throw std::runtime_error(System::LVP_Text::Format("Invalid media file: %s", filePath.c_str()).c_str());
-
 	if (!LVP_Player::state.isStopped)
 		LVP_Player::Close();
 
