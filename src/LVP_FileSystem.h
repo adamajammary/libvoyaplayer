@@ -16,7 +16,6 @@ namespace LibVoyaPlayer
 			~LVP_FileSystem() {}
 
 		private:
-			static Strings mediaFileExtensions;
 			static Strings subFileExtensions;
 			static Strings systemFileExtensions;
 
