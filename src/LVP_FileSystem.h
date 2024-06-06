@@ -20,7 +20,7 @@ namespace LibVoyaPlayer
 			static Strings systemFileExtensions;
 
 		public:
-			static std::string GetFileExtension(const std::string &filePath, bool upperCase);
+			static std::string GetFileExtension(const std::string &filePath);
 			static size_t      GetFileSize(const std::string &filePath);
 			static Strings     GetSubtitleFilesForVideo(const std::string& videoFilePath);
 			static bool        IsBlurayAACS(const std::string &filePath, size_t fileSize);

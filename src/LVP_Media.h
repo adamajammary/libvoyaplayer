@@ -35,7 +35,7 @@ namespace LibVoyaPlayer
 			static bool                               HasSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal);
 			static bool                               IsStreamWithFontAttachments(LibFFmpeg::AVStream* stream);
 			static void                               SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext &mediaContext);
-			static void                               SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext &mediaContext, bool isSubsExternal = false);
+			static void                               SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext &mediaContext, int extSubFileIndex = -1);
 
 		private:
 			static const LibFFmpeg::AVCodecHWConfig*  getHardwareConfig(const LibFFmpeg::AVCodec* decoder);

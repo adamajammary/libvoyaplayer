@@ -411,71 +411,74 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &fil
 {
 	auto formatContext  = LVP_Media::GetMediaFormatContext(filePath, false);
 	auto audioStream    = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
-	auto mediaType      = (LVP_MediaType)LVP_Media::GetMediaType(formatContext);
-	auto subFiles       = (IS_VIDEO(mediaType) ? System::LVP_FileSystem::GetSubtitleFilesForVideo(filePath) : Strings());
-	auto subFileContext = (!subFiles.empty() ? LVP_Media::GetMediaFormatContext(subFiles[0], false) : NULL);
+	auto mediaType      = LVP_Media::GetMediaType(formatContext);
+	auto extSubFiles    = (IS_VIDEO(mediaType) ? System::LVP_FileSystem::GetSubtitleFilesForVideo(filePath) : Strings());
 
 	LVP_MediaDetails details =
 	{
 		.duration       = LVP_Media::GetMediaDuration(formatContext, audioStream),
 		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
-		.mediaType      = mediaType,
+		.mediaType      = (LVP_MediaType)mediaType,
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
 		.thumbnail      = LVP_Media::GetMediaThumbnail(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
-		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext, subFileContext),
+		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext, extSubFiles),
 		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
 	};
 
-	FREE_AVFORMAT(subFileContext);
 	FREE_AVFORMAT(formatContext);
 
 	return details;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, const Strings& extSubFiles)
 {
-	std::vector<LVP_MediaTrack> tracks;
+	// INTERNAL MEDIA TRACKS
 
-	// DISABLE SUBS
+	auto tracks = LVP_Player::getMediaTracksMeta(formatContext, mediaType);
 
-	if (IS_SUB(mediaType) && LVP_Media::HasSubtitleTracks(formatContext, formatContextExternal))
-	{
-		std::map<std::string, std::string> trackMeta;
-
-		trackMeta["title"] = "Disable";
-
-		tracks.push_back({
-			.mediaType = (LVP_MediaType)LibFFmpeg::AVMEDIA_TYPE_SUBTITLE,
-			.track     = -1,
-			.meta      = trackMeta
-		});
-	}
-
-	// MEDIA TRACKS
-
-	auto mediaTracks = LVP_Player::getMediaTracksMeta(formatContext, mediaType);
-
-	tracks.insert(tracks.end(), mediaTracks.begin(), mediaTracks.end());
+	if (!IS_SUB(mediaType))
+		return tracks;
 
 	// EXTERNAL SUB TRACKS
 
-	if (IS_SUB(mediaType))
+	for (int i = 0; i < (int)extSubFiles.size(); i++)
 	{
-		auto externalSubTracks = LVP_Player::getMediaTracksMeta(formatContextExternal, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, true);
+		auto extFormatContext = LVP_Media::GetMediaFormatContext(extSubFiles[i], true);
+		auto extSubTracks     = LVP_Player::getMediaTracksMeta(extFormatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, i);
 
-		tracks.insert(tracks.end(), externalSubTracks.begin(), externalSubTracks.end());
+		tracks.insert(tracks.end(), extSubTracks.begin(), extSubTracks.end());
 	}
+
+	int subCount = 0;
+
+	for (const auto& track : tracks) {
+		if (track.mediaType == LVP_MEDIA_TYPE_SUBTITLE)
+			subCount++;
+	}
+
+	if (subCount < 1)
+		return tracks;
+
+	// DISABLE SUBS
+
+	tracks.insert(tracks.begin(), {
+		.mediaType = LVP_MEDIA_TYPE_SUBTITLE,
+		.track     = -1,
+		.meta      = {{ "title", "Disable" }}
+	});
 
 	return tracks;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, bool isSubsExternal)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, int extSubFileIndex)
 {
 	std::vector<LVP_MediaTrack> tracks;
 
 	if (formatContext == NULL)
 		return tracks;
+
+	bool isSubsExternal = (extSubFileIndex >= 0);
 
 	for (unsigned int i = 0; i < formatContext->nb_streams; i++)
 	{
@@ -485,10 +488,10 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpe
 			continue;
 
 		tracks.push_back({
-			.mediaType = (LVP_MediaType)mediaType,
-			.track     = (int)(isSubsExternal ? (SUB_STREAM_EXTERNAL + i) : i),
-			.meta      = LVP_Media::GetMediaTrackMeta(stream),
-			.codec     = LVP_Media::GetMediaCodecMeta(stream)
+			.mediaType  = (LVP_MediaType)mediaType,
+			.track      = (stream->index + (isSubsExternal ? ((extSubFileIndex + 1) * SUB_STREAM_EXTERNAL) : 0)),
+			.meta       = LVP_Media::GetMediaTrackMeta(stream),
+			.codec      = LVP_Media::GetMediaCodecMeta(stream)
 		});
 	}
 
@@ -584,12 +587,12 @@ int MediaPlayer::LVP_Player::GetSubtitleTrack()
 	return LVP_Player::subContext.index;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, const Strings& extSubFiles)
 {
-	auto context       = (formatContext         != NULL ? formatContext         : LVP_Player::formatContext);
-	auto extSubContext = (formatContextExternal != NULL ? formatContextExternal : LVP_Player::formatContextExternal);
+	auto        context  = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
+	const auto& subFiles = (!extSubFiles.empty()  ? extSubFiles   : LVP_Player::subContext.external);
 
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, context, extSubContext);
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, context, subFiles);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext)
@@ -860,12 +863,12 @@ void MediaPlayer::LVP_Player::openFormatContext(const std::string &filePath)
 		throw std::runtime_error(System::LVP_Text::Format("Invalid media type: %d", (int)mediaType).c_str());
 	}
 
-	auto fileExtension = System::LVP_FileSystem::GetFileExtension(filePath, true);
+	auto fileExtension = System::LVP_FileSystem::GetFileExtension(filePath);
 	auto fileSize      = System::LVP_FileSystem::GetFileSize(filePath);
 
-	if ((fileExtension == "M2TS") && System::LVP_FileSystem::IsBlurayAACS(filePath, fileSize))
+	if ((fileExtension == "m2ts") && System::LVP_FileSystem::IsBlurayAACS(filePath, fileSize))
 		isValidMedia = false;
-	else if ((fileExtension == "VOB") && System::LVP_FileSystem::IsDVDCSS(filePath, fileSize))
+	else if ((fileExtension == "vob") && System::LVP_FileSystem::IsDVDCSS(filePath, fileSize))
 		isValidMedia = false;
 
 	if (!isValidMedia) {
@@ -906,12 +909,12 @@ void MediaPlayer::LVP_Player::openStreams()
 			throw std::runtime_error("Failed to find a valid video track.");
 
 		// SUB TRACK
+		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, LVP_Player::subContext);
+
 		LVP_Player::subContext.external = System::LVP_FileSystem::GetSubtitleFilesForVideo(LVP_Player::state.filePath);
 
-		if (!LVP_Player::subContext.external.empty())
-			LVP_Player::openSubExternal(SUB_STREAM_EXTERNAL);
-		else
-			LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, LVP_Player::subContext);
+		if ((LVP_Player::subContext.stream == NULL) && !LVP_Player::subContext.external.empty())
+			LVP_Player::openSubExternal();
 	}
 
 	LVP_Player::state.trackCount = LVP_Player::formatContext->nb_streams;
@@ -919,11 +922,11 @@ void MediaPlayer::LVP_Player::openStreams()
 
 void MediaPlayer::LVP_Player::openSubExternal(int streamIndex)
 {
-	if (LVP_Player::subContext.external.empty())
+	if (LVP_Player::subContext.external.empty() || (streamIndex < SUB_STREAM_EXTERNAL))
 		return;
 
-	int fileIndex       = ((streamIndex - SUB_STREAM_EXTERNAL) / SUB_STREAM_EXTERNAL);
-	int fileStreamIndex = ((streamIndex - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
+	int fileIndex  = ((streamIndex - SUB_STREAM_EXTERNAL) / SUB_STREAM_EXTERNAL);
+	int trackIndex = ((streamIndex - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
 
 	std::string subFile = LVP_Player::subContext.external[fileIndex];
 
@@ -932,7 +935,7 @@ void MediaPlayer::LVP_Player::openSubExternal(int streamIndex)
 	LVP_Player::formatContextExternal = LVP_Media::GetMediaFormatContext(subFile, true);
 
 	if (LVP_Player::formatContextExternal != NULL)
-		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, fileStreamIndex, LVP_Player::subContext, true);
+		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, trackIndex, LVP_Player::subContext, fileIndex);
 }
 
 /**
@@ -1765,21 +1768,20 @@ void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
  */
 void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 {
-	auto mediaType  = (LibFFmpeg::AVMediaType)track.mediaType;
-	auto trackIndex = track.track;
-
 	if (LVP_Player::formatContext == NULL)
-		throw std::runtime_error(System::LVP_Text::Format("Failed to set track %d:\n- No media has been loaded.", trackIndex).c_str());
+		throw std::runtime_error(System::LVP_Text::Format("Failed to set track %d:\n- No media has been loaded.", track.track).c_str());
 
-	bool isSameAudioTrack = (IS_AUDIO(mediaType) && (trackIndex == LVP_Player::audioContext.index));
-	bool isSameSubTrack   = (IS_SUB(mediaType)   && (trackIndex == LVP_Player::subContext.index));
+	auto mediaType        = (LibFFmpeg::AVMediaType)track.mediaType;
+	bool isSubtitle       = IS_SUB(mediaType);
+	bool isSameAudioTrack = (IS_AUDIO(mediaType) && (track.track == LVP_Player::audioContext.index));
+	bool isSameSubTrack   = (isSubtitle          && (track.track == LVP_Player::subContext.index));
 
-	// Nothing to do, track is already set
+	// Nothing to do, track is already set.
 	if (isSameAudioTrack || isSameSubTrack)
 		return;
 
 	// Disable subs
-	if (IS_SUB(mediaType) && (trackIndex < 0)) {
+	if (isSubtitle && (track.track < 0)) {
 		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
 		return;
 	}
@@ -1797,7 +1799,7 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		LVP_Player::closeAudio();
 		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
 
-		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, trackIndex, LVP_Player::audioContext);
+		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, track.track, LVP_Player::audioContext);
 
 		try {
 			LVP_Player::openThreadAudio();
@@ -1815,10 +1817,10 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack &track)
 		LVP_Player::closeSub();
 		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
 
-		if (trackIndex >= SUB_STREAM_EXTERNAL)
-			LVP_Player::openSubExternal(trackIndex);
+		if (track.track >= SUB_STREAM_EXTERNAL)
+			LVP_Player::openSubExternal(track.track);
 		else
-			LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, trackIndex, LVP_Player::subContext);
+			LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, track.track, LVP_Player::subContext);
 
 		LVP_Player::openThreadSub();
 		LVP_Player::SeekTo(lastProgress);
@@ -2198,11 +2200,11 @@ int MediaPlayer::LVP_Player::threadPackets(void* userData)
 			
 			if (packet != NULL)
 			{
-				int extSubIntIdx = ((LVP_Player::subContext.index - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
+				int extSubStream = ((LVP_Player::subContext.index - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
 
 				LVP_Player::packetsLock.lock();
 
-				if ((av_read_frame(LVP_Player::formatContextExternal, packet) == 0) && (packet->stream_index == extSubIntIdx))
+				if ((av_read_frame(LVP_Player::formatContextExternal, packet) == 0) && (packet->stream_index == extSubStream))
 					LVP_Player::packetAdd(packet, LVP_Player::subContext);
 				else
 					FREE_AVPACKET(packet);

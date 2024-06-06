@@ -200,7 +200,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	}
 
 	// Try to fix MP3 files with invalid header and codec type
-	if (System::LVP_FileSystem::GetFileExtension(file, true) == "MP3")
+	if (System::LVP_FileSystem::GetFileExtension(file) == "mp3")
 	{
 		for (uint32_t i = 0; i < formatContext->nb_streams; i++)
 		{
@@ -650,13 +650,12 @@ LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Media::getHardwarePixelFormat(LibFFmpe
 	return codec->sw_pix_fmt;
 }
 
-void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext &mediaContext, bool isSubsExternal)
+void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext &mediaContext, int extSubFileIndex)
 {
-	if ((formatContext == NULL) || (formatContext->nb_streams == 0))
+	if ((formatContext == NULL) || (index < 0) || ((int)formatContext->nb_streams <= index))
 		return;
 
-	bool isValid = ((index >= 0) && (index < (int)formatContext->nb_streams));
-	auto stream  = (isValid ? formatContext->streams[index] : NULL);
+	auto stream = formatContext->streams[index];
 
 	if ((stream == NULL) || (stream->codecpar == NULL) || (stream->codecpar->codec_id == LibFFmpeg::AV_CODEC_ID_NONE))
 		return;
@@ -721,21 +720,18 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 
 	stream->discard = LibFFmpeg::AVDISCARD_DEFAULT;
 
+	bool isSubsExternal = (extSubFileIndex >= 0);
+
 	mediaContext.codec  = codec;
-	mediaContext.index  = (isSubsExternal ? (SUB_STREAM_EXTERNAL + stream->index) : stream->index);
+	mediaContext.index  = (stream->index + (isSubsExternal ? ((extSubFileIndex + 1) * SUB_STREAM_EXTERNAL) : 0)),
 	mediaContext.stream = stream;
 
 	if (codec->pix_fmt != LibFFmpeg::AV_PIX_FMT_NONE)
 		return;
 
 	switch (stream->codecpar->codec_type) {
-		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
-			codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_PAL8;
-			break;
-		case LibFFmpeg::AVMEDIA_TYPE_VIDEO:
-			codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_YUV420P;
-			break;
-		default:
-			break;
+		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE: codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_PAL8;    break;
+		case LibFFmpeg::AVMEDIA_TYPE_VIDEO:    codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_YUV420P; break;
+		default: break;
 	}
 }

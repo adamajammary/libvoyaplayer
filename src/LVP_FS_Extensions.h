@@ -4,7 +4,7 @@
 
 Strings System::LVP_FileSystem::subFileExtensions =
 {
-	"ASS", "IDX", "JS", "JSS", "MPL2", "PJS", "RT", "SAMI", "SMI", "SRT", "SSA", "STL", "SUB", "TXT", "VTT"
+	"ass", "idx", "js", "jss", "mpl2", "pjs", "rt", "sami", "smi", "srt", "ssa", "stl", "sub", "txt", "vtt"
 };
 
 Strings System::LVP_FileSystem::systemFileExtensions = {

@@ -294,7 +294,7 @@ namespace LibVoyaPlayer
 				this->reset();
 			}
 
-			bool hasChanged(LibFFmpeg::AVFrame* frame, double playbackSpeed)
+			bool hasChanged(LibFFmpeg::AVFrame* frame, double playbackSpeed) const
 			{
 				return (
 					(playbackSpeed != this->playbackSpeed) ||
@@ -494,9 +494,9 @@ namespace LibVoyaPlayer
 		const int MAX_FILE_PATH = 260;
 
 		#if defined _windows
-			const char PATH_SEPARATOR[] = "\\";
+			const char PATH_SEPARATOR = '\\';
 		#else
-			const char PATH_SEPARATOR[] = "/";
+			const char PATH_SEPARATOR = '/';
 		#endif
 	}
 }

@@ -126,7 +126,7 @@ namespace LibVoyaPlayer
 			static double                        GetPlaybackSpeed();
 			static int64_t                       GetProgress();
 			static int                           GetSubtitleTrack();
-			static std::vector<LVP_MediaTrack>   GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext = NULL, LibFFmpeg::AVFormatContext* formatContextExternal = NULL);
+			static std::vector<LVP_MediaTrack>   GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext = NULL, const Strings& extSubFiles = {});
 			static std::vector<LVP_MediaTrack>   GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext = NULL);
 			static double                        GetVolume();
 			static void                          Init(const LVP_CallbackContext &callbackContext);
@@ -161,8 +161,8 @@ namespace LibVoyaPlayer
 			static LibFFmpeg::AVSampleFormat   getAudioSampleFormat(SDL_AudioFormat sdlFormat);
 			static SDL_AudioFormat             getAudioSampleFormat(LibFFmpeg::AVSampleFormat sampleFormat);
 			static LVP_FontFaceMap             getFontFaces(LibFFmpeg::AVFormatContext* formatContext);
-			static std::vector<LVP_MediaTrack> getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVFormatContext* formatContextExternal = NULL);
-			static std::vector<LVP_MediaTrack> getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, bool isSubsExternal = false);
+			static std::vector<LVP_MediaTrack> getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, const Strings& extSubFiles = {});
+			static std::vector<LVP_MediaTrack> getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, int extSubFileIndex = -1);
 			static SDL_Rect*                   getScaledVideoDestination(const SDL_Rect* destination);
 			static SDL_YUV_CONVERSION_MODE     getSdlYuvConversionMode(LibFFmpeg::AVFrame* frame);
 			static void                        handleSeek();
@@ -173,7 +173,7 @@ namespace LibVoyaPlayer
 			static void                        openAudioDevice(const SDL_AudioSpec &wantedSpecs);
 			static void                        openFormatContext(const std::string &filePath);
 			static void                        openStreams();
-			static void                        openSubExternal(int streamIndex);
+			static void                        openSubExternal(int streamIndex = SUB_STREAM_EXTERNAL);
 			static void                        openThreads();
 			static void                        openThreadAudio();
 			static void                        openThreadSub();
