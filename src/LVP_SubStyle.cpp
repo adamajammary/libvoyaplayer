@@ -40,9 +40,11 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	this->version   = version;
 
 	// STYLE NAME
+
 	this->name = data[SUB_STYLE_NAME];
 
 	// FONT NAME
+
 	#if defined _windows
 		auto fontName16 = (wchar_t*)System::LVP_Text::ToUTF16(data[SUB_STYLE_FONT_NAME].c_str());
 		this->fontName  = std::wstring(fontName16);
@@ -53,14 +55,20 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	#endif
 
 	// FONT SIZE
+
 	this->fontSize = std::atoi(data[SUB_STYLE_FONT_SIZE].c_str());
 
 	// FONT COLORS
+
 	this->colorPrimary = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_PRIMARY]);
+
 	this->colorOutline = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_BORDER]);
-	this->colorShadow  = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_SHADOW]);
+
+	this->colorShadow   = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_SHADOW]);
+	this->colorShadow.a = 128;
 
 	// FONT STYLE
+
 	if (std::atoi(data[SUB_STYLE_BOLD].c_str()) != 0)
 		this->fontStyle |= TTF_STYLE_BOLD;
 
@@ -70,7 +78,7 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	if (std::atoi(data[SUB_STYLE_UNDERLINE].c_str()) != 0)
 		this->fontStyle |= TTF_STYLE_UNDERLINE;
 
-	int shadow;
+	int shadow = 0;
 
 	switch (this->version) {
 	case SUB_STYLE_VERSION_4PLUS_ASS:
@@ -89,7 +97,6 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_OUTLINE].c_str()));
 
 		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_SHADOW].c_str()));
-		this->shadow = { shadow, shadow };
 
 		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINL].c_str()));
 		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINR].c_str()));
@@ -106,7 +113,6 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4_OUTLINE].c_str()));
 
 		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4_SHADOW].c_str()));
-		this->shadow = { shadow, shadow };
 
 		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINL].c_str()));
 		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINR].c_str()));
@@ -116,6 +122,13 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	default:
 		break;
 	}
+
+	if (this->borderStyle == SUB_BORDER_STYLE_OUTLINE) {
+		this->outline = std::max(1, this->outline);
+		shadow        = std::max(1, shadow);
+	}
+
+	this->shadow = { shadow, shadow };
 }
 
 void MediaPlayer::LVP_SubStyle::copy(const LVP_SubStyle &subStyle)
@@ -163,7 +176,7 @@ TTF_Font* MediaPlayer::LVP_SubStyle::getFont(LVP_SubtitleContext &subContext)
 	return font;
 }
 
-int MediaPlayer::LVP_SubStyle::getFontSizeScaled(double scale)
+int MediaPlayer::LVP_SubStyle::getFontSizeScaled(double scale) const
 {
 	if ((this->name == "Default") && (this->fontName == FONT_ARIAL) && (this->fontSize == DEFAULT_FONT_SIZE))
 		return (int)(18.0 * scale);

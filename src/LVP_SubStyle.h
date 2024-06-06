@@ -110,7 +110,7 @@ namespace LibVoyaPlayer
 		public:
 			void      copy(const LVP_SubStyle &subStyle);
 			TTF_Font* getFont(LVP_SubtitleContext &subContext);
-			int       getFontSizeScaled(double scale = 1.0);
+			int       getFontSizeScaled(double scale = 1.0) const;
 
 			static int              GetOffsetX(Graphics::LVP_SubTexture* subTexture, LVP_SubtitleContext &subContext);
 			static LVP_SubStyle*    GetStyle(const std::string &name, const LVP_SubStyles &subStyles);
