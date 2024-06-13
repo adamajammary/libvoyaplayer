@@ -284,25 +284,33 @@ int MediaPlayer::LVP_Player::GetAudioTrack()
 	return LVP_Player::audioContext.index;
 }
 
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks()
+{
+	return LVP_Player::GetAudioTracks(LVP_Player::formatContext);
+}
+
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks(LibFFmpeg::AVFormatContext* formatContext)
 {
-	auto context = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
-
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO, context);
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO, formatContext);
 }
 
 std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
 {
+	return LVP_Player::GetChapters(LVP_Player::formatContext);
+}
+
+std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters(LibFFmpeg::AVFormatContext* formatContext)
+{
 	std::vector<LVP_MediaChapter> chapters;
 
-	if (LVP_Player::formatContext == NULL)
+	if (formatContext == NULL)
 		return chapters;
 
 	int64_t lastChapterEnd = 0;
 
-	for (unsigned int i = 0; i < LVP_Player::formatContext->nb_chapters; i++)
+	for (unsigned int i = 0; i < formatContext->nb_chapters; i++)
 	{
-		auto chapter = LVP_Player::formatContext->chapters[i];
+		auto chapter = formatContext->chapters[i];
 
 		if (chapter->start < lastChapterEnd)
 			continue;
@@ -401,6 +409,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
 		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
 		.thumbnail      = LVP_Media::GetMediaThumbnail(LVP_Player::formatContext),
+		.chapters       = LVP_Player::GetChapters(),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
 		.videoTracks    = LVP_Player::GetVideoTracks()
@@ -421,6 +430,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string &fil
 		.mediaType      = (LVP_MediaType)mediaType,
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
 		.thumbnail      = LVP_Media::GetMediaThumbnail(formatContext),
+		.chapters       = LVP_Player::GetChapters(formatContext),
 		.audioTracks    = LVP_Player::GetAudioTracks(formatContext),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(formatContext, extSubFiles),
 		.videoTracks    = LVP_Player::GetVideoTracks(formatContext)
@@ -587,19 +597,24 @@ int MediaPlayer::LVP_Player::GetSubtitleTrack()
 	return LVP_Player::subContext.index;
 }
 
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks()
+{
+	return LVP_Player::GetSubtitleTracks(LVP_Player::formatContext, LVP_Player::subContext.external);
+}
+
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, const Strings& extSubFiles)
 {
-	auto        context  = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
-	const auto& subFiles = (!extSubFiles.empty()  ? extSubFiles   : LVP_Player::subContext.external);
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, formatContext, extSubFiles);
+}
 
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, context, subFiles);
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks()
+{
+	return LVP_Player::GetVideoTracks(LVP_Player::formatContext);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext)
 {
-	auto context = (formatContext != NULL ? formatContext : LVP_Player::formatContext);
-
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO, context);
+	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO, formatContext);
 }
 
 double MediaPlayer::LVP_Player::GetVolume()
@@ -975,8 +990,10 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	auto channelCount = LVP_Player::audioContext.stream->codecpar->ch_layout.nb_channels;
 	auto sampleRate   = LVP_Player::audioContext.stream->codecpar->sample_rate;
 
-	if (channelCount < 1)
+	if (channelCount < 1) {
 		LibFFmpeg::av_channel_layout_default(&LVP_Player::audioContext.stream->codecpar->ch_layout, 2);
+		channelCount = LVP_Player::audioContext.stream->codecpar->ch_layout.nb_channels;
+	}
 
 	if ((sampleRate < 1) || (channelCount < 1))
 		throw std::runtime_error(System::LVP_Text::Format("Invalid audio: %d channels, %d bps", channelCount, sampleRate).c_str());

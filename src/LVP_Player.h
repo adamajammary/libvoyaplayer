@@ -114,8 +114,10 @@ namespace LibVoyaPlayer
 			static void                          Close();
 			static Strings                       GetAudioDevices();
 			static int                           GetAudioTrack();
-			static std::vector<LVP_MediaTrack>   GetAudioTracks(LibFFmpeg::AVFormatContext* formatContext = NULL);
+			static std::vector<LVP_MediaTrack>   GetAudioTracks();
+			static std::vector<LVP_MediaTrack>   GetAudioTracks(LibFFmpeg::AVFormatContext* formatContext);
 			static std::vector<LVP_MediaChapter> GetChapters();
+			static std::vector<LVP_MediaChapter> GetChapters(LibFFmpeg::AVFormatContext* formatContext);
 			static std::string                   GetFilePath();
 			static int64_t                       GetDuration();
 			static LVP_MediaDetails              GetMediaDetails();
@@ -126,8 +128,10 @@ namespace LibVoyaPlayer
 			static double                        GetPlaybackSpeed();
 			static int64_t                       GetProgress();
 			static int                           GetSubtitleTrack();
-			static std::vector<LVP_MediaTrack>   GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext = NULL, const Strings& extSubFiles = {});
-			static std::vector<LVP_MediaTrack>   GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext = NULL);
+			static std::vector<LVP_MediaTrack>   GetSubtitleTracks();
+			static std::vector<LVP_MediaTrack>   GetSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, const Strings& extSubFiles);
+			static std::vector<LVP_MediaTrack>   GetVideoTracks();
+			static std::vector<LVP_MediaTrack>   GetVideoTracks(LibFFmpeg::AVFormatContext* formatContext);
 			static double                        GetVolume();
 			static void                          Init(const LVP_CallbackContext &callbackContext);
 			static bool                          IsMuted();

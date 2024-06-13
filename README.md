@@ -45,7 +45,7 @@ MSVC | 2019
 
 ## How to build
 
-1. Build the third-party libraries and place the them in a common directory.
+1. Build the [third-party libraries](#3rd-party-libraries) and place the them in a common directory.
    - You will also need the [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) header if you are building on **Windows**.
 1. Make sure you have [cmake](https://cmake.org/download/) installed.
 1. Open a command prompt or terminal.
@@ -375,8 +375,10 @@ struct LVP_CallbackContext {
   LVP_ErrorCallback  errorCB  = nullptr; // Called every time an error occurs.
   LVP_EventsCallback eventsCB = nullptr; // Called every time an event of type LVP_EventType occurs.
   LVP_VideoCallback  videoCB  = nullptr; // Called every time a new video frame is available.
-  const void*        data     = nullptr; // Custom data context, will be available in all callbacks.
-  SDL_Renderer*      hardwareRenderer = nullptr; // Use an existing SDL hardware renderer to process the video frames, otherwise software rendering will be used.
+
+  const void* data = nullptr; // Custom data context, will be available in all callbacks.
+
+  SDL_Renderer* hardwareRenderer = nullptr; // Use an existing SDL hardware renderer to process the video frames, otherwise software rendering will be used.
 };
 ```
 
@@ -384,9 +386,10 @@ struct LVP_CallbackContext {
 
 ```cpp
 struct LVP_MediaChapter {
-  std::string title     = "";
-  int64_t     startTime = 0; // Chapter start time in milliseconds (one thousandth of a second).
-  int64_t     endTime   = 0; // Chapter end time in milliseconds (one thousandth of a second).
+  std::string title = "";
+
+  int64_t startTime = 0; // Chapter start time in milliseconds (one thousandth of a second).
+  int64_t endTime   = 0; // Chapter end time in milliseconds (one thousandth of a second).
 };
 ```
 
@@ -395,7 +398,9 @@ struct LVP_MediaChapter {
 ```cpp
 struct LVP_MediaTrack {
   LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN; // Media type of the track, like video (0), audio (1) or subtitle (3).
-  int           track     = -1;             // Track index number (position of the track in the media file).
+
+  int track = -1; // Track index number (position of the track in the media file).
+
   std::map<std::string, std::string> meta;  // Track metadata, like title, language etc.
   std::map<std::string, std::string> codec; // Codec specs, like codec_name, bit_rate etc.
 };
@@ -405,13 +410,18 @@ struct LVP_MediaTrack {
 
 ```cpp
 struct LVP_MediaDetails {
-  int64_t       duration  = 0; // Media duration in seconds.
-  size_t        fileSize  = 0; // File size in bytes.
+  int64_t duration  = 0; // Media duration in seconds.
+  size_t  fileSize  = 0; // File size in bytes.
+
   LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN; // Media type, like video (0), audio (1) or subtitle (3).
-  std::map<std::string, std::string> meta;          // Media metadata like title, artist, album, genre etc.
-  std::vector<LVP_MediaTrack>        audioTracks;
-  std::vector<LVP_MediaTrack>        subtitleTracks;
-  std::vector<LVP_MediaTrack>        videoTracks;
+
+  std::map<std::string, std::string> meta; // Media metadata like title, artist, album, genre etc.
+
+  std::vector<LVP_MediaChapter> chapters;
+
+  std::vector<LVP_MediaTrack> audioTracks;
+  std::vector<LVP_MediaTrack> subtitleTracks;
+  std::vector<LVP_MediaTrack> videoTracks;
 };
 ```
 

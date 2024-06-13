@@ -137,6 +137,8 @@ struct LVP_MediaDetails
 
 	SDL_Surface* thumbnail = nullptr;
 
+	std::vector<LVP_MediaChapter> chapters;
+
 	std::vector<LVP_MediaTrack> audioTracks;
 	std::vector<LVP_MediaTrack> subtitleTracks;
 	std::vector<LVP_MediaTrack> videoTracks;
