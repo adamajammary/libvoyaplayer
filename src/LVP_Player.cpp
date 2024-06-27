@@ -2341,15 +2341,19 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
 		// NO FRAMES DECODED
-		if ((subFrame.num_rects == 0) || ((packet->duration == 0) && (subFrame.end_display_time == 0))) {
+		if ((subFrame.num_rects == 0) || ((packet->duration < 100) && (subFrame.end_display_time == 0))) {
 			FREE_AVPACKET(packet);
 			continue;
 		}
 
 		// SUB PTS
-		auto pts = LVP_Media::GetSubtitlePTS(packet, subFrame, LVP_Player::subContext.stream->time_base, LVP_Player::audioContext.stream->start_time);
+		auto pts      = LVP_Media::GetSubtitlePTS(packet, subFrame, LVP_Player::subContext.stream->time_base, LVP_Player::audioContext.stream->start_time);
+		auto duration = (pts.end - pts.start);
 
 		FREE_AVPACKET(packet);
+
+		if (duration < 0.1)
+			continue;
 
 		// Extract sub type (text/bitmap) from frame
 
