@@ -223,10 +223,11 @@ std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dial
 	if (subText.empty())
 		return "";
 
-	subText = System::LVP_Text::Replace(subText, "\\N", "^");
-	subText = System::LVP_Text::Replace(subText, "\\n", (subText.find("\\q2") != std::string::npos ? "^" : " "));
-	subText = System::LVP_Text::Replace(subText, "\\h", " ");
-	subText = System::LVP_Text::Replace(subText, "{*", "{");
+	subText = System::LVP_Text::Replace(subText, "\\N",   "^");
+	subText = System::LVP_Text::Replace(subText, "\\n",   (subText.find("\\q2") != std::string::npos ? "^" : " "));
+	subText = System::LVP_Text::Replace(subText, "\\h",   " ");
+	subText = System::LVP_Text::Replace(subText, "{*",    "{");
+	subText = System::LVP_Text::Replace(subText, "&amp;", "&");
 
 	if (nrStyles < 2)
 		subText = System::LVP_Text::Replace(subText, "{\\r}", "");
@@ -1048,8 +1049,13 @@ void MediaPlayer::LVP_SubTextRenderer::renderSubs(Graphics::LVP_SubTexturesId &s
 
 void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_SubtitleContext &subContext)
 {
+	LVP_SubtitlesById subsById;
+
 	for (auto sub : subContext.subs)
 	{
+		if (sub->text3.find("^") == std::string::npos)
+			subsById[sub->id].push_back(sub);
+
 		if ((LVP_SubTextRenderer::subsPosition.find(sub->id) != LVP_SubTextRenderer::subsPosition.end()) ||
 			(LVP_SubTextRenderer::subsTop.find(sub->id)      != LVP_SubTextRenderer::subsTop.end()) ||
 			(LVP_SubTextRenderer::subsMiddle.find(sub->id)   != LVP_SubTextRenderer::subsMiddle.end()) ||
@@ -1062,6 +1068,8 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 
 	int subWidth      = 0;
 	int subWidthSplit = 0;
+
+	std::set<int> subsSplit;
 
 	for (auto sub : subContext.subs)
 	{
@@ -1097,43 +1105,88 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 
 		TTF_SetFontOutline(font, sub->getOutline(subContext.scale));
 
-		int       subStringWidth, h;
-		Strings16 subStrings16;
-
 		auto margins  = sub->getMargins({ 1.0f, 1.0f });
 		auto maxWidth = (subContext.videoDimensions.w - margins.x);
+		bool splitSub = false;
 
-		// Split the sub if larger than video width
+		LVP_SubStrings subStrings16;
+
 		if (sub->style != NULL)
 		{
-			TTF_SetFontStyle(font, sub->style->fontStyle);
-			TTF_SizeUNICODE(font, sub->textUTF16, &subStringWidth, &h);
+			if ((subsById[sub->id].size() > 1) && !subsSplit.contains(sub->id))
+			{
+				std::string completeText = "";
 
-			subWidth    += subStringWidth;
-			subStrings16 = LVP_SubTextRenderer::splitSub(sub->textUTF16, subStringWidth, sub, font, subWidth, maxWidth);
-		} else {
-			subStrings16.push_back(sub->textUTF16);
+				for (auto sub : subsById[sub->id])
+					completeText.append(sub->text);
+
+				auto text16 = System::LVP_Text::ToUTF16(completeText.c_str());
+
+				int width16, height16;
+				TTF_SizeUNICODE(font, text16, &width16, &height16);
+				SDL_free(text16);
+
+				splitSub = (width16 > maxWidth);
+			}
+
+			// Split long subs without linebreaks if larger than the video width
+			if (splitSub)
+			{
+				auto words  = System::LVP_Text::Split(sub->text, " ");
+				auto subs16 = LVP_SubTextRenderer::splitSubDistributeByLines(words, 2, font, maxWidth);
+
+				for (size_t i = 0; i < subs16.size(); i++)
+					subStrings16.push_back({ .offsetY = (i < (subs16.size() - 1)), .text16 = subs16[i] });
+
+				subStrings16.push_back({ .text16 = System::LVP_Text::ToUTF16(" ") });
+
+				subsSplit.insert(sub->id);
+			}
+			// Split the sub based on style/formatting
+			else
+			{
+				TTF_SetFontStyle(font, sub->style->fontStyle);
+
+				int subStringWidth, h;
+				TTF_SizeUNICODE(font, sub->textUTF16, &subStringWidth, &h);
+
+				subWidth += subStringWidth;
+
+				auto subs16 = LVP_SubTextRenderer::splitSub(sub->textUTF16, subStringWidth, sub, font, subWidth, maxWidth);
+
+				for (auto sub16 : subs16)
+					subStrings16.push_back({ .text16 = sub16 });
+			}
+		}
+		else
+		{
+			subStrings16.push_back({ .text16 = sub->textUTF16 });
 		}
 
-		// Create a new sub surface/texture for each sub line (if the sub was split)
+		// Create a sub surface/texture for each sub line
 		for (size_t i = 0; i < subStrings16.size(); i++)
 		{
-			auto subFill = LVP_SubTextRenderer::createSubFill(subStrings16[i], sub, renderer, subContext);
+			auto subTexture = LVP_SubTextRenderer::createSubFill(subStrings16[i].text16, sub, renderer, subContext);
 
-			if (subFill == NULL)
+			if (subTexture == NULL)
 				continue;
 
 			bool offsetY = false;
 
-			if (!System::LVP_Text::EndsWith(sub->text2, '^'))
+			if (subStrings16[i].offsetY || System::LVP_Text::EndsWith(sub->text2, '^'))
 			{
-				TTF_SizeUNICODE(font, subStrings16[i], &subStringWidth, &h);
+				offsetY = true;
+			}
+			else
+			{
+				int subStringWidth, h;
+				TTF_SizeUNICODE(font, subStrings16[i].text16, &subStringWidth, &h);
 
 				int nextWidth = 0;
 
 				if (i + 1 < subStrings16.size())
 				{
-					TTF_SizeUNICODE(font, subStrings16[i + 1], &nextWidth, &h);
+					TTF_SizeUNICODE(font, subStrings16[i + 1].text16, &nextWidth, &h);
 
 					nextWidth += System::LVP_Text::GetSpaceWidth(font);
 				}
@@ -1142,35 +1195,35 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 
 				if (subWidthSplit + nextWidth > maxWidth)
 					offsetY = true;
-			} else {
-				offsetY = true;
 			}
 
-			if (offsetY) {
-				subFill->offsetY = true;
-				subWidth         = 0;
-				subWidthSplit    = 0;
+			if (offsetY)
+			{
+				subTexture->offsetY = true;
+
+				subWidth      = 0;
+				subWidthSplit = 0;
 			}
 
-			// Organize subs by alignment for positioning
-			if (subFill->subtitle->customPos)
-				LVP_SubTextRenderer::subsPosition[subFill->subtitle->id].push_back(subFill);
-			else if (subFill->subtitle->isAlignedTop())
-				LVP_SubTextRenderer::subsTop[subFill->subtitle->id].push_back(subFill);
-			else if (subFill->subtitle->isAlignedMiddle())
-				LVP_SubTextRenderer::subsMiddle[subFill->subtitle->id].push_back(subFill);
+			// Organize subs by alignment/position
+			if (subTexture->subtitle->customPos)
+				LVP_SubTextRenderer::subsPosition[subTexture->subtitle->id].push_back(subTexture);
+			else if (subTexture->subtitle->isAlignedTop())
+				LVP_SubTextRenderer::subsTop[subTexture->subtitle->id].push_back(subTexture);
+			else if (subTexture->subtitle->isAlignedMiddle())
+				LVP_SubTextRenderer::subsMiddle[subTexture->subtitle->id].push_back(subTexture);
 			else
-				LVP_SubTextRenderer::subsBottom[subFill->subtitle->id].push_back(subFill);
+				LVP_SubTextRenderer::subsBottom[subTexture->subtitle->id].push_back(subTexture);
 		}
 	}
 
-	// Calculate and set the total width for split subs
+	// Calculate and set the total width for aligned subs
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsBottom);
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsMiddle);
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsTop);
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsPosition);
 
-	// Calculate and set the relatively aligned sub positions
+	// Calculate and set the relative position for aligned subs
 	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsBottom, subContext);
 	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsMiddle, subContext);
 	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsTop,    subContext);
@@ -1184,10 +1237,9 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 		LVP_SubTextRenderer::handleSubCollisions(sub, LVP_SubTextRenderer::subsTop);
 	}
 
-	// Calculate and set the absolutely aligned sub positions
+	// Calculate and set the absolute position for aligned subs
 	LVP_SubTextRenderer::setSubPositionAbsolute(LVP_SubTextRenderer::subsPosition, subContext);
 
-	// Render the subs
 	LVP_SubTextRenderer::renderSubs(LVP_SubTextRenderer::subsPosition, renderer, subContext);
 	LVP_SubTextRenderer::renderSubs(LVP_SubTextRenderer::subsMiddle,   renderer, subContext);
 	LVP_SubTextRenderer::renderSubs(LVP_SubTextRenderer::subsTop,      renderer, subContext);
@@ -1548,166 +1600,6 @@ void MediaPlayer::LVP_SubTextRenderer::setTotalWidth(const Graphics::LVP_SubText
 	}
 }
 
-Strings16 MediaPlayer::LVP_SubTextRenderer::splitSub(uint16_t* subStringUTF16, int subStringWidth, LVP_Subtitle* sub, TTF_Font* font, int subWidth, int maxWidth)
-{
-	Strings16 subStrings16;
-
-	if ((subStringUTF16 == NULL) || (sub == NULL) || (font == NULL))
-		return subStrings16;
-
-	std::string text = System::LVP_Text::Trim(sub->text);
-
-	if ((subWidth > maxWidth) && (sub->text3.find("\\q2") == std::string::npos) && (sub->text3.find("^") == std::string::npos) && !text.empty())
-	{
-		Strings words = System::LVP_Text::Split(text, " ");
-
-		if (words.size() > 1)
-		{
-			if (sub->text2.find("} ") != std::string::npos)
-				words[0] = std::string(" ").append(words[0]);
-
-			if (System::LVP_Text::GetLastCharacter(sub->text2) == ' ')
-				words[words.size() - 1].append(" ");
-
-			if (sub->text3.find("{") == std::string::npos)
-			{
-				size_t nrLines = LVP_SubTextRenderer::splitSubGetNrLines(words, font, maxWidth);
-				subStrings16   = LVP_SubTextRenderer::splitSubDistributeByLines(words, nrLines, font, maxWidth);
-
-				if (subStrings16.empty())
-					subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, maxWidth, maxWidth);
-			} else {
-				subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, (maxWidth - (subWidth - subStringWidth)), maxWidth);
-			}
-		}
-		else
-		{
-			subStrings16.push_back(System::LVP_Text::ToUTF16(" "));
-			subStrings16.push_back(subStringUTF16);
-		}
-
-		return subStrings16;
-	}
-
-	subStrings16.push_back(subStringUTF16);
-
-	return subStrings16;
-}
-
-size_t MediaPlayer::LVP_SubTextRenderer::splitSubGetNrLines(const Strings &words, TTF_Font* font, int maxWidth)
-{
-	int lineWidth;
-
-	size_t      nrLines     = 0;
-	std::string lineString1 = "";
-	std::string lineString2 = "";
-
-	for (size_t i = 0; i < words.size(); i++)
-	{
-		lineString2.append(words[i]);
-
-		lineWidth = System::LVP_Text::GetWidth(lineString2, font);
-
-		if (i == words.size() - 1)
-			nrLines++;
-
-		if (lineWidth > maxWidth) {
-			nrLines++;
-
-			lineString1 = "";
-			lineString2 = (words[i] + " ");
-		}
-
-		lineString1.append(words[i] + " ");
-		lineString2.append(" ");
-	}
-
-	return nrLines;
-}
-
-Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByLines(const Strings &words, size_t nrLines, TTF_Font* font, int maxWidth)
-{
-	int       lineWidth, lineHeight;
-	Strings16 subStrings16;
-
-	std::string line         = "";
-	int         wordsPerLine = (int)ceilf((float)words.size() / (float)nrLines);
-
-	for (size_t i = 0; i < words.size(); i++)
-	{
-		line.append(words[i]);
-
-		if (((i + 1) % wordsPerLine == 0) || (i == words.size() - 1))
-		{
-			auto line16 = System::LVP_Text::ToUTF16(line.c_str());
-
-			TTF_SizeUNICODE(font, line16, &lineWidth, &lineHeight);
-			
-			if (lineWidth > maxWidth)
-			{
-				for (auto sub16 : subStrings16)
-					SDL_free(sub16);
-
-				subStrings16.clear();
-
-				return subStrings16;
-			}
-
-			subStrings16.push_back(line16);
-			line = "";
-
-			continue;
-		}
-
-		line.append(" ");
-	}
-
-	return subStrings16;
-}
-
-Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByWidth(const Strings &words, TTF_Font* font, int remainingWidth, int maxWidth)
-{
-	int       lineWidth;
-	Strings16 subStrings16;
-
-	std::string lineString1  = "";
-	std::string lineString2  = (!words.empty() ? words[0] : "");
-	int         max          = remainingWidth;
-
-	for (size_t i = 0; i < words.size(); i++)
-	{
-		lineWidth = System::LVP_Text::GetWidth(lineString2, font);
-
-		if (lineWidth > max)
-		{
-			if (lineString1.empty())
-				lineString1 = " ";
-
-			auto line16 = System::LVP_Text::ToUTF16(lineString1.c_str());
-
-			subStrings16.push_back(line16);
-
-			lineString1 = "";
-			lineString2 = words[i];
-			max         = maxWidth;
-		}
-
-		if (i == words.size() - 1)
-		{
-			auto endLine16 = System::LVP_Text::ToUTF16(lineString2.c_str());
-
-			subStrings16.push_back(endLine16);
-		}
-
-		lineString1.append(words[i] + " ");
-
-		if (i < words.size() - 1)
-			lineString2.append(" " + words[i + 1]);
-	}
-
-	return subStrings16;
-}
-
 // https://aegi.vmoe.info/docs/3.0/ASS_Tags/
 // http://www.tcax.org/docs/ass-specs.htm
 MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(const Strings &subTexts, LVP_SubtitleContext &subContext)
@@ -1801,4 +1693,165 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 	}
 
 	return subs;
+}
+
+Strings16 MediaPlayer::LVP_SubTextRenderer::splitSub(uint16_t* subStringUTF16, int subStringWidth, LVP_Subtitle* sub, TTF_Font* font, int subWidth, int maxWidth)
+{
+	Strings16 subStrings16;
+
+	if ((subStringUTF16 == NULL) || (sub == NULL) || (font == NULL))
+		return subStrings16;
+
+	std::string text = System::LVP_Text::Trim(sub->text);
+
+	if ((subWidth > maxWidth) && (sub->text3.find("\\q2") == std::string::npos) && (sub->text3.find("^") == std::string::npos) && !text.empty())
+	{
+		Strings words = System::LVP_Text::Split(text, " ");
+
+		if (words.size() > 1)
+		{
+			if (sub->text2.find("} ") != std::string::npos)
+				words[0] = std::string(" ").append(words[0]);
+
+			if (System::LVP_Text::GetLastCharacter(sub->text2) == ' ')
+				words[words.size() - 1].append(" ");
+
+			if (sub->text3.find("{") == std::string::npos)
+			{
+				auto lines = LVP_SubTextRenderer::splitSubGetLineCount(words, font, maxWidth);
+
+				subStrings16 = LVP_SubTextRenderer::splitSubDistributeByLines(words, lines, font, maxWidth);
+
+				if (subStrings16.empty())
+					subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, maxWidth, maxWidth);
+			} else {
+				subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, (maxWidth - (subWidth - subStringWidth)), maxWidth);
+			}
+		}
+		else
+		{
+			subStrings16.push_back(System::LVP_Text::ToUTF16(" "));
+			subStrings16.push_back(subStringUTF16);
+		}
+
+		return subStrings16;
+	}
+
+	subStrings16.push_back(subStringUTF16);
+
+	return subStrings16;
+}
+
+Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByLines(const Strings &words, size_t nrLines, TTF_Font* font, int maxWidth)
+{
+	int       lineWidth, lineHeight;
+	Strings16 subStrings16;
+
+	std::string line         = "";
+	int         wordsPerLine = (int)ceilf((float)words.size() / (float)nrLines);
+
+	for (size_t i = 0; i < words.size(); i++)
+	{
+		line.append(words[i]);
+
+		if (((i + 1) % wordsPerLine == 0) || (i == words.size() - 1))
+		{
+			auto line16 = System::LVP_Text::ToUTF16(line.c_str());
+
+			TTF_SizeUNICODE(font, line16, &lineWidth, &lineHeight);
+			
+			if (lineWidth > maxWidth)
+			{
+				for (auto sub16 : subStrings16)
+					SDL_free(sub16);
+
+				subStrings16.clear();
+
+				return subStrings16;
+			}
+
+			subStrings16.push_back(line16);
+			line = "";
+
+			continue;
+		}
+
+		line.append(" ");
+	}
+
+	return subStrings16;
+}
+
+Strings16 MediaPlayer::LVP_SubTextRenderer::splitSubDistributeByWidth(const Strings &words, TTF_Font* font, int remainingWidth, int maxWidth)
+{
+	int       lineWidth;
+	Strings16 subStrings16;
+
+	std::string lineString1  = "";
+	std::string lineString2  = (!words.empty() ? words[0] : "");
+	int         max          = remainingWidth;
+
+	for (size_t i = 0; i < words.size(); i++)
+	{
+		lineWidth = System::LVP_Text::GetWidth(lineString2, font);
+
+		if (lineWidth > max)
+		{
+			if (lineString1.empty())
+				lineString1 = " ";
+
+			auto line16 = System::LVP_Text::ToUTF16(lineString1.c_str());
+
+			subStrings16.push_back(line16);
+
+			lineString1 = "";
+			lineString2 = words[i];
+			max         = maxWidth;
+		}
+
+		if (i == words.size() - 1)
+		{
+			auto endLine16 = System::LVP_Text::ToUTF16(lineString2.c_str());
+
+			subStrings16.push_back(endLine16);
+		}
+
+		lineString1.append(words[i] + " ");
+
+		if (i < words.size() - 1)
+			lineString2.append(" " + words[i + 1]);
+	}
+
+	return subStrings16;
+}
+
+size_t MediaPlayer::LVP_SubTextRenderer::splitSubGetLineCount(const Strings &words, TTF_Font* font, int maxWidth)
+{
+	int lineWidth;
+
+	size_t      nrLines     = 0;
+	std::string lineString1 = "";
+	std::string lineString2 = "";
+
+	for (size_t i = 0; i < words.size(); i++)
+	{
+		lineString2.append(words[i]);
+
+		lineWidth = System::LVP_Text::GetWidth(lineString2, font);
+
+		if (i == words.size() - 1)
+			nrLines++;
+
+		if (lineWidth > maxWidth) {
+			nrLines++;
+
+			lineString1 = "";
+			lineString2 = (words[i] + " ");
+		}
+
+		lineString1.append(words[i] + " ");
+		lineString2.append(" ");
+	}
+
+	return nrLines;
 }

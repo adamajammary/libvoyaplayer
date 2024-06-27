@@ -9,6 +9,7 @@
 #include <list>
 #include <map>
 #include <queue>
+#include <set>
 #include <sstream>   // stringstream, to_string(x)
 #include <thread>
 #include <unordered_map>
@@ -219,11 +220,18 @@ namespace LibVoyaPlayer
 			uint32_t    streamIndex;
 			std::string style;
 		};
-		
-		typedef std::vector<LVP_FontFace>        LVP_FontFaces;
-		typedef std::queue<LibFFmpeg::AVPacket*> LVP_Packets;
-		typedef std::list<LVP_Subtitle*>         LVP_Subtitles;
-		typedef std::vector<LVP_SubStyle*>       LVP_SubStyles;
+
+		struct LVP_SubString {
+			bool      offsetY = false;
+			uint16_t* text16  = nullptr;
+		};
+
+		typedef std::vector<LVP_FontFace>              LVP_FontFaces;
+		typedef std::queue<LibFFmpeg::AVPacket*>       LVP_Packets;
+		typedef std::list<LVP_Subtitle*>               LVP_Subtitles;
+		typedef std::unordered_map<int, LVP_Subtitles> LVP_SubtitlesById;
+		typedef std::vector<LVP_SubString>             LVP_SubStrings;
+		typedef std::vector<LVP_SubStyle*>             LVP_SubStyles;
 
 		#if defined _windows
 			typedef std::unordered_map<std::wstring, TTF_Font*>     LVP_FontMap;

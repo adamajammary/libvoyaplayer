@@ -76,10 +76,9 @@ namespace LibVoyaPlayer
 			static void                      setSubPositionRelative(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext);
 			static void                      setTotalWidth(const Graphics::LVP_SubTexturesId &subs);
 			static Strings16                 splitSub(uint16_t* subStringUTF16, int subStringWidth, LVP_Subtitle* sub, TTF_Font* font, int subWidth, int maxWidth);
-			static size_t                    splitSubGetNrLines(const Strings &words, TTF_Font* font, int maxWidth);
 			static Strings16                 splitSubDistributeByLines(const Strings &words, size_t nrLines, TTF_Font* font, int maxWidth);
 			static Strings16                 splitSubDistributeByWidth(const Strings &words, TTF_Font* font, int remainingWidth, int maxWidth);
-
+			static size_t                    splitSubGetLineCount(const Strings& words, TTF_Font* font, int maxWidth);
 		};
 	}
 }
