@@ -73,7 +73,7 @@ namespace LibVoyaPlayer
 			static void                      renderSubBorderShadow(Graphics::LVP_SubTexture* subTexture, SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static void                      renderSubs(Graphics::LVP_SubTexturesId &subs, SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static void                      setSubPositionAbsolute(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext);
-			static void                      setSubPositionRelative(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext);
+			static void                      setSubPositionRelative(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext, bool layered = false);
 			static void                      setTotalWidth(const Graphics::LVP_SubTexturesId &subs);
 			static Strings16                 splitSub(uint16_t* subStringUTF16, int subStringWidth, LVP_Subtitle* sub, TTF_Font* font, int subWidth, int maxWidth);
 			static Strings16                 splitSubDistributeByLines(const Strings &words, size_t nrLines, TTF_Font* font, int maxWidth);

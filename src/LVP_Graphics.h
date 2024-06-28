@@ -16,7 +16,7 @@ namespace LibVoyaPlayer
 			~LVP_Graphics() {}
 
 		public:
-			static void      Blur(SDL_Surface* surface, int radius);
+			static void      Blur(SDL_Surface* surface, int effect);
 			static void      FillArea(const LVP_Color &color, const SDL_Rect &button, SDL_Renderer* renderer);
 			static void      FillBorder(const LVP_Color &color, const SDL_Rect &button, const LVP_Border &borderThickness, SDL_Renderer* renderer);
 			static LVP_Color ToLVPColor(const std::string &colorHex);

@@ -46,11 +46,13 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubFill(uint16
 
 		auto blur    = sub->getBlur();
 		auto outline = sub->getOutline(subContext.scale);
+		auto shadow  = sub->getShadow(subContext.scale);
 
-		if (!isBorderStyleBox && (outline < 1) && (blur > 0))
+		if (!isBorderStyleBox && (blur > 0) && (outline < 1) && (shadow.x < 1) && (shadow.y < 1))
 			Graphics::LVP_Graphics::Blur(surface, blur);
 
 		subFill->textureData = new Graphics::LVP_Texture(surface, renderer);
+
 		FREE_SURFACE(surface);
 
 		if (!IS_VALID_TEXTURE(subFill->textureData)) {
@@ -92,9 +94,10 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubOutline(Gra
 	if (surface == NULL)
 		return NULL;
 
-	int blur = subFill->subtitle->getBlur();
+	auto blur   = subFill->subtitle->getBlur();
+	auto shadow = subFill->subtitle->getShadow(subContext.scale);
 
-	if (blur > 0)
+	if ((blur > 0) && (shadow.x < 1) && (shadow.y < 1))
 		Graphics::LVP_Graphics::Blur(surface, blur);
 
 	auto subOutline = new Graphics::LVP_SubTexture(*subFill);
@@ -509,6 +512,11 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\blur"))
 				sub->style->blur = (int)std::round(std::atof(prop.substr(4).c_str()));
 		}
+		else if ((prop.substr(0, 2) == "be") && isdigit(prop[2]))
+		{
+			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\be"))
+				sub->style->blur = (int)std::round(std::atof(prop.substr(2).c_str()));
+		}
 		// FONT - Name
 		else if (prop.substr(0, 2) == "fn")
 		{
@@ -854,6 +862,7 @@ void MediaPlayer::LVP_SubTextRenderer::handleSubCollisions(const Graphics::LVP_S
 		for (const auto &sub : subs)
 		{
 			if ((subTextures.first == sub.first) ||
+				(subTextures.second[0]->subtitle->layer != sub.second[0]->subtitle->layer) ||
 				!SDL_HasIntersection(&subTextures.second[0]->total, &sub.second[0]->total) ||
 				!subTextures.second[0]->subtitle->overlaps(sub.second[0]->subtitle))
 			{
@@ -1035,9 +1044,16 @@ void MediaPlayer::LVP_SubTextRenderer::renderSubBorderShadow(Graphics::LVP_SubTe
 
 void MediaPlayer::LVP_SubTextRenderer::renderSubs(Graphics::LVP_SubTexturesId &subs, SDL_Renderer* renderer, LVP_SubtitleContext &subContext)
 {
-	for (const auto &subTextures : subs)
-	{
+	std::map<int, Graphics::LVP_SubTextures> subsByLayer;
+
+	for (const auto &subTextures : subs) {
 		for (auto subTexture : subTextures.second)
+			subsByLayer[subTexture->subtitle->layer].push_back(subTexture);
+	}
+
+	for (const auto& layer : subsByLayer)
+	{
+		for (auto subTexture : layer.second)
 		{
 			LVP_SubTextRenderer::renderSubBorderShadow(subTexture, renderer, subContext);
 
@@ -1217,7 +1233,7 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 		}
 	}
 
-	// Calculate and set the total width for aligned subs
+	// Calculate and set the total width for the subs
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsBottom);
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsMiddle);
 	LVP_SubTextRenderer::setTotalWidth(LVP_SubTextRenderer::subsTop);
@@ -1227,6 +1243,11 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsBottom, subContext);
 	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsMiddle, subContext);
 	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsTop,    subContext);
+
+	// Calculate and set the relative position for layered aligned subs
+	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsBottom, subContext, true);
+	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsMiddle, subContext, true);
+	LVP_SubTextRenderer::setSubPositionRelative(LVP_SubTextRenderer::subsTop,    subContext, true);
 
 	// Handle sub collisions
 	for (const auto &sub : LVP_SubTextRenderer::subsTop)
@@ -1428,7 +1449,7 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionAbsolute(const Graphics::LV
 	}
 }
 
-void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext)
+void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LVP_SubTexturesId &subs, LVP_SubtitleContext &subContext, bool layered)
 {
 	for (const auto &subTextures : subs)
 	{
@@ -1442,7 +1463,7 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LV
 		{
 			auto subTexture = subTextures.second[i];
 
-			if (subTexture->subtitle->skip)
+			if (subTexture->subtitle->skipRender(layered))
 				continue;
 
 			subTexture->locationRender.x = offsetX;
@@ -1507,7 +1528,7 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LV
 
 		for (auto subTexture : subTextures.second)
 		{
-			if (subTexture->subtitle->skip)
+			if (subTexture->subtitle->skipRender(layered))
 				continue;
 
 			subTexture->total.h = offsetY;
@@ -1533,7 +1554,7 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LV
 
 		for (auto subTexture : subTextures.second)
 		{
-			if (subTexture->subtitle->skip)
+			if (subTexture->subtitle->skipRender(layered))
 				continue;
 
 			if (subTexture->locationRender.y < minY)
@@ -1548,7 +1569,7 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LV
 
 		for (auto subTexture : subTextures.second)
 		{
-			if (subTexture->subtitle->skip)
+			if (subTexture->subtitle->skipRender(layered))
 				continue;
 
 			subTexture->total.x = minX;
@@ -1716,17 +1737,12 @@ Strings16 MediaPlayer::LVP_SubTextRenderer::splitSub(uint16_t* subStringUTF16, i
 			if (System::LVP_Text::GetLastCharacter(sub->text2) == ' ')
 				words[words.size() - 1].append(" ");
 
-			if (sub->text3.find("{") == std::string::npos)
-			{
-				auto lines = LVP_SubTextRenderer::splitSubGetLineCount(words, font, maxWidth);
+			auto lines = LVP_SubTextRenderer::splitSubGetLineCount(words, font, maxWidth);
 
-				subStrings16 = LVP_SubTextRenderer::splitSubDistributeByLines(words, lines, font, maxWidth);
+			subStrings16 = LVP_SubTextRenderer::splitSubDistributeByLines(words, lines, font, maxWidth);
 
-				if (subStrings16.empty())
-					subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, maxWidth, maxWidth);
-			} else {
-				subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, (maxWidth - (subWidth - subStringWidth)), maxWidth);
-			}
+			if (subStrings16.empty())
+				subStrings16 = LVP_SubTextRenderer::splitSubDistributeByWidth(words, font, maxWidth, maxWidth);
 		}
 		else
 		{

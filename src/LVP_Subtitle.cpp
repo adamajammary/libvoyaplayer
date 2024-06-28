@@ -48,27 +48,27 @@ void MediaPlayer::LVP_Subtitle::copy(const LVP_Subtitle &subtitle)
 	this->style->copy(*subtitle.style);
 }
 
-MediaPlayer::LVP_SubAlignment MediaPlayer::LVP_Subtitle::getAlignment()
+MediaPlayer::LVP_SubAlignment MediaPlayer::LVP_Subtitle::getAlignment() const
 {
 	return this->style->alignment;
 }
 
-int MediaPlayer::LVP_Subtitle::getBlur()
+int MediaPlayer::LVP_Subtitle::getBlur() const
 {
 	return this->style->blur;
 }
 
-Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColor()
+Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColor() const
 {
 	return this->style->colorPrimary;
 }
 
-Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColorOutline()
+Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColorOutline() const
 {
 	return this->style->colorOutline;
 }
 
-Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColorShadow()
+Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColorShadow() const
 {
 	return this->style->colorShadow;
 }
@@ -88,7 +88,7 @@ SDL_Rect MediaPlayer::LVP_Subtitle::getMargins(const SDL_FPoint &scale)
 	};
 }
 
-int MediaPlayer::LVP_Subtitle::getOutline(const SDL_FPoint &scale)
+int MediaPlayer::LVP_Subtitle::getOutline(const SDL_FPoint &scale) const
 {
 	return (int)ceilf((float)this->style->outline * scale.y);
 }
@@ -143,7 +143,7 @@ bool MediaPlayer::LVP_Subtitle::isAlignedTop()
 	return ((a == SUB_ALIGN_TOP_LEFT) || (a == SUB_ALIGN_TOP_RIGHT) || (a == SUB_ALIGN_TOP_CENTER));
 }
 
-bool MediaPlayer::LVP_Subtitle::isExpiredPTS(const LVP_SubtitleContext &subContext, double progress)
+bool MediaPlayer::LVP_Subtitle::isExpiredPTS(const LVP_SubtitleContext &subContext, double progress) const
 {
 	auto ptsEnd    = (this->pts.end - 0.001);
 	bool isExpired = ((ptsEnd <= subContext.pts.start) || (ptsEnd <= progress));
@@ -151,14 +151,14 @@ bool MediaPlayer::LVP_Subtitle::isExpiredPTS(const LVP_SubtitleContext &subConte
 	return isExpired;
 }
 
-bool MediaPlayer::LVP_Subtitle::isSeekedPTS(const LVP_SubtitleContext& subContext)
+bool MediaPlayer::LVP_Subtitle::isSeekedPTS(const LVP_SubtitleContext& subContext) const
 {
 	bool isFuturePTS = (this->pts.start > subContext.nextPTS.end);
 
 	return isFuturePTS;
 }
 
-bool MediaPlayer::LVP_Subtitle::overlaps(LVP_Subtitle* subtitle)
+bool MediaPlayer::LVP_Subtitle::overlaps(LVP_Subtitle* subtitle) const
 {
 	bool overlaps = !(
 		(this->pts.end < subtitle->pts.start) ||
@@ -168,4 +168,9 @@ bool MediaPlayer::LVP_Subtitle::overlaps(LVP_Subtitle* subtitle)
 	);
 
 	return overlaps;
+}
+
+bool MediaPlayer::LVP_Subtitle::skipRender(bool layered) const
+{
+	return (this->skip || (!layered && (this->layer > 0)) || (layered && (this->layer < 1)));
 }

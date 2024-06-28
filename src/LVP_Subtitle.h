@@ -48,13 +48,13 @@ namespace LibVoyaPlayer
 
 		public:
 			void                copy(const LVP_Subtitle &subtitle);
-			int                 getBlur();
-			Graphics::LVP_Color getColor();
-			Graphics::LVP_Color getColorOutline();
-			Graphics::LVP_Color getColorShadow();
+			int                 getBlur() const;
+			Graphics::LVP_Color getColor() const;
+			Graphics::LVP_Color getColorOutline() const;
+			Graphics::LVP_Color getColorShadow() const;
 			TTF_Font*           getFont(LVP_SubtitleContext &subContext);
 			SDL_Rect            getMargins(const SDL_FPoint &scale);
-			int                 getOutline(const SDL_FPoint &scale);
+			int                 getOutline(const SDL_FPoint &scale) const;
 			SDL_Point           getShadow(const SDL_FPoint  &scale);
 			bool                isAlignedBottom();
 			bool                isAlignedCenter();
@@ -62,13 +62,13 @@ namespace LibVoyaPlayer
 			bool                isAlignedMiddle();
 			bool                isAlignedRight();
 			bool                isAlignedTop();
-			bool                isExpiredPTS(const LVP_SubtitleContext &subContext, double progress);
-			bool                isSeekedPTS(const LVP_SubtitleContext  &subContext);
-			bool                overlaps(LVP_Subtitle* subtitle);
+			bool                isExpiredPTS(const LVP_SubtitleContext &subContext, double progress) const;
+			bool                isSeekedPTS(const LVP_SubtitleContext  &subContext) const;
+			bool                overlaps(LVP_Subtitle* subtitle) const;
+			bool                skipRender(bool layered) const;
 
 		private:
-			LVP_SubAlignment getAlignment();
-
+			LVP_SubAlignment getAlignment() const;
 		};
 	}
 }
