@@ -16,8 +16,8 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubFill(uint16
 	if (font == NULL)
 		return NULL;
 
-	// Disable font outline - Primary/Fill sub
 	TTF_SetFontOutline(font, 0);
+	TTF_SetFontStyle(font,   0);
 
 	if (sub->style != NULL)
 		TTF_SetFontStyle(font, sub->style->fontStyle);
@@ -85,6 +85,7 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubOutline(Gra
 		return NULL;
 
 	TTF_SetFontOutline(font, subFill->subtitle->getOutline(subContext.scale));
+	TTF_SetFontStyle(font,   0);
 
 	if (subFill->subtitle->style != NULL)
 		TTF_SetFontStyle(font, subFill->subtitle->style->fontStyle);
@@ -139,7 +140,8 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 	if (font == NULL)
 		return NULL;
 
-	TTF_SetFontOutline(font, subFill->subtitle->getOutline(subContext.scale));
+	TTF_SetFontOutline(font, 0);
+	TTF_SetFontStyle(font,   0);
 
 	if (subFill->subtitle->style != NULL)
 		TTF_SetFontStyle(font, subFill->subtitle->style->fontStyle);
@@ -173,11 +175,10 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 			subShadow->textureData->height = (int)((float)subShadow->textureData->height * subFill->subtitle->style->fontScale.y);
 	}
 
-	int       outline = TTF_GetFontOutline(font);
-	SDL_Point shadow  = subFill->subtitle->getShadow(subContext.scale);
+	SDL_Point shadow = subFill->subtitle->getShadow(subContext.scale);
 
-	subShadow->locationRender.x += (shadow.x - outline);
-	subShadow->locationRender.y += (shadow.y - outline);
+	subShadow->locationRender.x += shadow.x;
+	subShadow->locationRender.y += shadow.y;
 	subShadow->locationRender.w  = subShadow->textureData->width;
 	subShadow->locationRender.h  = subShadow->textureData->height;
 

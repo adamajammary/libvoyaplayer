@@ -61,11 +61,11 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	// FONT COLORS
 
 	this->colorPrimary = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_PRIMARY]);
-
 	this->colorOutline = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_BORDER]);
+	this->colorShadow  = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_SHADOW]);
 
-	this->colorShadow   = Graphics::LVP_Graphics::ToLVPColor(data[SUB_STYLE_COLOR_SHADOW]);
-	this->colorShadow.a = 128;
+	if (data[SUB_STYLE_COLOR_SHADOW].size() < 10)
+		this->colorShadow.a = 128;
 
 	// FONT STYLE
 
