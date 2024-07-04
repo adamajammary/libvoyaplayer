@@ -9,6 +9,7 @@
 #include <list>
 #include <map>
 #include <queue>
+#include <regex>
 #include <set>
 #include <sstream>   // stringstream, to_string(x)
 #include <thread>

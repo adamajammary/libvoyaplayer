@@ -2,8 +2,6 @@
 
 MediaPlayer::LVP_Subtitle::LVP_Subtitle()
 {
-	this->clip           = {};
-	this->customClip     = false;
 	this->customPos      = false;
 	this->customRotation = false;
 	this->drawRect       = {};
@@ -33,8 +31,6 @@ MediaPlayer::LVP_Subtitle::~LVP_Subtitle()
 
 void MediaPlayer::LVP_Subtitle::copy(const LVP_Subtitle &subtitle)
 {
-	this->clip           = subtitle.clip;
-	this->customClip     = subtitle.customClip;
 	this->customPos      = subtitle.customPos;
 	this->customRotation = subtitle.customRotation;
 	this->drawRect       = subtitle.drawRect;
@@ -141,6 +137,28 @@ bool MediaPlayer::LVP_Subtitle::isAlignedTop()
 	auto a = this->getAlignment();
 
 	return ((a == SUB_ALIGN_TOP_LEFT) || (a == SUB_ALIGN_TOP_RIGHT) || (a == SUB_ALIGN_TOP_CENTER));
+}
+
+bool MediaPlayer::LVP_Subtitle::isDuplicate(const LVP_Subtitles& subs) const
+{
+	if (!this->customPos)
+		return false;
+
+	for (auto sub : subs)
+	{
+		if (!sub->customPos)
+			continue;
+
+		if ((sub->position.x == this->position.x) &&
+			(sub->position.y == this->position.y) &&
+			(sub->pts.start  == this->pts.start)  &&
+			(sub->pts.end    == this->pts.end))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool MediaPlayer::LVP_Subtitle::isExpiredPTS(const LVP_SubtitleContext &subContext, double progress) const

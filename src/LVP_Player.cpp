@@ -2422,8 +2422,10 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		if (bitmapSub != NULL)
 			LVP_Player::subContext.subs.push_back(bitmapSub);
 
-		for (auto textSub : textSubs)
-			LVP_Player::subContext.subs.push_back(textSub);
+		for (auto textSub : textSubs) {
+			if (!textSub->isDuplicate(LVP_Player::subContext.subs))
+				LVP_Player::subContext.subs.push_back(textSub);
+		}
 
 		LVP_Player::subContext.available = true;
 		SDL_CondSignal(LVP_Player::subContext.subsCondition);

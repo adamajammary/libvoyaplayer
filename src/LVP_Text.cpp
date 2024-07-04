@@ -48,9 +48,13 @@ int System::LVP_Text::GetWidth(const std::string &text, TTF_Font* font)
 
 bool System::LVP_Text::IsValidSubtitle(const std::string &subtitle)
 {
-	return ((subtitle.rfind("\\p0")  == std::string::npos) && (subtitle.rfind("\\p1") == std::string::npos) &&
-			(subtitle.rfind("\\p2")  == std::string::npos) && (subtitle.rfind("\\p4") == std::string::npos) &&
-			(subtitle.rfind("\\pbo") == std::string::npos));
+	if (subtitle.empty())
+		return false;
+
+	if (std::regex_search(subtitle, std::regex("\\\\pb?o?-?\\d+"))) // custom vector drawing
+		return false;
+
+	return true;
 }
 
 std::string System::LVP_Text::Replace(const std::string &text, const std::string &oldSubstring, const std::string &newSubstring)

@@ -26,8 +26,6 @@ namespace LibVoyaPlayer
 			~LVP_Subtitle();
 
 		public:
-			SDL_Rect      clip;
-			bool          customClip;
 			bool          customPos;
 			bool          customRotation;
 			SDL_Rect      drawRect;
@@ -62,6 +60,7 @@ namespace LibVoyaPlayer
 			bool                isAlignedMiddle();
 			bool                isAlignedRight();
 			bool                isAlignedTop();
+			bool                isDuplicate(const LVP_Subtitles& subs) const;
 			bool                isExpiredPTS(const LVP_SubtitleContext &subContext, double progress) const;
 			bool                isSeekedPTS(const LVP_SubtitleContext  &subContext) const;
 			bool                overlaps(LVP_Subtitle* subtitle) const;

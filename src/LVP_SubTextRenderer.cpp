@@ -246,6 +246,15 @@ std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dial
 	// {\f1}{\f2} => {\f1\f2}
 	subText = System::LVP_Text::Replace(subText, "}{", "");
 
+	// {\ko30\pos(960,5)\c&H1A02C4&}ta{\ko44\c&H1A02C4&}da => {\ko30\pos(960,5)\c&H1A02C4&}tada
+	std::cmatch position;
+
+	auto karaoke    = std::regex("\\{[^{}]*\\\\[kK][fo]?\\d+[^{}]*\\}");
+	bool hasKaraoke = std::regex_search(subText.c_str(), karaoke);
+
+	if (hasKaraoke && std::regex_search(subText.c_str(), position, std::regex("\\{[^{}]*\\\\pos\\([^{}]*\\}")))
+		subText = (position[0].str() + std::regex_replace(subText, karaoke, ""));
+
 	return subText;
 }
 
@@ -341,21 +350,6 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat1(const Strings &an
 			if (!aligned) {
 				sub->style->alignment = LVP_SubStyle::ToSubAlignment(std::atoi(prop.substr(1).c_str()));
 				aligned = true;
-			}
-		}
-		// CLIP
-		else if ((prop.substr(0, 5) == "clip("))
-		{
-			Strings clipProps = System::LVP_Text::Split(prop.substr(5, (prop.size() - 1)), ",");
-
-			if ((clipProps.size() > 3) && !LVP_SubTextRenderer::formatAnimationsContain(animations, "\\clip"))
-			{
-				sub->clip.x = std::atoi(clipProps[0].c_str());
-				sub->clip.y = std::atoi(clipProps[1].c_str());
-				sub->clip.w = (std::atoi(clipProps[2].c_str()) - sub->clip.x);
-				sub->clip.h = (std::atoi(clipProps[3].c_str()) - sub->clip.y);
-
-				sub->customClip = true;
 			}
 		}
 		// POSITION
@@ -998,21 +992,14 @@ void MediaPlayer::LVP_SubTextRenderer::renderSub(Graphics::LVP_SubTexture* subTe
 	if ((subTexture == NULL) || !IS_VALID_TEXTURE(subTexture->textureData) || System::LVP_Text::Trim(subTexture->subtitle->text).empty())
 		return;
 
-	SDL_Rect* clip = NULL;
-
-	if (subTexture->subtitle->customClip)
-	{
-		clip = &subTexture->subtitle->clip;
-
-		subTexture->locationRender.x += subTexture->subtitle->clip.x;
-		subTexture->locationRender.y += subTexture->subtitle->clip.y;
-		subTexture->locationRender.w  = subTexture->subtitle->clip.w;
-		subTexture->locationRender.h  = subTexture->subtitle->clip.h;
-	}
-
 	SDL_RenderCopyEx(
-		renderer, subTexture->textureData->data, clip, &subTexture->locationRender,
-		subTexture->subtitle->rotation, &subTexture->subtitle->rotationPoint, SDL_FLIP_NONE
+		renderer,
+		subTexture->textureData->data,
+		NULL,
+		&subTexture->locationRender,
+		subTexture->subtitle->rotation,
+		&subTexture->subtitle->rotationPoint,
+		SDL_FLIP_NONE
 	);
 }
 
@@ -1331,28 +1318,6 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionAbsolute(const Graphics::LV
 
 			subTexture->subtitle->rotationPoint.x -= (subTexture->locationRender.x - position.x);
 
-			// CLIP
-			if (subTexture->subtitle->customClip)
-			{
-				int offsetX = 0;
-				int offsetY = 0;
-
-				if (subTexture->subtitle->isAlignedRight())
-					offsetX = subTexture->locationRender.w;
-				else if (subTexture->subtitle->isAlignedCenter())
-					offsetX = (subTexture->locationRender.w / 2);
-
-				if (subTexture->subtitle->isAlignedBottom())
-					offsetY = subTexture->locationRender.h;
-				else if (subTexture->subtitle->isAlignedMiddle())
-					offsetY = (subTexture->locationRender.h / 2);
-
-				subTexture->subtitle->clip.x = std::max((subTexture->subtitle->clip.x - (position.x - offsetX)), 0);
-				subTexture->subtitle->clip.y = std::max((subTexture->subtitle->clip.y - (position.y - offsetY)), 0);
-				subTexture->subtitle->clip.w = std::min(subTexture->subtitle->clip.w, subTexture->locationRender.w);
-				subTexture->subtitle->clip.h = std::min(subTexture->subtitle->clip.h, subTexture->locationRender.h);
-			}
-
 			offsetX = (subTexture->locationRender.x + subTexture->locationRender.w + LVP_SubStyle::GetOffsetX(prevSub, subContext));
 			offsetY = subTexture->locationRender.y;
 			prevSub = subTexture;
@@ -1654,7 +1619,7 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 
 		for (auto &subLine : subLines)
 		{
-			// CUSTOM DRAW OPERATION - Fill Rect
+			// Perform supported draw operation (fill rect)
 			LVP_SubTextRenderer::formatDrawCommand(subLine, dialogueSplit, subID, subs, subContext);
 
 			// Skip unsupported draw operations
