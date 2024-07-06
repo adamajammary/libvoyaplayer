@@ -46,7 +46,6 @@ namespace LibVoyaPlayer
 
 		public:
 			void                copy(const LVP_Subtitle &subtitle);
-			int                 getBlur() const;
 			Graphics::LVP_Color getColor() const;
 			Graphics::LVP_Color getColorOutline() const;
 			Graphics::LVP_Color getColorShadow() const;

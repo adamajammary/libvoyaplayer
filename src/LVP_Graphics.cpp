@@ -1,57 +1,5 @@
 #include "LVP_Graphics.h"
 
-// https://boldaestheticcreative.com/2018/01/box-blur-with-sdl2/
-void Graphics::LVP_Graphics::Blur(SDL_Surface* surface, int effect)
-{
-	int  radius       = 1;
-	auto block        = ((radius * 2) + 1);
-	auto blockSquared = (block * block);
-	auto pixels       = static_cast<uint32_t*>(surface->pixels);
-	auto pixelsPerRow = (surface->pitch / 4);
-
-	for (int i = 0; i < effect; i++)
-	{
-		for (int y = 0; y < surface->h; y++) {
-		for (int x = 0; x < pixelsPerRow; x++)
-		{
-			uint32_t r2 = 0, g2 = 0, b2 = 0, a2 = 0;
-
-			for (int y2 = -radius; y2 <= radius; y2++) {
-			for (int x2 = -radius; x2 <= radius; x2++)
-			{
-				auto y3 = (y + y2);
-				auto x3 = (x + x2);
-
-				if ((y3 < 0) || (x3 < 0) || (y3 >= surface->h) || (x3 >= pixelsPerRow))
-					continue;
-
-				auto pixel3 = ((y3 * pixelsPerRow) + x3);
-				auto color3 = pixels[pixel3];
-
-				uint8_t r3 = 0, g3 = 0, b3 = 0, a3 = 0;
-				SDL_GetRGBA(color3, surface->format, &r3, &g3, &b3, &a3);
-
-				r2 += r3;
-				g2 += g3;
-				b2 += b3;
-				a2 += a3;
-			}
-			}
-
-			auto r = (uint8_t)(r2 / blockSquared);
-			auto g = (uint8_t)(g2 / blockSquared);
-			auto b = (uint8_t)(b2 / blockSquared);
-			auto a = (uint8_t)(a2 / blockSquared);
-
-			auto color = (r | (g << 8) | (b << 16) | (a << 24));
-			auto pixel = ((y * pixelsPerRow) + x);
-
-			pixels[pixel] = color;
-		}
-		}
-	}
-}
-
 void Graphics::LVP_Graphics::FillArea(const LVP_Color &color, const SDL_Rect &button, SDL_Renderer* renderer)
 {
 	SDL_SetRenderDrawBlendMode(renderer, (color.a < 0xFF ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE));

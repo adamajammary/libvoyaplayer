@@ -44,13 +44,6 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubFill(uint16
 			return NULL;
 		}
 
-		auto blur    = sub->getBlur();
-		auto outline = sub->getOutline(subContext.scale);
-		auto shadow  = sub->getShadow(subContext.scale);
-
-		if (!isBorderStyleBox && (blur > 0) && (outline < 1) && (shadow.x < 1) && (shadow.y < 1))
-			Graphics::LVP_Graphics::Blur(surface, blur);
-
 		subFill->textureData = new Graphics::LVP_Texture(surface, renderer);
 
 		FREE_SURFACE(surface);
@@ -95,12 +88,6 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubOutline(Gra
 	if (surface == NULL)
 		return NULL;
 
-	auto blur   = subFill->subtitle->getBlur();
-	auto shadow = subFill->subtitle->getShadow(subContext.scale);
-
-	if ((blur > 0) && (shadow.x < 1) && (shadow.y < 1))
-		Graphics::LVP_Graphics::Blur(surface, blur);
-
 	auto subOutline = new Graphics::LVP_SubTexture(*subFill);
 
 	subOutline->textureData = new Graphics::LVP_Texture(surface, renderer);
@@ -140,7 +127,7 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 	if (font == NULL)
 		return NULL;
 
-	TTF_SetFontOutline(font, 0);
+	TTF_SetFontOutline(font, subFill->subtitle->getOutline(subContext.scale));
 	TTF_SetFontStyle(font,   0);
 
 	if (subFill->subtitle->style != NULL)
@@ -150,11 +137,6 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 
 	if (surface == NULL)
 		return NULL;
-
-	int blur = subFill->subtitle->getBlur();
-
-	if (blur > 0)
-		Graphics::LVP_Graphics::Blur(surface, blur);
 
 	auto subShadow = new Graphics::LVP_SubTexture(*subFill);
 
@@ -175,10 +157,11 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 			subShadow->textureData->height = (int)((float)subShadow->textureData->height * subFill->subtitle->style->fontScale.y);
 	}
 
-	SDL_Point shadow = subFill->subtitle->getShadow(subContext.scale);
+	int       outline = TTF_GetFontOutline(font);
+	SDL_Point shadow  = subFill->subtitle->getShadow(subContext.scale);
 
-	subShadow->locationRender.x += shadow.x;
-	subShadow->locationRender.y += shadow.y;
+	subShadow->locationRender.x += (shadow.x - outline);
+	subShadow->locationRender.y += (shadow.y - outline);
 	subShadow->locationRender.w  = subShadow->textureData->width;
 	subShadow->locationRender.h  = subShadow->textureData->height;
 
@@ -410,7 +393,7 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 				sub->style->colorPrimary = defaultStyle->colorPrimary;
 		}
 		// COLOR - Primary Fill
-		if (prop.substr(0, 3) == "c&H")
+		else if (prop.substr(0, 3) == "c&H")
 		{
 			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\c&H")) {
 				auto color               = Graphics::LVP_Graphics::ToLVPColor(prop.substr(1, 8));
@@ -428,7 +411,7 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// COLOR - Secondary Fill
 		else if (prop.substr(0, 4) == "2c&H")
 		{
-			//
+			// This is only used for pre-highlight in standard karaoke.
 		}
 		// COLOR - Outline Border
 		else if (prop.substr(0, 4) == "3c&H")
@@ -463,7 +446,7 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// ALPHA - Secondary Fill
 		else if (prop.substr(0, 4) == "2a&H")
 		{
-			//
+			// This is only used for pre-highlight in standard karaoke.
 		}
 		// ALPHA - Outline Border
 		else if (prop.substr(0, 4) == "3a&H")
@@ -504,13 +487,9 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// BLUR EFFECT
 		else if ((prop.substr(0, 4) == "blur") && isdigit(prop[4]))
 		{
-			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\blur"))
-				sub->style->blur = (int)std::round(std::atof(prop.substr(4).c_str()));
 		}
 		else if ((prop.substr(0, 2) == "be") && isdigit(prop[2]))
 		{
-			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\be"))
-				sub->style->blur = (int)std::round(std::atof(prop.substr(2).c_str()));
 		}
 		// FONT - Name
 		else if (prop.substr(0, 2) == "fn")
@@ -544,7 +523,6 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// FONT - Letter Spacing
 		else if ((prop.substr(0, 3) == "fsp") && isdigit(prop[3]))
 		{
-			//
 		}
 		// FONT - Size
 		else if ((prop.substr(0, 2) == "fs") && isdigit(prop[2]))
@@ -600,11 +578,9 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// ROTATION - Degrees
 		else if ((prop.substr(0, 3) == "frx") && (isdigit(prop[3]) || (prop[3] == '-')))
 		{
-			//
 		}
 		else if ((prop.substr(0, 3) == "fry") && (isdigit(prop[3]) || (prop[3] == '-')))
 		{
-			//
 		}
 		else if ((prop.substr(0, 3) == "frz") && (isdigit(prop[3]) || (prop[3] == '-')))
 		{
@@ -1300,7 +1276,6 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionAbsolute(const Graphics::LV
 			if (subTexture->subtitle->text == " ")
 			{
 				if (subTexture->subtitle->style != NULL) {
-					subTexture->subtitle->style->blur    = 0;
 					subTexture->subtitle->style->outline = 0;
 					subTexture->subtitle->style->shadow  = {};
 				}
@@ -1441,7 +1416,6 @@ void MediaPlayer::LVP_SubTextRenderer::setSubPositionRelative(const Graphics::LV
 			if (subTexture->subtitle->text == " ")
 			{
 				if (subTexture->subtitle->style != NULL) {
-					subTexture->subtitle->style->blur    = 0;
 					subTexture->subtitle->style->outline = 0;
 					subTexture->subtitle->style->shadow  = {};
 				}

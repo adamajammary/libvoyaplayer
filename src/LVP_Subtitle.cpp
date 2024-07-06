@@ -49,11 +49,6 @@ MediaPlayer::LVP_SubAlignment MediaPlayer::LVP_Subtitle::getAlignment() const
 	return this->style->alignment;
 }
 
-int MediaPlayer::LVP_Subtitle::getBlur() const
-{
-	return this->style->blur;
-}
-
 Graphics::LVP_Color MediaPlayer::LVP_Subtitle::getColor() const
 {
 	return this->style->colorPrimary;

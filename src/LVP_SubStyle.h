@@ -84,7 +84,6 @@ namespace LibVoyaPlayer
 
 		public:
 			LVP_SubAlignment    alignment;
-			int                 blur;
 			LVP_SubBorderStyle  borderStyle;
 			Graphics::LVP_Color colorOutline;
 			Graphics::LVP_Color colorPrimary;

@@ -4,7 +4,6 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle()
 {
 	this->alignment    = SUB_ALIGN_BOTTOM_CENTER;
 	this->borderStyle  = SUB_BORDER_STYLE_OUTLINE;
-	this->blur         = 0;
 	this->colorPrimary = LVP_COLOR_WHITE;
 	this->colorOutline = {};
 	this->colorShadow  = {};
@@ -29,7 +28,6 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle()
 MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion version)
 {
 	this->alignment = SUB_ALIGN_BOTTOM_CENTER;
-	this->blur      = 0;
 	this->fontStyle = 0;
 	this->marginL   = 0;
 	this->marginR   = 0;
@@ -134,7 +132,6 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 void MediaPlayer::LVP_SubStyle::copy(const LVP_SubStyle &subStyle)
 {
 	this->alignment    = subStyle.alignment;
-	this->blur         = subStyle.blur;
 	this->borderStyle  = subStyle.borderStyle;
 	this->colorOutline = subStyle.colorOutline;
 	this->colorPrimary = subStyle.colorPrimary;
