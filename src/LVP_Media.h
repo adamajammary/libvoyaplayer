@@ -43,7 +43,6 @@ namespace LibVoyaPlayer
 			static size_t                             getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
 			static std::map<std::string, std::string> getMeta(LibFFmpeg::AVDictionary* metadata);
 			static bool                               isDRM(LibFFmpeg::AVDictionary* metaData);
-
 		};
 	}
 }

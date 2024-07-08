@@ -35,8 +35,7 @@ const LibFFmpeg::AVCodecHWConfig* MediaPlayer::LVP_Media::getHardwareConfig(cons
 {
 	const LibFFmpeg::AVCodecHWConfig* hardwareConfig = NULL;
 
-	for (int i = 0; (hardwareConfig = LibFFmpeg::avcodec_get_hw_config(decoder, i)) != NULL; i++)
-	{
+	for (int i = 0; (hardwareConfig = LibFFmpeg::avcodec_get_hw_config(decoder, i)) != NULL; i++) {
 		if (hardwareConfig->methods & LibFFmpeg::AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
 			return hardwareConfig;
 	}
@@ -545,7 +544,7 @@ MediaPlayer::LVP_SubPTS MediaPlayer::LVP_Media::GetSubtitlePTS(LibFFmpeg::AVPack
 	start *= LibFFmpeg::av_q2d(timeBase);
 
 	if (frame.start_display_time > 0)
-		start += (double)((double)frame.start_display_time / (double)ONE_SECOND_MS);
+		start += (double)((double)frame.start_display_time / ONE_SECOND_MS);
 
 	// END PTS
 	double end;
@@ -553,7 +552,7 @@ MediaPlayer::LVP_SubPTS MediaPlayer::LVP_Media::GetSubtitlePTS(LibFFmpeg::AVPack
 	if (frame.end_display_time == UINT32_MAX)
 		end = UINT32_MAX;
 	else if (frame.end_display_time > 0)
-		end = (double)(start + (double)((double)frame.end_display_time / (double)ONE_SECOND_MS));
+		end = (double)(start + (double)((double)frame.end_display_time / ONE_SECOND_MS));
 	else if (packet->duration > 0)
 		end = (double)(start + (double)((double)packet->duration * LibFFmpeg::av_q2d(timeBase)));
 	else
@@ -641,8 +640,7 @@ LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Media::getHardwarePixelFormat(LibFFmpe
 {
 	const LibFFmpeg::AVPixelFormat* pixelFormat;
 
-	for (pixelFormat = pixelFormats; *pixelFormat != LibFFmpeg::AV_PIX_FMT_NONE; pixelFormat++)
-	{
+	for (pixelFormat = pixelFormats; *pixelFormat != LibFFmpeg::AV_PIX_FMT_NONE; pixelFormat++) {
 		if (*pixelFormat == LVP_Player::GetPixelFormatHardware())
 			return *pixelFormat;
 	}

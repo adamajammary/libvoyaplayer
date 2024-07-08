@@ -165,7 +165,7 @@ namespace LibVoyaPlayer
 
 		#define IS_ATTACHMENT(t)    (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
 		#define IS_AUDIO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
-		#define IS_BYTE_SEEK(i)     (!i->read_seek && !(i->flags & AVFMT_NO_BYTE_SEEK))
+		#define IS_BYTE_SEEK(i)     (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
 		#define IS_SUB(t)           (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
 		#define IS_SUB_TEXT(t)      ((t == LibFFmpeg::SUBTITLE_ASS) || (t == LibFFmpeg::SUBTITLE_TEXT))
 		#define IS_VALID_TEXTURE(t) ((t != NULL) && (t->data != NULL))
@@ -205,7 +205,7 @@ namespace LibVoyaPlayer
 		const int   MIN_PACKET_QUEUE_SIZE = 25;
 		const int   MIN_SUB_PACKET_SIZE   = 100;
 
-		const int ONE_SECOND_MS = 1000;
+		const double ONE_SECOND_MS = 1000.0;
 
 		const auto     SUB_PIXEL_FORMAT_FFMPEG = LibFFmpeg::AV_PIX_FMT_BGRA;
 		const uint32_t SUB_PIXEL_FORMAT_SDL    = SDL_PIXELFORMAT_ARGB8888;

@@ -20,8 +20,8 @@ Library | Version | License
 ------- | ------- | -------
 [SDL2](https://www.libsdl.org/) | [2.30.1](https://www.libsdl.org/release/SDL2-2.30.1.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
 [SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) | [2.22.0](https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-2.22.0.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
-[FFmpeg](https://ffmpeg.org/) | [6.1.1](https://ffmpeg.org/releases/ffmpeg-6.1.1.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
-[libaom](https://aomedia.googlesource.com/aom/) | [3.8.1](https://storage.googleapis.com/aom-releases/libaom-3.8.1.tar.gz) | [Alliance for Open Media Patent License](https://aomedia.org/license/software-license/)
+[FFmpeg](https://ffmpeg.org/) | [7.0.1](https://ffmpeg.org/releases/ffmpeg-7.0.1.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[dav1d](https://www.videolan.org/projects/dav1d.html) | [1.4.3](https://code.videolan.org/videolan/dav1d/-/archive/1.4.3/dav1d-1.4.3.tar.gz) | [BSD 2-Clause "Simplified" License](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
 [zLib](http://www.zlib.net/) | [1.3.1](https://www.zlib.net/zlib-1.3.1.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
 
 ## Platform-dependent Include Headers
@@ -274,47 +274,47 @@ If you don't use SDL2 for rendering, you need to copy the pixels to a bitmap/ima
 - The `.pitch` property will contain the byte size of a row of RGB pixels
 
 ```cpp
-SDL_Texture* Texture          = nullptr;
-SDL_Surface* VideoFrame       = nullptr;
-bool         VideoIsAvailable = false;
-std::mutex   VideoLock;
+SDL_Texture* texture          = nullptr;
+SDL_Surface* videoFrame       = nullptr;
+bool         videoIsAvailable = false;
+std::mutex   videoLock;
 
-void TestPlayer::handleVideoIsAvailable(SDL_Surface* videoSurface, const void* data)
+void handleVideoIsAvailable(SDL_Surface* videoSurface, const void* data)
 {
-  VideoLock.lock();
+  videoLock.lock();
 
-  if (VideoFrame)
-    SDL_FreeSurface(VideoFrame);
+  if (videoFrame)
+    SDL_FreeSurface(videoFrame);
 
-  VideoFrame       = videoSurface;
-  VideoIsAvailable = true;
+  videoFrame       = videoSurface;
+  videoIsAvailable = true;
 
-  VideoLock.unlock();
+  videoLock.unlock();
 }
 
 void render(SDL_Renderer* renderer, const SDL_Rect &destination)
 {
-  VideoLock.lock();
+  videoLock.lock();
 
-  if (!Texture && VideoFrame) {
-    Texture = SDL_CreateTexture(
+  if (!texture && videoFrame) {
+    texture = SDL_CreateTexture(
       renderer,
-      VideoFrame->format->format,
+      videoFrame->format->format,
       SDL_TEXTUREACCESS_STREAMING,
-      VideoFrame->w,
-      VideoFrame->h
+      videoFrame->w,
+      videoFrame->h
     );
   }
 
-  if (VideoIsAvailable && Texture && VideoFrame) {
-    VideoIsAvailable = false;
-    SDL_UpdateTexture(Texture, nullptr, VideoFrame->pixels, VideoFrame->pitch);
+  if (videoIsAvailable && texture && videoFrame) {
+    videoIsAvailable = false;
+    SDL_UpdateTexture(texture, nullptr, videoFrame->pixels, videoFrame->pitch);
   }
 
-  if (Texture)
-    SDL_RenderCopy(renderer, Texture, nullptr, &destination);
+  if (texture)
+    SDL_RenderCopy(renderer, texture, nullptr, &destination);
 
-  VideoLock.unlock();
+  videoLock.unlock();
 }
 ```
 
@@ -326,12 +326,12 @@ Make sure to call [LVP_Quit](#lvp_quit) to cleanup all resources and close the l
 void quit() {
   LVP_Quit();
 
-  VideoLock.lock();
+  videoLock.lock();
 
-  SDL_DestroyTexture(Texture);
-  SDL_FreeSurface(VideoFrame);
+  SDL_DestroyTexture(texture);
+  SDL_FreeSurface(videoFrame);
 
-  VideoLock.unlock();
+  videoLock.unlock();
 }
 ```
 

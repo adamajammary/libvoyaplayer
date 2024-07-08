@@ -172,6 +172,7 @@ namespace LibVoyaPlayer
 			static void                        handleSeek();
 			static void                        initAudioFilter();
 			static void                        initSubTextures();
+			static bool                        isHardwarePixelFormat(int frameFormat);
 			static bool                        isPacketQueueFull();
 			static bool                        isPacketQueueFull(LibFFmpeg::AVMediaType streamType);
 			static void                        openAudioDevice(const SDL_AudioSpec &wantedSpecs);
@@ -202,7 +203,6 @@ namespace LibVoyaPlayer
 			static int                         threadPackets(void* userData);
 			static int                         threadSub(void* userData);
 			static int                         threadVideo(void* userData);
-
 		};
 	}
 }

@@ -744,6 +744,13 @@ void MediaPlayer::LVP_Player::initSubTextures()
 	LVP_Player::clearSubTextures();
 }
 
+bool MediaPlayer::LVP_Player::isHardwarePixelFormat(int frameFormat)
+{
+	auto format = (LibFFmpeg::AVPixelFormat)frameFormat;
+
+	return ((format != LibFFmpeg::AVPixelFormat::AV_PIX_FMT_NONE) && (format == LVP_Player::videoContext.pixelFormatHardware));
+}
+
 bool MediaPlayer::LVP_Player::IsMuted()
 {
 	return LVP_Player::audioContext.isMuted;
@@ -2504,7 +2511,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 	auto videoStream = LVP_Player::videoContext.stream;
 
 	int  errorCount                  = 0;
-	auto videoFrameDuration2x        = (int)(LVP_Player::videoContext.frameRate * 2.0 * (double)ONE_SECOND_MS);
+	auto videoFrameDuration2x        = (int)(LVP_Player::videoContext.frameRate * 2.0 * ONE_SECOND_MS);
 	auto videoFrameDuration2xSeconds = (LVP_Player::videoContext.frameRate * 2.0);
 
 	while (!LVP_Player::state.quit)
@@ -2538,14 +2545,13 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 		if (LVP_Player::state.quit)
 			break;
 
-		if ((LibFFmpeg::AVPixelFormat)videoFrameHardware->format == LVP_Player::videoContext.pixelFormatHardware)
+		if (LVP_Player::isHardwarePixelFormat(videoFrameHardware->format))
 		{
 			result = LibFFmpeg::av_hwframe_transfer_data(videoFrameSoftware, videoFrameHardware, 0);
 
 			videoFrameSoftware->best_effort_timestamp = videoFrameHardware->best_effort_timestamp;
 
 			videoFrame = videoFrameSoftware;
-
 		} else {
 			videoFrame = videoFrameHardware;
 		}
@@ -2618,7 +2624,7 @@ int MediaPlayer::LVP_Player::threadVideo(void* userData)
 			}
 		}
 
-		auto sleepTime = (int)((LVP_Player::videoContext.pts - LVP_Player::state.progress) * (double)ONE_SECOND_MS);
+		auto sleepTime = (int)((LVP_Player::videoContext.pts - LVP_Player::state.progress) * ONE_SECOND_MS);
 
 		LVP_Player::videoContext.isReadyForRender = true;
 
