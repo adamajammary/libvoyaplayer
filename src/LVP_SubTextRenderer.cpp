@@ -230,14 +230,14 @@ std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dial
 	// {\f1}{\f2} => {\f1\f2}
 	subText = System::LVP_Text::Replace(subText, "}{", "");
 
-	// {\ko30\pos(960,5)\c&H1A02C4&}ta{\ko44\c&H1A02C4&}da => {\ko30\pos(960,5)\c&H1A02C4&}tada
-	std::cmatch position;
+	// {\move(960,190,960,250,10,3520)\c&HFAFFF6&}A{\c&H2E5FF1&}b{\c&HFAFFF6&}c => {\move(960,190,960,250,10,3520)\c&HFAFFF6&}Abc
+	// {\pos(668.667,224.667)\c&HFAFFF6&}A{\c&H2E5FF1&}b{\c&HFAFFF6&}c          => {\pos(668.667,224.667)\c&HFAFFF6&}Abc
+	std::cmatch move, position;
 
-	auto karaoke    = std::regex("\\{[^{}]*\\\\[kK][fo]?\\d+[^{}]*\\}");
-	bool hasKaraoke = std::regex_search(subText.c_str(), karaoke);
-
-	if (hasKaraoke && std::regex_search(subText.c_str(), position, std::regex("\\{[^{}]*\\\\pos\\([^{}]*\\}")))
-		subText = (position[0].str() + std::regex_replace(subText, karaoke, ""));
+	if (std::regex_search(subText.c_str(), position, std::regex("\\{[^{}]*\\\\pos\\([^{}]*\\}")))
+		subText = (position[0].str() + std::regex_replace(subText, std::regex("\\{[^{}]*\\}"), ""));
+	else if (std::regex_search(subText.c_str(), move, std::regex("\\{[^{}]*\\\\move\\([^{}]*\\}")))
+		subText = (move[0].str() + std::regex_replace(subText, std::regex("\\{[^{}]*\\}"), ""));
 
 	return subText;
 }
