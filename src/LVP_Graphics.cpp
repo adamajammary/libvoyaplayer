@@ -1,16 +1,16 @@
 #include "LVP_Graphics.h"
 
-void Graphics::LVP_Graphics::FillArea(const LVP_Color &color, const SDL_Rect &button, SDL_Renderer* renderer)
+void Graphics::LVP_Graphics::FillArea(const LVP_Color &color, const SDL_Rect &area, SDL_Renderer* renderer)
 {
 	SDL_SetRenderDrawBlendMode(renderer, (color.a < 0xFF ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE));
 	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 	
-	SDL_RenderFillRect(renderer, &button);
+	SDL_RenderFillRect(renderer, &area);
 }
 
-void Graphics::LVP_Graphics::FillBorder(const LVP_Color &color, const SDL_Rect &button, const LVP_Border &borderThickness, SDL_Renderer* renderer)
+void Graphics::LVP_Graphics::FillBorder(const LVP_Color &color, const SDL_Rect &area, const LVP_Border &borderThickness, SDL_Renderer* renderer)
 {
-	SDL_Rect borderLine = SDL_Rect(button);
+	SDL_Rect borderLine = SDL_Rect(area);
 
 	// TOP
 	borderLine.h = borderThickness.top;
@@ -18,22 +18,22 @@ void Graphics::LVP_Graphics::FillBorder(const LVP_Color &color, const SDL_Rect &
 	LVP_Graphics::FillArea(color, borderLine, renderer);
 
 	// BOTTOM
-	borderLine.y = (button.y + button.h - borderThickness.bottom);
+	borderLine.y = (area.y + area.h - borderThickness.bottom);
 	borderLine.h = borderThickness.bottom;
 
 	LVP_Graphics::FillArea(color, borderLine, renderer);
 
 	// LEFT
-	borderLine.y = button.y;
+	borderLine.y = area.y;
 	borderLine.w = borderThickness.left;
-	borderLine.h = button.h;
+	borderLine.h = area.h;
 
 	LVP_Graphics::FillArea(color, borderLine, renderer);
 
 	// RIGHT
-	borderLine.x = (button.x + button.w - borderThickness.right);
+	borderLine.x = (area.x + area.w - borderThickness.right);
 	borderLine.w = borderThickness.right;
-	borderLine.h = button.h;
+	borderLine.h = area.h;
 
 	LVP_Graphics::FillArea(color, borderLine, renderer);
 }

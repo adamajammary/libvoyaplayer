@@ -144,9 +144,10 @@ bool MediaPlayer::LVP_Subtitle::isDuplicate(const LVP_Subtitles& subs) const
 		if (!sub->customPos)
 			continue;
 
-		if ((sub->position.x == this->position.x) &&
+		if ((sub->layer      == this->layer) && 
+			(sub->position.x == this->position.x) &&
 			(sub->position.y == this->position.y) &&
-			(sub->pts.start  == this->pts.start)  &&
+			(sub->pts.start  == this->pts.start) &&
 			(sub->pts.end    == this->pts.end))
 		{
 			return true;

@@ -231,6 +231,7 @@ namespace LibVoyaPlayer
 		typedef std::queue<LibFFmpeg::AVPacket*>       LVP_Packets;
 		typedef std::list<LVP_Subtitle*>               LVP_Subtitles;
 		typedef std::unordered_map<int, LVP_Subtitles> LVP_SubtitlesById;
+		typedef std::map<int, LVP_Subtitles>           LVP_SubtitlesByLayer;
 		typedef std::vector<LVP_SubString>             LVP_SubStrings;
 		typedef std::vector<LVP_SubStyle*>             LVP_SubStyles;
 

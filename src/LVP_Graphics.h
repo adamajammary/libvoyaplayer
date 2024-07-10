@@ -16,8 +16,8 @@ namespace LibVoyaPlayer
 			~LVP_Graphics() {}
 
 		public:
-			static void      FillArea(const LVP_Color &color, const SDL_Rect &button, SDL_Renderer* renderer);
-			static void      FillBorder(const LVP_Color &color, const SDL_Rect &button, const LVP_Border &borderThickness, SDL_Renderer* renderer);
+			static void      FillArea(const LVP_Color &color, const SDL_Rect &area, SDL_Renderer* renderer);
+			static void      FillBorder(const LVP_Color &color, const SDL_Rect &area, const LVP_Border &borderThickness, SDL_Renderer* renderer);
 			static LVP_Color ToLVPColor(const std::string &colorHex);
 
 		};

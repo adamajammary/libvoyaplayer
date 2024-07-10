@@ -39,7 +39,6 @@ namespace LibVoyaPlayer
 			~LVP_SubTextRenderer() {}
 
 		private:
-			static Graphics::LVP_Color         drawColor;
 			static Graphics::LVP_SubTexturesId subsBottom;
 			static Graphics::LVP_SubTexturesId subsMiddle;
 			static Graphics::LVP_SubTexturesId subsPosition;
@@ -56,13 +55,13 @@ namespace LibVoyaPlayer
 			static Graphics::LVP_SubTexture* createSubOutline(Graphics::LVP_SubTexture* subFill, SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static Graphics::LVP_SubTexture* createSubShadow(Graphics::LVP_SubTexture* subFill, SDL_Renderer* renderer, LVP_SubtitleContext &subContext);
 			static bool                      formatAnimationsContain(const Strings &animations, const std::string &string);
-			static void                      formatDrawCommand(const std::string &subText, const Strings &subSplit, int subID, LVP_Subtitles &subs, const LVP_SubtitleContext &subContext);
+			static void                      formatDrawCommand(const std::string &text, const Strings &split, int id, int layer, LVP_Subtitles &subs, const LVP_SubtitleContext &context);
 			static Strings                   formatGetAnimations(const std::string &subString);
 			static void                      formatOverrideStyleCat1(const Strings &animations, LVP_Subtitle* sub, const LVP_SubStyles &subStyles);
 			static void                      formatOverrideStyleCat2(const Strings &animations, LVP_Subtitle* sub, const LVP_SubStyles &subStyles);
 			static std::string               formatRemoveAnimations(const std::string &subString);
 			static Strings                   formatSplitStyling(const std::string &subText, LVP_SubStyle* subStyle, LVP_SubtitleContext &subContext);
-			static SDL_Rect                  getDrawRect(const std::string &subLine, LVP_SubStyle* style);
+			static SDL_Rect                  getDrawRect(const std::string &subLine, LVP_SubStyle* style, double scale);
 			static LVP_SubStyle*             getSubStyle(const LVP_SubStyles &subStyles, const Strings &subSplit);
 			static std::string               getSubText(const std::string &dialogueText, size_t nrStyles, LVP_SubStyleVersion version);
 			static void                      handleSubCollisions(const Graphics::LVP_SubTextureId &subTextures, const Graphics::LVP_SubTexturesId &subs);

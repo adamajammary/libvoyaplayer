@@ -1,6 +1,5 @@
 #include "LVP_SubTextRenderer.h"
 
-Graphics::LVP_Color         MediaPlayer::LVP_SubTextRenderer::drawColor = LVP_COLOR_BLACK;
 Graphics::LVP_SubTexturesId MediaPlayer::LVP_SubTextRenderer::subsBottom;
 Graphics::LVP_SubTexturesId MediaPlayer::LVP_SubTextRenderer::subsMiddle;
 Graphics::LVP_SubTexturesId MediaPlayer::LVP_SubTextRenderer::subsPosition;
@@ -25,8 +24,7 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubFill(uint16
 	if (subString16 == NULL)
 		return NULL;
 
-	SDL_Surface* surface = NULL;
-	auto         subFill = new Graphics::LVP_SubTexture(sub);
+	auto subFill = new Graphics::LVP_SubTexture(sub);
 	
 	subFill->textUTF16 = subString16;
 
@@ -34,10 +32,19 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubFill(uint16
 	{
 		bool isBorderStyleBox = ((sub->style != NULL) && (sub->style->borderStyle == SUB_BORDER_STYLE_BOX));
 
-		if (isBorderStyleBox)
-			surface = TTF_RenderUNICODE_Shaded(font, subFill->textUTF16, sub->getColor(), sub->style->colorShadow);
-		else
-			surface = TTF_RenderUNICODE_Blended(font, subFill->textUTF16, sub->getColor());
+		SDL_Surface* surface;
+
+		if (sub->text.find("\n") != std::string::npos) {
+			if (isBorderStyleBox)
+				surface = TTF_RenderUNICODE_Shaded_Wrapped(font, subFill->textUTF16, sub->getColor(), sub->style->colorShadow, 0);
+			else
+				surface = TTF_RenderUNICODE_Blended_Wrapped(font, subFill->textUTF16, sub->getColor(), 0);
+		} else {
+			if (isBorderStyleBox)
+				surface = TTF_RenderUNICODE_Shaded(font, subFill->textUTF16, sub->getColor(), sub->style->colorShadow);
+			else
+				surface = TTF_RenderUNICODE_Blended(font, subFill->textUTF16, sub->getColor());
+		}
 
 		if (surface == NULL) {
 			DELETE_POINTER(subFill);
@@ -72,6 +79,11 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubOutline(Gra
 	if ((subFill == NULL) || (subFill->subtitle == NULL) || (subFill->textureData == NULL))
 		return NULL;
 
+	bool isBorderStyleBox = ((subFill->subtitle->style != NULL) && (subFill->subtitle->style->borderStyle == SUB_BORDER_STYLE_BOX));
+
+	if (isBorderStyleBox)
+		return NULL;
+
 	auto font = subFill->subtitle->getFont(subContext);
 
 	if (font == NULL)
@@ -83,7 +95,12 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubOutline(Gra
 	if (subFill->subtitle->style != NULL)
 		TTF_SetFontStyle(font, subFill->subtitle->style->fontStyle);
 
-	SDL_Surface* surface = TTF_RenderUNICODE_Blended(font, subFill->textUTF16, subFill->subtitle->getColorOutline());
+	SDL_Surface* surface;
+
+	if (subFill->subtitle->text.find("\n") != std::string::npos)
+		surface = TTF_RenderUNICODE_Blended_Wrapped(font, subFill->textUTF16, subFill->subtitle->getColorOutline(), 0);
+	else
+		surface = TTF_RenderUNICODE_Blended(font, subFill->textUTF16, subFill->subtitle->getColorOutline());
 
 	if (surface == NULL)
 		return NULL;
@@ -122,6 +139,11 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 	if ((subFill == NULL) || (subFill->subtitle == NULL) || (subFill->textureData == NULL))
 		return NULL;
 
+	bool isBorderStyleBox = ((subFill->subtitle->style != NULL) && (subFill->subtitle->style->borderStyle == SUB_BORDER_STYLE_BOX));
+
+	if (isBorderStyleBox)
+		return NULL;
+
 	auto font = subFill->subtitle->getFont(subContext);
 
 	if (font == NULL)
@@ -133,7 +155,12 @@ Graphics::LVP_SubTexture* MediaPlayer::LVP_SubTextRenderer::createSubShadow(Grap
 	if (subFill->subtitle->style != NULL)
 		TTF_SetFontStyle(font, subFill->subtitle->style->fontStyle);
 
-	SDL_Surface* surface = TTF_RenderUNICODE_Blended(font, subFill->textUTF16, subFill->subtitle->getColorShadow());
+	SDL_Surface* surface;
+
+	if (subFill->subtitle->text.find("\n") != std::string::npos)
+		surface = TTF_RenderUNICODE_Blended_Wrapped(font, subFill->textUTF16, subFill->subtitle->getColorShadow(), 0);
+	else
+		surface = TTF_RenderUNICODE_Blended(font, subFill->textUTF16, subFill->subtitle->getColorShadow());
 
 	if (surface == NULL)
 		return NULL;
@@ -188,88 +215,37 @@ bool MediaPlayer::LVP_SubTextRenderer::formatAnimationsContain(const Strings &an
 	return false;
 }
 
-std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dialogueText, size_t nrStyles, LVP_SubStyleVersion version)
+void MediaPlayer::LVP_SubTextRenderer::formatDrawCommand(const std::string& text, const Strings& split, int id, int layer, LVP_Subtitles& subs, const LVP_SubtitleContext& context)
 {
-	auto textPropIndex = -1;
+	double drawScale = 0.0;
 
-	switch (version) {
-		case SUB_STYLE_VERSION_4PLUS_ASS: textPropIndex = SUB_DIALOGUE_V4PLUS_TEXT; break;
-		case SUB_STYLE_VERSION_4_SSA:     textPropIndex = SUB_DIALOGUE_V4_TEXT; break;
-		default: break;
+	if (text.find("\\p1") != std::string::npos)
+		drawScale = 1.0;
+	else if (text.find("\\p2") != std::string::npos)
+		drawScale = 0.5;
+	else if (text.find("\\p4") != std::string::npos)
+		drawScale = 0.25;
+
+	if ((drawScale < 0.24) || (text.find("\\t(") != std::string::npos))
+		return;
+
+	auto defaultStyle = LVP_SubTextRenderer::getSubStyle(context.styles, split);
+	auto style        = (defaultStyle != NULL ? new LVP_SubStyle(*defaultStyle) : NULL);
+	auto drawRect     = LVP_SubTextRenderer::getDrawRect(text, style, drawScale);
+
+	if (SDL_RectEmpty(&drawRect)) {
+		DELETE_POINTER(style);
+		return;
 	}
 
-	if (textPropIndex < 0)
-		return dialogueText;
+	auto sub = new LVP_Subtitle();
 
-	std::string subText = std::string(dialogueText);
+	sub->id       = id;
+	sub->layer    = layer;
+	sub->drawRect = drawRect;
+	sub->style    = style;
 
-	// ",,,,,,,,text" => "text"
-	for (int i = 0; i < textPropIndex; i++)
-		subText = subText.substr(subText.find(",") + 1);
-
-	if (subText.empty())
-		return "";
-
-	subText = System::LVP_Text::Replace(subText, "\\N",   "^");
-	subText = System::LVP_Text::Replace(subText, "\\n",   (subText.find("\\q2") != std::string::npos ? "^" : " "));
-	subText = System::LVP_Text::Replace(subText, "\\h",   " ");
-	subText = System::LVP_Text::Replace(subText, "{*",    "{");
-	subText = System::LVP_Text::Replace(subText, "&amp;", "&");
-
-	if (nrStyles < 2)
-		subText = System::LVP_Text::Replace(subText, "{\\r}", "");
-
-	size_t findPos = subText.rfind("\r\n");
-
-	if (findPos != std::string::npos)
-		subText = subText.substr(0, findPos);
-
-	// {=43}{\f} => {\f}
-	subText = LVP_SubTextRenderer::removeInvalidFormatting(subText);
-
-	// {\f1}{\f2} => {\f1\f2}
-	subText = System::LVP_Text::Replace(subText, "}{", "");
-
-	// {\move(960,190,960,250,10,3520)\c&HFAFFF6&}A{\c&H2E5FF1&}b{\c&HFAFFF6&}c => {\move(960,190,960,250,10,3520)\c&HFAFFF6&}Abc
-	// {\pos(668.667,224.667)\c&HFAFFF6&}A{\c&H2E5FF1&}b{\c&HFAFFF6&}c          => {\pos(668.667,224.667)\c&HFAFFF6&}Abc
-	std::cmatch move, position;
-
-	if (std::regex_search(subText.c_str(), position, std::regex("\\{[^{}]*\\\\pos\\([^{}]*\\}")))
-		subText = (position[0].str() + std::regex_replace(subText, std::regex("\\{[^{}]*\\}"), ""));
-	else if (std::regex_search(subText.c_str(), move, std::regex("\\{[^{}]*\\\\move\\([^{}]*\\}")))
-		subText = (move[0].str() + std::regex_replace(subText, std::regex("\\{[^{}]*\\}"), ""));
-
-	return subText;
-}
-
-void MediaPlayer::LVP_SubTextRenderer::formatDrawCommand(
-	const std::string &subText,
-	const Strings &subSplit,
-	int subID,
-	LVP_Subtitles &subs,
-	const LVP_SubtitleContext &subContext
-)
-{
-	// Custom draw operation (fill rect)
-	if (subText.find("\\p1") != std::string::npos)
-	{
-		auto defaultStyle = LVP_SubTextRenderer::getSubStyle(subContext.styles, subSplit);
-		auto style        = (defaultStyle != NULL ? new LVP_SubStyle(*defaultStyle) : NULL);
-		auto drawRect     = LVP_SubTextRenderer::getDrawRect(subText, style);
-
-		if (!SDL_RectEmpty(&drawRect))
-		{
-			auto sub = new LVP_Subtitle();
-
-			sub->id       = subID;
-			sub->drawRect = drawRect;
-			sub->style    = style;
-
-			subs.push_back(sub);
-		} else {
-			DELETE_POINTER(style);
-		}
-	}
+	subs.push_back(sub);
 }
 
 Strings MediaPlayer::LVP_SubTextRenderer::formatGetAnimations(const std::string &subString)
@@ -511,14 +487,18 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// FONT - Scale X
 		else if ((prop.substr(0, 4) == "fscx") && isdigit(prop[4]))
 		{
-			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\fscx"))
-				sub->style->fontScale.x = (float)(std::atof(prop.substr(4).c_str()) * 0.01);
+			auto fontScaleX = (float)(std::atof(prop.substr(4).c_str()) * 0.01);
+
+			if (fontScaleX > 0.0f)
+				sub->style->fontScale.x = fontScaleX;
 		}
 		// FONT - Scale Y
 		else if ((prop.substr(0, 4) == "fscy") && isdigit(prop[4]))
 		{
-			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\fscy"))
-				sub->style->fontScale.y = (float)(std::atof(prop.substr(4).c_str()) * 0.01);
+			auto fontScaleY = (float)(std::atof(prop.substr(4).c_str()) * 0.01);
+
+			if (fontScaleY > 0.0f)
+				sub->style->fontScale.y = fontScaleY;
 		}
 		// FONT - Letter Spacing
 		else if ((prop.substr(0, 3) == "fsp") && isdigit(prop[3]))
@@ -527,13 +507,10 @@ void MediaPlayer::LVP_SubTextRenderer::formatOverrideStyleCat2(const Strings &an
 		// FONT - Size
 		else if ((prop.substr(0, 2) == "fs") && isdigit(prop[2]))
 		{
-			if (!LVP_SubTextRenderer::formatAnimationsContain(animations, "\\fs"))
-			{
-				int fontSize = std::atoi(prop.substr(2).c_str());
+			auto fontSize = std::atoi(prop.substr(2).c_str());
 
-				if ((fontSize > 0) && (fontSize < MAX_FONT_SIZE))
-					sub->style->fontSize = fontSize;
-			}
+			if ((fontSize > 0) && (fontSize < MAX_FONT_SIZE))
+				sub->style->fontSize = fontSize;
 		}
 		// FONT STYLING - Bold
 		else if (prop == "b1")
@@ -697,8 +674,14 @@ Strings MediaPlayer::LVP_SubTextRenderer::formatSplitStyling(const std::string &
 	return subLines;
 }
 
-SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLine, LVP_SubStyle* style)
+SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLine, LVP_SubStyle* style, double scale)
 {
+	int  offsetY = 0;
+	auto pbo     = subLine.find("\\pbo");
+
+	if (pbo != std::string::npos)
+		offsetY = std::atoi(subLine.substr(pbo + 4).c_str());
+
 	SDL_Rect    drawRect     = {};
 	std::string drawLine     = LVP_SubTextRenderer::RemoveFormatting(subLine);
 	Strings     drawCommands = System::LVP_Text::Split(drawLine, " ");
@@ -718,14 +701,14 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 		SDL_Point p = { std::atoi(drawCommands[i].c_str()), std::atoi(drawCommands[i + 1].c_str()) };
 
 		if (p.x < minDrawPosition.x)
-			minDrawPosition.x = p.x;
+			minDrawPosition.x = (int)ceil((double)p.x * scale);
 		if (p.y < minDrawPosition.y)
-			minDrawPosition.y = p.y;
+			minDrawPosition.y = ((int)ceil((double)p.y * scale) + offsetY);
 
 		if (p.x > maxDrawPosition.x)
-			maxDrawPosition.x = p.x;
+			maxDrawPosition.x = (int)ceil((double)p.x * scale);
 		if (p.y > maxDrawPosition.y)
-			maxDrawPosition.y = p.y;
+			maxDrawPosition.y = ((int)ceil((double)p.y * scale) + offsetY);
 
 		if ((i + 2 < drawCommands.size()) && !drawCommands[i + 2].empty()) {
 			if (drawCommands[i + 2] == "l")
@@ -751,23 +734,37 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 	for (const auto &prop : styleProps)
 	{
 		if (prop.substr(0, 7) == "alpha&H") {
-			LVP_SubTextRenderer::drawColor.a = (0xFF - HEX_STR_TO_UINT(prop.substr(7, 2)));
+			style->colorPrimary.a = (0xFF - HEX_STR_TO_UINT(prop.substr(7, 2)));
 		} else if (prop.substr(0, 4) == "1a&H") {
-			LVP_SubTextRenderer::drawColor.a = (0xFF - HEX_STR_TO_UINT(prop.substr(4, 2)));
+			style->colorPrimary.a = (0xFF - HEX_STR_TO_UINT(prop.substr(4, 2)));
 		} else if (prop.substr(0, 4) == "3a&H") {
 			style->colorOutline.a = (0xFF - HEX_STR_TO_UINT(prop.substr(4, 2)));
+		} else if (prop.substr(0, 4) == "4a&H") {
+			style->colorShadow.a = (0xFF - HEX_STR_TO_UINT(prop.substr(4, 2)));
 		} else if (prop.substr(0, 3) == "c&H") {
 			auto color = Graphics::LVP_Graphics::ToLVPColor(prop.substr(1, 8));
 
-			LVP_SubTextRenderer::drawColor = { color.r, color.g, color.b, LVP_SubTextRenderer::drawColor.a };
+			style->colorPrimary.r = color.r;
+			style->colorPrimary.g = color.g;
+			style->colorPrimary.b = color.b;
 		} else if (prop.substr(0, 4) == "1c&H") {
 			auto color = Graphics::LVP_Graphics::ToLVPColor(prop.substr(2, 8));
 
-			LVP_SubTextRenderer::drawColor = { color.r, color.g, color.b, LVP_SubTextRenderer::drawColor.a };
+			style->colorPrimary.r = color.r;
+			style->colorPrimary.g = color.g;
+			style->colorPrimary.b = color.b;
 		} else if (prop.substr(0, 4) == "3c&H") {
 			auto color = Graphics::LVP_Graphics::ToLVPColor(prop.substr(2, 8));
 
-			style->colorOutline = { color.r, color.g, color.b, style->colorOutline.a };
+			style->colorOutline.r = color.r;
+			style->colorOutline.g = color.g;
+			style->colorOutline.b = color.b;
+		} else if (prop.substr(0, 4) == "4c&H") {
+			auto color = Graphics::LVP_Graphics::ToLVPColor(prop.substr(2, 8));
+
+			style->colorShadow.r = color.r;
+			style->colorShadow.g = color.g;
+			style->colorShadow.b = color.b;
 		} else if ((prop.substr(0, 4) == "bord") && isdigit(prop[4])) {
 			style->outline = (int)std::round(std::atof(prop.substr(4).c_str()));
 		} else if (prop.substr(0, 2) == "an") {
@@ -798,6 +795,16 @@ SDL_Rect MediaPlayer::LVP_SubTextRenderer::getDrawRect(const std::string &subLin
 	if (fontScale.y > MIN_FLOAT_ZERO)
 		drawRect.h = (int)((float)drawRect.h * fontScale.y);
 
+	if (style->outline > 0)
+	{
+		auto border2x = (style->outline + style->outline);
+
+		drawRect.x -= style->outline;
+		drawRect.y -= style->outline;
+		drawRect.w += border2x;
+		drawRect.h += border2x;
+	}
+
 	if (LVP_SubStyle::IsAlignedRight(alignment))
 		drawRect.x -= drawRect.w;
 	else if (LVP_SubStyle::IsAlignedCenter(alignment))
@@ -822,6 +829,63 @@ MediaPlayer::LVP_SubStyle* MediaPlayer::LVP_SubTextRenderer::getSubStyle(const L
 	}
 
 	return (!subStyles.empty() ? subStyles[0] : NULL);
+}
+
+std::string MediaPlayer::LVP_SubTextRenderer::getSubText(const std::string &dialogueText, size_t nrStyles, LVP_SubStyleVersion version)
+{
+	auto textPropIndex = -1;
+
+	switch (version) {
+		case SUB_STYLE_VERSION_4PLUS_ASS: textPropIndex = SUB_DIALOGUE_V4PLUS_TEXT; break;
+		case SUB_STYLE_VERSION_4_SSA:     textPropIndex = SUB_DIALOGUE_V4_TEXT; break;
+		default: break;
+	}
+
+	if (textPropIndex < 0)
+		return dialogueText;
+
+	std::string subText = std::string(dialogueText);
+
+	// ",,,,,,,,text" => "text"
+	for (int i = 0; i < textPropIndex; i++)
+		subText = subText.substr(subText.find(",") + 1);
+
+	if (subText.empty())
+		return "";
+
+	subText = System::LVP_Text::Replace(subText, "\\N",   "^");
+	subText = System::LVP_Text::Replace(subText, "\\n",   (subText.find("\\q2") != std::string::npos ? "^" : " "));
+	subText = System::LVP_Text::Replace(subText, "\\h",   " ");
+	subText = System::LVP_Text::Replace(subText, "{*",    "{");
+	subText = System::LVP_Text::Replace(subText, "&amp;", "&");
+
+	if (nrStyles < 2)
+		subText = System::LVP_Text::Replace(subText, "{\\r}", "");
+
+	size_t findPos = subText.rfind("\r\n");
+
+	if (findPos != std::string::npos)
+		subText = subText.substr(0, findPos);
+
+	// {=43}{\f} => {\f}
+	subText = LVP_SubTextRenderer::removeInvalidFormatting(subText);
+
+	// {\f1}{\f2} => {\f1\f2}
+	subText = System::LVP_Text::Replace(subText, "}{", "");
+
+	// {\move(960,190,960,250,10,3520)\c&HFAFFF6&}A{\c&H2E5FF1&}b{\c&HFAFFF6&}c => {\move(960,190,960,250,10,3520)\c&HFAFFF6&}Abc
+	// {\pos(668.667,224.667)\c&HFAFFF6&}A{\c&H2E5FF1&}b{\c&HFAFFF6&}c          => {\pos(668.667,224.667)\c&HFAFFF6&}Abc
+	std::cmatch move, position;
+
+	if (std::regex_search(subText.c_str(), position, std::regex("\\{[^{}]*\\\\pos\\([^{}]*\\}")))
+		subText = (position[0].str() + std::regex_replace(subText, std::regex("\\{[^{}]*\\}"), ""));
+	else if (std::regex_search(subText.c_str(), move, std::regex("\\{[^{}]*\\\\move\\([^{}]*\\}")))
+		subText = (move[0].str() + std::regex_replace(subText, std::regex("\\{[^{}]*\\}"), ""));
+
+	if ((!move.empty() || !position.empty()) && subText.find("^^") != std::string::npos)
+		subText = System::LVP_Text::Replace(subText, "^^", "\n");
+
+	return subText;
 }
 
 void MediaPlayer::LVP_SubTextRenderer::handleSubCollisions(const Graphics::LVP_SubTextureId &subTextures, const Graphics::LVP_SubTexturesId &subs)
@@ -1029,12 +1093,16 @@ void MediaPlayer::LVP_SubTextRenderer::renderSubs(Graphics::LVP_SubTexturesId &s
 
 void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_SubtitleContext &subContext)
 {
-	LVP_SubtitlesById subsById;
+	LVP_SubtitlesByLayer drawSubsByLayer;
+	LVP_SubtitlesById    subsById;
 
 	for (auto sub : subContext.subs)
 	{
 		if (sub->text3.find("^") == std::string::npos)
 			subsById[sub->id].push_back(sub);
+
+		if (!SDL_RectEmpty(&sub->drawRect))
+			drawSubsByLayer[sub->layer].push_back(sub);
 
 		if ((LVP_SubTextRenderer::subsPosition.find(sub->id) != LVP_SubTextRenderer::subsPosition.end()) ||
 			(LVP_SubTextRenderer::subsTop.find(sub->id)      != LVP_SubTextRenderer::subsTop.end()) ||
@@ -1046,6 +1114,29 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 		}
 	}
 
+	// CUSTOM DRAW OPERATION - Fill rect
+	for (const auto& layer : drawSubsByLayer)
+	{
+		for (auto sub : layer.second)
+		{
+			SDL_Rect drawRectScaled = {
+				(int)ceil((float)sub->drawRect.x * subContext.scale.x),
+				(int)ceil((float)sub->drawRect.y * subContext.scale.y),
+				(int)ceil((float)sub->drawRect.w * subContext.scale.x),
+				(int)ceil((float)sub->drawRect.h * subContext.scale.y)
+			};
+
+			Graphics::LVP_Graphics::FillArea(sub->getColor(), drawRectScaled, renderer);
+
+			if ((sub->style == NULL) || (sub->style->outline < 1))
+				continue;
+
+			auto border = Graphics::LVP_Border(sub->getOutline(subContext.scale));
+
+			Graphics::LVP_Graphics::FillBorder(sub->getColorOutline(), drawRectScaled, border, renderer);
+		}
+	}
+	
 	int subWidth      = 0;
 	int subWidthSplit = 0;
 
@@ -1053,30 +1144,8 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 
 	for (auto sub : subContext.subs)
 	{
-		if (sub->skip)
+		if (sub->skip || !SDL_RectEmpty(&sub->drawRect))
 			continue;
-
-		// CUSTOM DRAW OPERATION - Fill rect
-		if (!SDL_RectEmpty(&sub->drawRect))
-		{
-			SDL_Rect drawRectScaled = {};
-
-			drawRectScaled.x = (int)ceil((float)sub->drawRect.x * subContext.scale.x);
-			drawRectScaled.y = (int)ceil((float)sub->drawRect.y * subContext.scale.y);
-			drawRectScaled.w = (int)ceil((float)sub->drawRect.w * subContext.scale.x);
-			drawRectScaled.h = (int)ceil((float)sub->drawRect.h * subContext.scale.y);
-
-			Graphics::LVP_Graphics::FillArea(LVP_SubTextRenderer::drawColor, drawRectScaled, renderer);
-
-			if (sub->style && (sub->style->outline > 0))
-			{
-				auto border = Graphics::LVP_Border(sub->getOutline(subContext.scale));
-
-				Graphics::LVP_Graphics::FillBorder(sub->getColorOutline(), drawRectScaled, border, renderer);
-			}
-
-			continue;
-		}
 
 		auto font = sub->getFont(subContext);
 
@@ -1123,7 +1192,7 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 				subsSplit.insert(sub->id);
 			}
 			// Split the sub based on style/formatting
-			else
+			else if (sub->text.find("\n") == std::string::npos)
 			{
 				TTF_SetFontStyle(font, sub->style->fontStyle);
 
@@ -1136,10 +1205,10 @@ void MediaPlayer::LVP_SubTextRenderer::Render(SDL_Renderer* renderer, LVP_Subtit
 
 				for (auto sub16 : subs16)
 					subStrings16.push_back({ .text16 = sub16 });
+			} else {
+				subStrings16.push_back({ .text16 = sub->textUTF16 });
 			}
-		}
-		else
-		{
+		} else {
 			subStrings16.push_back({ .text16 = sub->textUTF16 });
 		}
 
@@ -1572,9 +1641,6 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 
 	for (std::string dialogueLine : subTexts)
 	{
-		if (dialogueLine.size() > DEFAULT_CHAR_BUFFER_SIZE)
-			continue;
-
 		LVP_Subtitle* prevSub = NULL;
 		
 		// Split and format the dialogue properties
@@ -1587,15 +1653,21 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 			continue;
 
 		auto subText = LVP_SubTextRenderer::getSubText(dialogueLine, subContext.styles.size(), defaultStyle->version);
-		auto subID   = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
+
+		if (subText.size() > DEFAULT_CHAR_BUFFER_SIZE)
+			continue;
+
+		auto subID = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
 
 		// Split by partial formatting ({\f1}t1{\f2}t2)
 		Strings subLines = LVP_SubTextRenderer::formatSplitStyling(subText, defaultStyle, subContext);
 
 		for (auto &subLine : subLines)
 		{
+			int layer = (isV4Plus ? std::atoi(dialogueSplit[SUB_DIALOGUE_V4PLUS_LAYER].c_str()) : 0);
+
 			// Perform supported draw operation (fill rect)
-			LVP_SubTextRenderer::formatDrawCommand(subLine, dialogueSplit, subID, subs, subContext);
+			LVP_SubTextRenderer::formatDrawCommand(subLine, dialogueSplit, subID, layer, subs, subContext);
 
 			// Skip unsupported draw operations
 			if (!System::LVP_Text::IsValidSubtitle(subLine))
@@ -1603,10 +1675,8 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 
 			auto sub = new LVP_Subtitle();
 
-			sub->id = subID;
-
-			if (isV4Plus)
-				sub->layer = std::atoi(dialogueSplit[SUB_DIALOGUE_V4PLUS_LAYER].c_str());
+			sub->id    = subID;
+			sub->layer = layer;
 
 			if (subLine.empty())
 				subLine = " ";
