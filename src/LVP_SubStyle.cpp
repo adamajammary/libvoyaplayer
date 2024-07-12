@@ -76,7 +76,8 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 	if (std::atoi(data[SUB_STYLE_UNDERLINE].c_str()) != 0)
 		this->fontStyle |= TTF_STYLE_UNDERLINE;
 
-	int shadow = 0;
+	int outline = 0;
+	int shadow  = 0;
 
 	switch (this->version) {
 	case SUB_STYLE_VERSION_4PLUS_ASS:
@@ -92,9 +93,8 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 
 		this->borderStyle = (LVP_SubBorderStyle)std::atoi(data[SUB_STYLE_V4PLUS_BORDER_STYLE].c_str());
 
-		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_OUTLINE].c_str()));
-
-		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_SHADOW].c_str()));
+		outline = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_OUTLINE].c_str()));
+		shadow  = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_SHADOW].c_str()));
 
 		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINL].c_str()));
 		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4PLUS_MARGINR].c_str()));
@@ -108,9 +108,8 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 
 		this->borderStyle = (LVP_SubBorderStyle)std::atoi(data[SUB_STYLE_V4_BORDER_STYLE].c_str());
 
-		this->outline = (int)std::round(std::atof(data[SUB_STYLE_V4_OUTLINE].c_str()));
-
-		shadow = (int)std::round(std::atof(data[SUB_STYLE_V4_SHADOW].c_str()));
+		outline = (int)std::round(std::atof(data[SUB_STYLE_V4_OUTLINE].c_str()));
+		shadow  = (int)std::round(std::atof(data[SUB_STYLE_V4_SHADOW].c_str()));
 
 		this->marginL = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINL].c_str()));
 		this->marginR = (int)std::round(std::atof(data[SUB_STYLE_V4_MARGINR].c_str()));
@@ -121,12 +120,11 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion versio
 		break;
 	}
 
-	if (this->borderStyle == SUB_BORDER_STYLE_OUTLINE) {
-		this->outline = std::max(1, this->outline);
-		shadow        = std::max(1, shadow);
-	}
+	if (this->borderStyle != SUB_BORDER_STYLE_OUTLINE)
+		return;
 
-	this->shadow = { shadow, shadow };
+	this->outline = (shadow != 0 ? std::max(outline, 1) : outline);
+	this->shadow  = { shadow, shadow };
 }
 
 void MediaPlayer::LVP_SubStyle::copy(const LVP_SubStyle &subStyle)
