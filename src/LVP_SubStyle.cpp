@@ -287,7 +287,7 @@ TTF_Font* MediaPlayer::LVP_SubStyle::openFontInternal(const LVP_SubtitleContext 
 		auto fontFaceLower = System::LVP_Text::ToLower(fontFace.first);
 
 		// "arial" => "arial", "arial std", "arial bold" etc.
-		if ((fontNameLower != fontFaceLower) && (fontNameLower.find(fontFaceLower) == std::string::npos))
+		if ((fontNameLower != fontFaceLower) && !fontNameLower.starts_with(fontFaceLower))
 			continue;
 
 		// Match font style
@@ -302,10 +302,27 @@ TTF_Font* MediaPlayer::LVP_SubStyle::openFontInternal(const LVP_SubtitleContext 
 			bool isItalic     = (hasItalic  && style.style == "italic");
 			bool isRegular    = (hasRegular && style.style == "regular");
 
-			if (isBoldItalic || isBold || isItalic || isRegular) {
-				stream = subContext.formatContext->streams[style.streamIndex];
-				break;
-			}
+			#if defined _windows
+				auto styleName16      = (wchar_t*)System::LVP_Text::ToUTF16(style.style);
+				bool isStyleNameMatch = fontNameLower.ends_with(styleName16);
+
+				SDL_free(styleName16);
+			#else
+				bool isStyleNameMatch = fontNameLower.ends_with(style.style);
+			#endif
+
+			if (!isBoldItalic && !isBold && !isItalic && !isRegular && !isStyleNameMatch)
+				continue;
+
+			stream = subContext.formatContext->streams[style.streamIndex];
+
+			if (style.style.find("bold") != std::string::npos)
+				this->fontStyle &= ~TTF_STYLE_BOLD;
+
+			if (style.style.find("italic") != std::string::npos)
+				this->fontStyle &= ~TTF_STYLE_ITALIC;
+
+			break;
 		}
 
 		// Select the first style font as default
