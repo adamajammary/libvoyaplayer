@@ -17,6 +17,7 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle()
 	this->outline      = 0;
 	this->rotation     = 0;
 	this->shadow       = {};
+	this->version      = SUB_STYLE_VERSION_UNKNOWN;
 
 	#if defined _windows
 		this->fontName = L"";
@@ -27,15 +28,17 @@ MediaPlayer::LVP_SubStyle::LVP_SubStyle()
 
 MediaPlayer::LVP_SubStyle::LVP_SubStyle(Strings data, LVP_SubStyleVersion version)
 {
-	this->alignment = SUB_ALIGN_BOTTOM_CENTER;
-	this->fontStyle = 0;
-	this->marginL   = 0;
-	this->marginR   = 0;
-	this->marginV   = 0;
-	this->outline   = 0;
-	this->rotation  = 0;
-	this->shadow    = {};
-	this->version   = version;
+	this->alignment   = SUB_ALIGN_BOTTOM_CENTER;
+	this->borderStyle = SUB_BORDER_STYLE_OUTLINE;
+	this->fontScale   = {};
+	this->fontStyle   = 0;
+	this->marginL     = 0;
+	this->marginR     = 0;
+	this->marginV     = 0;
+	this->outline     = 0;
+	this->rotation    = 0;
+	this->shadow      = {};
+	this->version     = version;
 
 	// STYLE NAME
 
