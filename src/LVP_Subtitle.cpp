@@ -159,7 +159,7 @@ bool MediaPlayer::LVP_Subtitle::isDuplicate(const LVP_Subtitles& subs) const
 
 bool MediaPlayer::LVP_Subtitle::isExpiredPTS(const LVP_SubtitleContext &subContext, double progress) const
 {
-	auto ptsEnd    = (this->pts.end - 0.001);
+	auto ptsEnd    = (this->pts.end - MIN_SUB_DISPLAY_TIME);
 	bool isExpired = ((ptsEnd <= subContext.pts.start) || (ptsEnd <= progress));
 
 	return isExpired;

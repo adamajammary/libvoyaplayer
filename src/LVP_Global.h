@@ -201,9 +201,11 @@ namespace LibVoyaPlayer
 		const int    MAX_FONT_SIZE    = 200;
 		const double MAX_SUB_DURATION = 20.0;
 
-		const float MIN_FLOAT_ZERO        = 0.01f;
-		const int   MIN_PACKET_QUEUE_SIZE = 25;
-		const int   MIN_SUB_PACKET_SIZE   = 100;
+		const float  MIN_FLOAT_ZERO          = 0.01f;
+		const int    MIN_PACKET_QUEUE_SIZE   = 25;
+		const double MIN_SUB_DISPLAY_TIME    = 0.1;
+		const int    MIN_SUB_DISPLAY_TIME_MS = 100;
+		const int    MIN_SUB_PACKET_SIZE     = 100;
 
 		const double ONE_SECOND_MS = 1000.0;
 

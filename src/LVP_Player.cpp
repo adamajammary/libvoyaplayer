@@ -2348,7 +2348,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		SDL_UnlockMutex(LVP_Player::subContext.subsMutex);
 
 		// NO FRAMES DECODED
-		if ((subFrame.num_rects == 0) || ((packet->duration < 100) && (subFrame.end_display_time == 0))) {
+		if ((subFrame.num_rects == 0) || ((packet->duration < MIN_SUB_DISPLAY_TIME_MS) && (subFrame.end_display_time == 0))) {
 			FREE_AVPACKET(packet);
 			continue;
 		}
@@ -2359,7 +2359,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 
 		FREE_AVPACKET(packet);
 
-		if (duration < 0.1)
+		if (duration < MIN_SUB_DISPLAY_TIME)
 			continue;
 
 		// Extract sub type (text/bitmap) from frame
