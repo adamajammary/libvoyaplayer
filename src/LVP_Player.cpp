@@ -2327,6 +2327,9 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 			}
 		}
 
+		auto audioStartTime = LVP_Player::audioContext.stream->start_time;
+		auto subTimeBase    = LVP_Player::subContext.stream->time_base;
+
 		// Some sub types, like PGS, come in pairs:
 		// - The first one with data but without duration or end PTS
 		// - The second one has no data, but contains the end PTS
@@ -2335,7 +2338,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		// Update End PTS for previous subs.
 		if (isPGSSub && (packet->size < MIN_SUB_PACKET_SIZE) && !LVP_Player::subContext.subs.empty())
 		{
-			double ptsEnd = LVP_Media::GetSubtitleEndPTS(packet, LVP_Player::subContext.stream->time_base);
+			double ptsEnd = LVP_Media::GetSubtitleEndPTS(packet, subTimeBase);
 
 			for (auto sub : LVP_Player::subContext.subs) {
 				if (sub->pts.end == UINT32_MAX)
@@ -2354,7 +2357,7 @@ int MediaPlayer::LVP_Player::threadSub(void* userData)
 		}
 
 		// SUB PTS
-		auto pts      = LVP_Media::GetSubtitlePTS(packet, subFrame, LVP_Player::subContext.stream->time_base, LVP_Player::audioContext.stream->start_time);
+		auto pts      = LVP_Media::GetSubtitlePTS(packet, subFrame, subTimeBase, audioStartTime);
 		auto duration = (pts.end - pts.start);
 
 		FREE_AVPACKET(packet);
