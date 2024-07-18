@@ -1653,11 +1653,7 @@ MediaPlayer::LVP_Subtitles MediaPlayer::LVP_SubTextRenderer::SplitAndFormatSub(c
 			continue;
 
 		auto subText = LVP_SubTextRenderer::getSubText(dialogueLine, subContext.styles.size(), defaultStyle->version);
-
-		if (subText.size() > DEFAULT_CHAR_BUFFER_SIZE)
-			continue;
-
-		auto subID = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
+		auto subID   = std::atoi(dialogueSplit[SUB_DIALOGUE_READORDER].c_str());
 
 		// Split by partial formatting ({\f1}t1{\f2}t2)
 		Strings subLines = LVP_SubTextRenderer::formatSplitStyling(subText, defaultStyle, subContext);
