@@ -166,6 +166,7 @@ namespace LibVoyaPlayer
 		#define IS_ATTACHMENT(t)    (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
 		#define IS_AUDIO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
 		#define IS_BYTE_SEEK(i)     (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
+		#define IS_FONT(i)          ((i == LibFFmpeg::AV_CODEC_ID_TTF) || (i == LibFFmpeg::AV_CODEC_ID_OTF))
 		#define IS_SUB(t)           (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
 		#define IS_SUB_TEXT(t)      ((t == LibFFmpeg::SUBTITLE_ASS) || (t == LibFFmpeg::SUBTITLE_TEXT))
 		#define IS_VALID_TEXTURE(t) ((t != NULL) && (t->data != NULL))

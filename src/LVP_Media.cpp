@@ -598,12 +598,7 @@ bool MediaPlayer::LVP_Media::isDRM(LibFFmpeg::AVDictionary* metaData)
 
 bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* stream)
 {
-	if ((stream == NULL) || (stream->codecpar == NULL) || (stream->codecpar->extradata_size < 1) || !IS_ATTACHMENT(stream->codecpar->codec_type))
-		return false;
-
-	auto mimetype = LibFFmpeg::av_dict_get(stream->metadata, "mimetype", NULL, 0);
-
-	return ((mimetype != NULL) && std::string(mimetype->value).find("font") != std::string::npos);
+	return ((stream != NULL) && (stream->codecpar != NULL) && IS_ATTACHMENT(stream->codecpar->codec_type) && IS_FONT(stream->codecpar->codec_id));
 }
 
 void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext &mediaContext)
