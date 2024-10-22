@@ -1,45 +1,10 @@
 #include <libvoyaplayer.h>
 
-#include "LVP_Global.h"
+#include "main.h"
 
 const char ERROR_NO_INIT[] = "libvoyaplayer has not been initialized.";
 
 bool isInitialized = false;
-
-void initLibraries()
-{
-	#if defined _android
-		SDL_SetHint(SDL_HINT_ANDROID_BLOCK_ON_PAUSE, "0");
-	#elif defined _ios
-		SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "AVAudioSessionCategoryPlayback");
-	#endif
-
-	SDL_SetHint(SDL_HINT_AUDIO_RESAMPLING_MODE, "3");
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,  "2");
-
-	if ((SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) ||
-		(SDL_AudioInit(NULL) < 0) ||
-		(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0))
-	{
-		throw std::runtime_error(System::LVP_Text::Format("Failed to initialize SDL: %s", SDL_GetError()));
-	}
-
-	if (TTF_Init() < 0)
-		throw std::runtime_error(System::LVP_Text::Format("Failed to initialize TTF: %s", TTF_GetError()));
-
-	#if defined _DEBUG
-		LibFFmpeg::av_log_set_level(AV_LOG_VERBOSE);
-	#else
-		LibFFmpeg::av_log_set_level(AV_LOG_QUIET);
-	#endif
-
-	if ((LibFFmpeg::av_version_info() == NULL) ||
-		(LibFFmpeg::avcodec_version() == 0) ||
-		(LibFFmpeg::avformat_version() == 0))
-	{
-		throw std::runtime_error("Failed to initialize FFMPEG.");
-	}
-}
 
 void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 {
@@ -48,7 +13,34 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 		if (isInitialized)
 			LVP_Quit();
 
-		initLibraries();
+		#if defined _android
+			SDL_SetHint(SDL_HINT_ANDROID_BLOCK_ON_PAUSE, "0");
+		#elif defined _ios
+			SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "AVAudioSessionCategoryPlayback");
+		#endif
+
+		SDL_SetHint(SDL_HINT_AUDIO_RESAMPLING_MODE, "3");
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,  "2");
+
+		if ((SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) ||
+			(SDL_AudioInit(NULL) < 0) ||
+			(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0))
+		{
+			throw std::runtime_error(System::LVP_Text::Format("Failed to initialize SDL2: %s", SDL_GetError()));
+		}
+
+		#if defined _DEBUG
+			LibFFmpeg::av_log_set_level(AV_LOG_VERBOSE);
+		#else
+			LibFFmpeg::av_log_set_level(AV_LOG_QUIET);
+		#endif
+
+		if ((LibFFmpeg::av_version_info() == NULL) ||
+			(LibFFmpeg::avcodec_version() == 0) ||
+			(LibFFmpeg::avformat_version() == 0))
+		{
+			throw std::runtime_error("Failed to initialize FFmpeg.");
+		}
 
 		MediaPlayer::LVP_Player::Init(callbackContext);
 
@@ -63,7 +55,7 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	}
 }
 
-Strings LVP_GetAudioDevices()
+std::vector<std::string> LVP_GetAudioDevices()
 {
 	return MediaPlayer::LVP_Player::GetAudioDevices();
 }
@@ -279,12 +271,7 @@ void LVP_Open(const std::string &filePath)
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
 
-	try {
-		MediaPlayer::LVP_Player::Open(filePath);
-	} catch (const std::exception &e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to open media file:\n%s", e.what()));
-		LVP_Stop();
-	}
+	MediaPlayer::LVP_Player::Open(filePath);
 }
 
 void LVP_Open(const std::wstring &filePath)
@@ -292,16 +279,11 @@ void LVP_Open(const std::wstring &filePath)
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
 
-	try {
-		auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+	auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
 
-		MediaPlayer::LVP_Player::Open(filePathUTF8);
+	MediaPlayer::LVP_Player::Open(filePathUTF8);
 
-		SDL_free(filePathUTF8);
-	} catch (const std::exception &e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to open media file:\n%s", e.what()));
-		LVP_Stop();
-	}
+	SDL_free(filePathUTF8);
 }
 
 void LVP_Quit()
@@ -311,16 +293,14 @@ void LVP_Quit()
 
 	isInitialized = false;
 
-	MediaPlayer::LVP_Player::Close();
-
-	TTF_Quit();
+	MediaPlayer::LVP_Player::Quit();
 
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	SDL_AudioQuit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-void LVP_Render(const SDL_Rect* destination)
+void LVP_Render(const SDL_Rect& destination)
 {
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
@@ -408,18 +388,6 @@ void LVP_TogglePause()
 #if defined _windows
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 {
-    switch (reason) {
-        case DLL_PROCESS_ATTACH: // Initialize once for each new process. Return FALSE to fail DLL load.
-			break;
-        case DLL_PROCESS_DETACH:
-            //if (reserved == nullptr) // do not do cleanup if process termination scenario
-			break;
-        case DLL_THREAD_ATTACH: // Do thread-specific initialization.
-            break;
-        case DLL_THREAD_DETACH: // Do thread-specific cleanup.
-			break;
-    }
-
     return TRUE;
 }
 #else

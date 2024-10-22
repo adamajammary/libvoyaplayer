@@ -40,11 +40,9 @@ enum LVP_MediaType
 	LVP_MEDIA_TYPE_SUBTITLE = 3
 };
 
-typedef std::function<void(const std::string &errorMessage, const void* data)> LVP_ErrorCallback;
-
-typedef std::function<void(LVP_EventType type, const void* data)> LVP_EventsCallback;
-
-typedef std::function<void(SDL_Surface* videoFrame, const void* data)> LVP_VideoCallback;
+using LVP_ErrorCallback  = std::function<void(const std::string& errorMessage, const void* data)>;
+using LVP_EventsCallback = std::function<void(LVP_EventType type, const void* data)>;
+using LVP_VideoCallback  = std::function<void(SDL_Surface* videoFrame, const void* data)>;
 
 struct LVP_CallbackContext
 {

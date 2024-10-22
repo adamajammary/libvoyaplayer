@@ -14,7 +14,7 @@ int System::LVP_TimeOut::InterruptCallback(void* data)
 	return ((timeOut != NULL) && timeOut->isTimedOut() ? 1 : 0);
 }
 
-bool System::LVP_TimeOut::isTimedOut()
+bool System::LVP_TimeOut::isTimedOut() const
 {
 	return (this->started && ((SDL_GetTicks() - this->startTime) >= this->timeOut));
 }

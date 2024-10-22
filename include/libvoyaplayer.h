@@ -25,7 +25,7 @@
  * @brief Tries to initialize the library and other dependencies.
  * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext &callbackContext);
+DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
  * @returns a list of available audio devices.
@@ -163,18 +163,20 @@ DLLEXPORT bool DLL LVP_IsPlaying();
 DLLEXPORT bool DLL LVP_IsStopped();
 
 /**
- * @brief Tries to open and play the given media file.
+ * @brief Tries to open and play (asynchronously) the given media file.
  * @param filePath Full path to the media file.
+ * @throws invalid_argument
  * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_Open(const std::string &filePath);
+DLLEXPORT void DLL LVP_Open(const std::string& filePath);
 
 /**
- * @brief Tries to open and play the given media file.
+ * @brief Tries to open and play (asynchronously) the given media file.
  * @param filePath Full path to the media file.
+ * @throws invalid_argument
  * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_Open(const std::wstring &filePath);
+DLLEXPORT void DLL LVP_Open(const std::wstring& filePath);
 
 /**
  * @brief Cleans up allocated resources.
@@ -187,7 +189,7 @@ DLLEXPORT void DLL LVP_Quit();
  *        If software rendering is used, it will generate a LVP_VideoCallback with an SDL_Surface.
  * @param destination Optional clipping/scaling region used by the hardware renderer.
  */
-DLLEXPORT void DLL LVP_Render(const SDL_Rect* destination = nullptr);
+DLLEXPORT void DLL LVP_Render(const SDL_Rect& destination = {});
 
 /**
  * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
@@ -195,7 +197,7 @@ DLLEXPORT void DLL LVP_Render(const SDL_Rect* destination = nullptr);
 DLLEXPORT void DLL LVP_Resize();
 
 /**
- * @brief Seeks to the given position as a percent between 0 and 1.
+ * @brief Seeks (asynchronously) to the given position as a percent between 0 and 1.
  * @param percent [0.0-1.0]
  * @throws runtime_error
  */
@@ -206,7 +208,7 @@ DLLEXPORT void DLL LVP_SeekTo(double percent);
  * @param device Name of the audio device.
  * @returns true if the audio device is successfully set.
  */
-DLLEXPORT bool DLL LVP_SetAudioDevice(const std::string &device);
+DLLEXPORT bool DLL LVP_SetAudioDevice(const std::string& device);
 
 /**
  * @brief Mutes/unmutes the audio volume.
@@ -223,11 +225,11 @@ DLLEXPORT void DLL LVP_SetMuted(bool muted);
 DLLEXPORT void DLL LVP_SetPlaybackSpeed(double speed);
 
 /**
- * @brief Tries to set the given stream as the current stream if valid.
+ * @brief Tries to set the given stream (asynchronously) as the current stream if valid.
  * @param track -1 to disable subtitles or >= 0 for a valid media track.
  * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_SetTrack(const LVP_MediaTrack &track);
+DLLEXPORT void DLL LVP_SetTrack(const LVP_MediaTrack& track);
 
 /**
  * @brief Sets the given audio volume as a percent between 0 and 1.
@@ -237,7 +239,7 @@ DLLEXPORT void DLL LVP_SetTrack(const LVP_MediaTrack &track);
 DLLEXPORT void DLL LVP_SetVolume(double percent);
 
 /**
- * @brief Stops playback of the currently loaded media.
+ * @brief Stops (asynchronously) playback of the currently loaded media.
  * @throws runtime_error
  */
 DLLEXPORT void DLL LVP_Stop();

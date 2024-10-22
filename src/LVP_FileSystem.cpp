@@ -1,87 +1,10 @@
 #include "LVP_FileSystem.h"
-#include "LVP_FS_Extensions.h"
 
-#if defined _windows
-int SDLCALL System::LVP_FileSystem::SDL_RW_Close(SDL_RWops* rwops)
+LVP_Strings System::LVP_FileSystem::getDirectoryContent(const std::string& directoryPath, bool returnFiles, bool checkSystemFiles)
 {
-	int status = 0;
+	LVP_Strings directoyContent;
 
-	if (rwops != NULL)
-	{
-		if (std::fclose(static_cast<FILE*>(rwops->hidden.windowsio.buffer.data)) != 0)
-			status = SDL_Error(SDL_EFWRITE);
-
-		SDL_FreeRW(rwops);
-	}
-
-	return status;
-}
-
-size_t SDLCALL System::LVP_FileSystem::SDL_RW_Read(SDL_RWops* rwops, void* ptr, size_t size, size_t count)
-{
-	auto readSize = std::fread(ptr, size, count, static_cast<FILE*>(rwops->hidden.windowsio.buffer.data));
-	bool isError  = (readSize == 0 && std::ferror(static_cast<FILE*>(rwops->hidden.windowsio.buffer.data)) != 0);
-
-	return (isError ? SDL_Error(SDL_EFREAD) : readSize);
-}
-
-Sint64 SDLCALL System::LVP_FileSystem::SDL_RW_Seek(SDL_RWops* rwops, Sint64 offset, int whence)
-{
-	auto result = fseek(static_cast<FILE*>(rwops->hidden.windowsio.buffer.data), offset, whence);
-
-	return (result != 0 ? SDL_Error(SDL_EFSEEK) : std::ftell(static_cast<FILE*>(rwops->hidden.windowsio.buffer.data)));
-}
-
-Sint64 SDLCALL System::LVP_FileSystem::SDL_RW_Size(SDL_RWops* rwops)
-{
-	auto position = SDL_RWseek(rwops, 0, RW_SEEK_CUR);
-
-	if (position < 0)
-		return -1;
-
-	auto size = SDL_RWseek(rwops, 0, RW_SEEK_END);
-
-	SDL_RWseek(rwops, position, RW_SEEK_SET);
-
-	return size;
-}
-
-size_t SDLCALL System::LVP_FileSystem::SDL_RW_Write(SDL_RWops* rwops, const void* ptr, size_t size, size_t count)
-{
-	auto writeSize = std::fwrite(ptr, size, count, static_cast<FILE*>(rwops->hidden.windowsio.buffer.data));
-	bool isError   = (writeSize == 0 && std::ferror(static_cast<FILE*>(rwops->hidden.windowsio.buffer.data)) != 0);
-
-	return (isError ? SDL_Error(SDL_EFWRITE) : writeSize);
-}
-
-SDL_RWops* System::LVP_FileSystem::FileOpenSDLRWops(FILE* file)
-{
-	if (file == NULL)
-		return NULL;
-
-	auto rwops = SDL_AllocRW();
-
-	if (rwops == NULL)
-		return NULL;
-
-	rwops->close = LVP_FileSystem::SDL_RW_Close;
-	rwops->read  = LVP_FileSystem::SDL_RW_Read;
-	rwops->seek  = LVP_FileSystem::SDL_RW_Seek;
-	rwops->size  = LVP_FileSystem::SDL_RW_Size;
-	rwops->write = LVP_FileSystem::SDL_RW_Write;
-	rwops->type  = SDL_RWOPS_STDFILE;
-
-	rwops->hidden.windowsio.buffer.data = file;
-
-	return rwops;
-}
-#endif
-
-Strings System::LVP_FileSystem::getDirectoryContent(const std::string &directoryPath, bool returnFiles, bool checkSystemFiles)
-{
-	Strings directoyContent;
-
-	if (directoryPath.size() >= MAX_FILE_PATH)
+	if (directoryPath.size() >= MAX_PATH)
 		return directoyContent;
 
 	#if defined _windows
@@ -118,12 +41,12 @@ Strings System::LVP_FileSystem::getDirectoryContent(const std::string &directory
 	return directoyContent;
 }
 
-Strings System::LVP_FileSystem::getDirectoryFiles(const std::string &directoryPath, bool checkSystemFiles)
+LVP_Strings System::LVP_FileSystem::getDirectoryFiles(const std::string& directoryPath, bool checkSystemFiles)
 {
 	return LVP_FileSystem::getDirectoryContent(directoryPath, true, checkSystemFiles);
 }
 
-std::string System::LVP_FileSystem::GetFileExtension(const std::string &filePath)
+std::string System::LVP_FileSystem::GetFileExtension(const std::string& filePath)
 {
 	if ((filePath.rfind(".") != std::string::npos) && (LVP_Text::GetLastCharacter(filePath) != '.'))
 		return LVP_Text::ToLower(filePath.substr(filePath.rfind(".") + 1));
@@ -131,12 +54,12 @@ std::string System::LVP_FileSystem::GetFileExtension(const std::string &filePath
 	return "";
 }
 
-std::string System::LVP_FileSystem::getFileName(const std::string &filePath, bool removeExtension)
+std::string System::LVP_FileSystem::getFileName(const std::string& filePath, bool removeExtension)
 {
-	Strings fileDetails;
-	auto    fileName = std::string(filePath);
+	auto fileDetails = LVP_Strings();
+	auto fileName    = std::string(filePath);
 
-	// BLURAY / DVD: "concat:streamPath|stream1|stream2|streamN|duration|title|audioTrackCount|subTrackCount|"
+	// BLURAY/DVD: "concat:streamPath|stream1|...|streamN|duration|title|audioTrackCount|subTrackCount|"
 	if (LVP_FileSystem::IsConcat(filePath)) {
 		fileDetails = LVP_Text::Split(filePath, "|");
 
@@ -153,12 +76,12 @@ std::string System::LVP_FileSystem::getFileName(const std::string &filePath, boo
 	return fileName;
 }
 
-size_t System::LVP_FileSystem::GetFileSize(const std::string &filePath)
+size_t System::LVP_FileSystem::GetFileSize(const std::string& filePath)
 {
 	size_t fileSize = 0;
 	bool   isConcat = LVP_FileSystem::IsConcat(filePath);
 
-	// BLURAY / DVD: "concat:streamPath|stream1|...|streamN|duration|title|audioTrackCount|subTrackCount|"
+	// BLURAY/DVD: "concat:streamPath|stream1|...|streamN|duration|title|audioTrackCount|subTrackCount|"
 	if (isConcat)
 	{
 		auto parts = LVP_Text::Split(filePath.substr(7), "|");
@@ -186,16 +109,16 @@ size_t System::LVP_FileSystem::GetFileSize(const std::string &filePath)
 	return fileSize;
 }
 
-Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string &videoFilePath)
+LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& videoFilePath)
 {
 	auto directory        = videoFilePath.substr(0, videoFilePath.rfind(PATH_SEPARATOR));
 	auto filesInDirectory = LVP_FileSystem::getDirectoryFiles(directory);
 	auto videoFileName    = LVP_Text::ToLower(LVP_FileSystem::getFileName(videoFilePath, true));
 
-	Strings     subtitleFiles;
+	LVP_Strings subtitleFiles;
 	std::string idxFile = "";
 
-	for (const auto &file : filesInDirectory)
+	for (const auto& file : filesInDirectory)
 	{
 		auto fileName = LVP_Text::ToLower(LVP_FileSystem::getFileName(file, true));
 
@@ -225,12 +148,12 @@ Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string &vide
 	return subtitleFiles;
 }
 
-bool System::LVP_FileSystem::hasFileExtension(const std::string &filePath)
+bool System::LVP_FileSystem::hasFileExtension(const std::string& filePath)
 {
 	return (!LVP_FileSystem::GetFileExtension(filePath).empty());
 }
 
-bool System::LVP_FileSystem::IsBlurayAACS(const std::string &filePath, size_t fileSize)
+bool System::LVP_FileSystem::IsBlurayAACS(const std::string& filePath, size_t fileSize)
 {
 	if (filePath.empty() || (fileSize == 0))
 		return false;
@@ -268,12 +191,12 @@ bool System::LVP_FileSystem::IsBlurayAACS(const std::string &filePath, size_t fi
 	return (sector < nrSectors);
 }
 
-bool System::LVP_FileSystem::IsConcat(const std::string &filePath)
+bool System::LVP_FileSystem::IsConcat(const std::string& filePath)
 {
 	return (filePath.substr(0, 7) == "concat:");
 }
 
-bool System::LVP_FileSystem::IsDVDCSS(const std::string &filePath, size_t fileSize)
+bool System::LVP_FileSystem::IsDVDCSS(const std::string& filePath, size_t fileSize)
 {
 	if (filePath.empty() || (fileSize == 0))
 		return false;
@@ -304,27 +227,27 @@ bool System::LVP_FileSystem::IsDVDCSS(const std::string &filePath, size_t fileSi
 	return (sector < nrSectors);
 }
 
-bool System::LVP_FileSystem::isSubtitleFile(const std::string &filePath)
+bool System::LVP_FileSystem::isSubtitleFile(const std::string& filePath)
 {
-	if (!LVP_FileSystem::hasFileExtension(filePath) || (filePath.size() >= MAX_FILE_PATH))
+	if (!LVP_FileSystem::hasFileExtension(filePath) || (filePath.size() >= MAX_PATH))
 		return false;
 
 	auto extension = LVP_FileSystem::GetFileExtension(filePath);
 
-	if (LVP_Text::VectorContains(LVP_FileSystem::subFileExtensions, extension))
+	if (LVP_Text::VectorContains(SUB_FILE_EXTENSIONS, extension))
 		return true;
 
 	return false;
 }
 
-bool System::LVP_FileSystem::IsSystemFile(const std::string &fileName)
+bool System::LVP_FileSystem::IsSystemFile(const std::string& fileName)
 {
 	if (fileName.empty())
 		return true;
 
 	auto extension = LVP_FileSystem::GetFileExtension(fileName);
 
-	if (LVP_Text::VectorContains(LVP_FileSystem::systemFileExtensions, extension))
+	if (LVP_Text::VectorContains(SYSTEM_FILE_EXTENSIONS, extension))
 		return true;
 
 	return false;

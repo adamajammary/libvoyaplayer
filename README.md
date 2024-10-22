@@ -18,18 +18,23 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://www.libsdl.org/) | [2.30.1](https://www.libsdl.org/release/SDL2-2.30.1.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
-[SDL2_ttf](https://www.libsdl.org/projects/SDL_ttf/) | [2.22.0](https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-2.22.0.tar.gz) | [zlib license](https://www.libsdl.org/license.php)
-[FFmpeg](https://ffmpeg.org/) | [7.0.1](https://ffmpeg.org/releases/ffmpeg-7.0.1.tar.bz2) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
-[dav1d](https://www.videolan.org/projects/dav1d.html) | [1.4.3](https://code.videolan.org/videolan/dav1d/-/archive/1.4.3/dav1d-1.4.3.tar.gz) | [BSD 2-Clause "Simplified" License](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
+[SDL2](https://github.com/libsdl-org/SDL) | [2.30.8](https://github.com/libsdl-org/SDL/releases/download/release-2.30.8/SDL2-2.30.8.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
+[libass](https://github.com/libass/libass) | [0.17.3](https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
+[fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.15.0](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.15.0/fontconfig-2.15.0.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
+[libexpat](https://github.com/libexpat/libexpat) | [2.6.3](https://github.com/libexpat/libexpat/releases/download/R_2_6_3/expat-2.6.3.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
+[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.13.3](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-13-3/freetype-VER-2-13-3.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
+[FriBidi](https://github.com/fribidi/fribidi) | [1.0.16](https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://github.com/fribidi/fribidi#LGPL-2.1-1-ov-file)
+[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [10.0.1](https://github.com/harfbuzz/harfbuzz/releases/download/10.0.1/harfbuzz-10.0.1.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
+[FFmpeg](https://ffmpeg.org/) | [7.1](https://ffmpeg.org/releases/ffmpeg-7.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.4.3](https://code.videolan.org/videolan/dav1d/-/archive/1.4.3/dav1d-1.4.3.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
 [zLib](http://www.zlib.net/) | [1.3.1](https://www.zlib.net/zlib-1.3.1.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
 
 ## Platform-dependent Include Headers
 
 Platform | Header | Package
 -------- | ------ | -------
-Android | android/asset_manager_jni.h | Android NDK
-Android | sys/stat.h | Android NDK
+Android | android/asset_manager_jni.h | [Android NDK](https://developer.android.com/ndk/downloads)
+Android | sys/stat.h | [Android NDK](https://developer.android.com/ndk/downloads)
 Windows | dirent.h | [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h)
 Windows | windows.h | WinMain
 
@@ -46,7 +51,8 @@ MSVC | 2019
 ## How to build
 
 1. Build the [third-party libraries](#3rd-party-libraries) and place the them in a common directory.
-   - You will also need the [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) header if you are building on **Windows**.
+   - You will also need [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) if you are building on **Windows**.
+   - You will also need [patchelf](https://github.com/NixOS/patchelf) if you are building on **Linux**.
 1. Make sure you have [cmake](https://cmake.org/download/) installed.
 1. Open a command prompt or terminal.
 1. Create a **build** directory and enter it.
@@ -185,7 +191,7 @@ try {
   }
 
   quit();
-} catch (const std::exception &e) {
+} catch (const std::exception& e) {
   handleError(e.what());
   quit();
 }
@@ -219,7 +225,7 @@ void init(SDL_Renderer* renderer, const void* data)
 The library will send error messages to your error handler callback, which must follow the function signature defined by [LVP_ErrorCallback](#lvp_errorcallback).
 
 ```cpp
-void handleError(const std::string &errorMessage, const void* data)
+void handleError(const std::string& errorMessage, const void* data)
 {
   fprintf(stderr, "%s\n", errorMessage.c_str());
   SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "My Player", errorMessage.c_str(), nullptr);
@@ -234,11 +240,11 @@ The library will send player/media events as [LVP_EventType](#lvp_eventtype) to 
 void handleEvent(LVP_EventType type, const void* data)
 {
   switch (type) {
-    case LVP_EVENT_AUDIO_MUTED:
-      handleAudioMuted();
+    case LVP_EVENT_MEDIA_OPENED:
+      handleMediaOpened();
       break;
-    case LVP_EVENT_MEDIA_PAUSED:
-      handleMediaPaused();
+    case LVP_EVENT_MEDIA_STOPPED:
+      handleMediaStopped();
       break;
     default:
       break;
@@ -250,12 +256,12 @@ void handleEvent(LVP_EventType type, const void* data)
 
 For optimal performance, you should render video frames using hardware rendering.
 
-To use hardware rendering, just call [LVP_Render](#lvp_render) which will use the `.hardwareRenderer` you passed to [LVP_CallbackContext](#lvp_callbackcontext).
+To use hardware rendering, just call [LVP_Render](#lvp_render) with a destination, which will use the `.hardwareRenderer` you passed to [LVP_CallbackContext](#lvp_callbackcontext) during [initialization](#initialize).
 
 ```cpp
-void render(const SDL_Rect &destination)
+void render(const SDL_Rect& destination)
 {
-  LVP_Render(&destination);
+  LVP_Render(destination);
 }
 ```
 
@@ -272,6 +278,8 @@ If you don't use SDL2 for rendering, you need to copy the pixels to a bitmap/ima
 - The `.pixels` property will contain the pixel buffer as an RGB byte-array
 - The `.w` and `.h` properties will contain the dimensions of the video frame
 - The `.pitch` property will contain the byte size of a row of RGB pixels
+
+> Remember to call [LVP_Render](#lvp_render) without a destination.
 
 ```cpp
 SDL_Texture* texture          = nullptr;
@@ -292,7 +300,7 @@ void handleVideoIsAvailable(SDL_Surface* videoSurface, const void* data)
   videoLock.unlock();
 }
 
-void render(SDL_Renderer* renderer, const SDL_Rect &destination)
+void render(SDL_Renderer* renderer, const SDL_Rect& destination)
 {
   videoLock.lock();
 
@@ -315,6 +323,8 @@ void render(SDL_Renderer* renderer, const SDL_Rect &destination)
     SDL_RenderCopy(renderer, texture, nullptr, &destination);
 
   videoLock.unlock();
+
+  LVP_Render();
 }
 ```
 
@@ -428,19 +438,19 @@ struct LVP_MediaDetails {
 ### LVP_ErrorCallback
 
 ```cpp
-typedef std::function<void(const std::string &errorMessage, const void* data)> LVP_ErrorCallback;
+using LVP_ErrorCallback  = std::function<void(const std::string& errorMessage, const void* data)>;
 ```
 
 ### LVP_EventsCallback
 
 ```cpp
-typedef std::function<void(LVP_EventType type, const void* data)> LVP_EventsCallback;
+using LVP_EventsCallback = std::function<void(LVP_EventType type, const void* data)>;
 ```
 
 ### LVP_VideoCallback
 
 ```cpp
-typedef std::function<void(SDL_Surface* videoFrame, const void* data)> LVP_VideoCallback;
+using LVP_VideoCallback  = std::function<void(SDL_Surface* videoFrame, const void* data)>;
 ```
 
 ### LVP_Initialize
@@ -448,7 +458,7 @@ typedef std::function<void(SDL_Surface* videoFrame, const void* data)> LVP_Video
 Tries to initialize the library and other dependencies.
 
 ```cpp
-void LVP_Initialize(const LVP_CallbackContext &callbackContext);
+void LVP_Initialize(const LVP_CallbackContext& callbackContext);
 ```
 
 Exceptions
@@ -733,10 +743,10 @@ Exceptions
 
 ### LVP_Open
 
-Tries to open and play the given media file.
+Tries to open and play (asynchronously) the given media file.
 
 ```cpp
-void LVP_Open(const std::string &filePath);
+void LVP_Open(const std::string& filePath);
 ```
 
 Parameters
@@ -749,10 +759,10 @@ Exceptions
 
 ### LVP_Open (wstring)
 
-Tries to open and play the given media file.
+Tries to open and play (asynchronously) the given media file.
 
 ```cpp
-void LVP_Open(const std::wstring &filePath);
+void LVP_Open(const std::wstring& filePath);
 ```
 
 Parameters
@@ -779,7 +789,7 @@ Generates and renders a video frame.
 - If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
 
 ```cpp
-void LVP_Render(const SDL_Rect* destination = nullptr);
+void LVP_Render(const SDL_Rect& destination = {});
 ```
 
 Parameters
@@ -796,7 +806,7 @@ void LVP_Resize();
 
 ### LVP_SeekTo
 
-Seeks to the given position as a percent between 0 and 1.
+Seeks (asynchronously) to the given position as a percent between 0 and 1.
 
 ```cpp
 void LVP_SeekTo(double percent);
@@ -817,7 +827,7 @@ Tries to set the given audio device as the current device if valid.
 Returns true if the audio device is successfully set.
 
 ```cpp
-bool LVP_SetAudioDevice(const std::string &device);
+bool LVP_SetAudioDevice(const std::string& device);
 ```
 
 Parameters
@@ -858,10 +868,10 @@ Exceptions
 
 ### LVP_SetTrack
 
-Tries to set the given stream as the current stream if valid.
+Tries to set the given stream (asynchronously) as the current stream if valid.
 
 ```cpp
-void LVP_SetTrack(const LVP_MediaTrack &track);
+void LVP_SetTrack(const LVP_MediaTrack& track);
 ```
 
 Parameters
@@ -890,7 +900,7 @@ Exceptions
 
 ### LVP_Stop
 
-Stops playback of the currently loaded media.
+Stops (asynchronously) playback of the currently loaded media.
 
 ```cpp
 void LVP_Stop();

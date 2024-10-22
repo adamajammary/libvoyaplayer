@@ -1,63 +1,22 @@
 ﻿#include "LVP_Text.h"
 
-bool System::LVP_Text::EndsWith(const std::string &text, char character) {
-	return (!text.empty() && (text[text.size() - 1] == character));
-}
-
-char System::LVP_Text::GetLastCharacter(const std::string &text)
+char System::LVP_Text::GetLastCharacter(const std::string& text)
 {
 	return (!text.empty() ? text[text.size() - 1] : '\0');
 }
 
-int System::LVP_Text::GetSpaceWidth(TTF_Font* font)
-{
-	int minx, maxx, miny, maxy, advance;
-
-	TTF_GlyphMetrics(font, ' ', &minx, &maxx, &miny, &maxy, &advance);
-
-	return (advance * 2);
-}
-
 // NOTE! Updates source by removing token from the start of the string
-std::string System::LVP_Text::getToken(std::string &source, const std::string &delimiter)
+std::string System::LVP_Text::getToken(std::string& source, const std::string& delimiter)
 {
-	size_t      delimPos = strcspn(source.c_str(), delimiter.c_str());
-	std::string token    = source.substr(0, delimPos);
+	auto delim = source.find(delimiter);
+	auto token = source.substr(0, delim);
 
-	source = source.substr(delimPos + (delimPos < source.size() ? 1 : 0));
+	source = (delim != std::string::npos ? source.substr(delim + delimiter.size()) : "");
 
 	return token;
 }
 
-int System::LVP_Text::GetWidth(const std::string &text, TTF_Font* font)
-{
-	if (!text.empty())
-	{
-		auto text16 = System::LVP_Text::ToUTF16(text.c_str());
-
-		int textWidth, h;
-		TTF_SizeUNICODE(font, text16, &textWidth, &h);
-
-		SDL_free(text16);
-
-		return textWidth;
-	}
-
-	return 0;
-}
-
-bool System::LVP_Text::IsValidSubtitle(const std::string &subtitle)
-{
-	if (subtitle.empty())
-		return false;
-
-	if (std::regex_search(subtitle, std::regex("\\\\pb?o?-?\\d+"))) // custom vector drawing
-		return false;
-
-	return true;
-}
-
-std::string System::LVP_Text::Replace(const std::string &text, const std::string &oldSubstring, const std::string &newSubstring)
+std::string System::LVP_Text::Replace(const std::string& text, const std::string& oldSubstring, const std::string& newSubstring)
 {
 	std::string formattedString = std::string(text);
 	size_t      lastPosition    = formattedString.find(oldSubstring);
@@ -70,9 +29,9 @@ std::string System::LVP_Text::Replace(const std::string &text, const std::string
 	return formattedString;
 }
 
-Strings System::LVP_Text::Split(const std::string &text, const std::string &delimiter, bool returnEmpty)
+LVP_Strings System::LVP_Text::Split(const std::string& text, const std::string& delimiter, bool returnEmpty)
 {
-	Strings     parts;
+	LVP_Strings parts;
 	std::string fullString = std::string(text);
 
 	if (fullString.empty())
@@ -94,7 +53,7 @@ Strings System::LVP_Text::Split(const std::string &text, const std::string &deli
 	return parts;
 }
 
-std::string System::LVP_Text::ToLower(const std::string &text)
+std::string System::LVP_Text::ToLower(const std::string& text)
 {
 	std::string lower = std::string(text);
 
@@ -104,48 +63,11 @@ std::string System::LVP_Text::ToLower(const std::string &text)
 	return lower;
 }
 
-#if defined _windows
-std::wstring System::LVP_Text::ToLower(const std::wstring &text)
-{
-	std::wstring lower = std::wstring(text);
-
-	for (int i = 0; i < (int)lower.size(); i++)
-		lower[i] = std::tolower(lower[i]);
-
-	return lower;
-}
-#endif
-
-std::string System::LVP_Text::ToUpper(const std::string &text)
-{
-	std::string upper = std::string(text);
-
-	for (int i = 0; i < (int)upper.size(); i++)
-		upper[i] = std::toupper(upper[i]);
-
-	return upper;
-}
-
-uint16_t* System::LVP_Text::ToUTF16(const std::string &text)
+uint16_t* System::LVP_Text::ToUTF16(const std::string& text)
 {
 	#if defined _linux
 		return (uint16_t*)SDL_iconv_string("UCS-2", "UTF-8", text.c_str(), text.size() + 1);
 	#else
 		return (uint16_t*)SDL_iconv_string("UCS-2-INTERNAL", "UTF-8", text.c_str(), text.size() + 1);
 	#endif
-}
-
-std::string System::LVP_Text::Trim(const std::string &text)
-{
-	auto trimmed = std::string(text);
-
-	// TRIM FRONT
-	while (!trimmed.empty() && std::isspace((uint8_t)trimmed[0]))
-		trimmed = trimmed.substr(1);
-
-	// TRIM END
-	while (!trimmed.empty() && std::isspace((uint8_t)trimmed[trimmed.size() - 1]))
-		trimmed = trimmed.substr(0, trimmed.size() - 1);
-	
-	return trimmed;
 }
