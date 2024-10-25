@@ -97,7 +97,7 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 
 void MediaPlayer::LVP_SubtitleBitmap::ProcessEvent(LVP_Subtitle* subtitle, const LibFFmpeg::AVSubtitleRect& frameRect)
 {
-	if ((subtitle == NULL) || (frameRect.data == NULL))
+	if (subtitle == NULL)
 		return;
 
 	subtitle->bitmap.data[0] = (uint8_t*)LibFFmpeg::av_memdup(frameRect.data[0], (size_t)(frameRect.linesize[0] * frameRect.h));

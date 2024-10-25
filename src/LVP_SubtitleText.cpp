@@ -96,10 +96,10 @@ void MediaPlayer::LVP_SubtitleText::render(LibASS::ASS_Image* image, SDL_Surface
 		}
 
 		SDL_Color srcColor = {
-			((image->color >> 24) & 0xFF),
-			((image->color >> 16) & 0xFF),
-			((image->color >>  8) & 0xFF),
-			(0xFF - (image->color & 0xFF))
+			(uint8_t)((image->color >> 24) & 0xFF),
+			(uint8_t)((image->color >> 16) & 0xFF),
+			(uint8_t)((image->color >>  8) & 0xFF),
+			(uint8_t)(0xFF - (image->color & 0xFF))
 		};
 
 		auto destColors = surface->format->BytesPerPixel;
