@@ -41,7 +41,7 @@ namespace LibASS
 {
 	extern "C"
 	{
-		#include <libass/ass.h>
+		#include <ass/ass.h>
 	}
 }
 #endif

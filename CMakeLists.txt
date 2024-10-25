@@ -101,7 +101,7 @@ find_file(LIB_SWR  ${EXT_LIB_SWR}  PATHS ${LIB_DIR} NO_CACHE REQUIRED CMAKE_FIND
 find_file(LIB_SWS  ${EXT_LIB_SWS}  PATHS ${LIB_DIR} NO_CACHE REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
 find_file(LIB_ZLIB ${EXT_LIB_ZLIB} PATHS ${LIB_DIR} NO_CACHE REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
 
-set(INCS      "include" ${INC_DIR} "${INC_DIR}/fontconfig" "${INC_DIR}/freetype2" "${INC_DIR}/fribidi" "${INC_DIR}/harfbuzz" ${DIRENT_DIR})
+set(INCS      "include" ${INC_DIR} ${DIRENT_DIR})
 set(TEST_INCS "include" ${INC_DIR} "${INC_DIR}/freetype2")
 
 if (WIN32)
