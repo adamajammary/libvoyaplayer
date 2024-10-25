@@ -102,10 +102,14 @@ void MediaPlayer::LVP_SubtitleText::render(LibASS::ASS_Image* image, SDL_Surface
 			(0xFF - (image->color & 0xFF))
 		};
 
-		auto destColors   = surface->format->BytesPerPixel;
-		auto destPitch    = surface->pitch;
-		auto destPixels   = (uint8_t*)surface->pixels;
-		auto destPosition = SDL_Point((image->dst_x * destColors), image->dst_y);
+		auto destColors = surface->format->BytesPerPixel;
+		auto destPitch  = surface->pitch;
+		auto destPixels = (uint8_t*)surface->pixels;
+
+		SDL_Point destPosition = {
+			(image->dst_x * destColors),
+			image->dst_y
+		};
 
 		for (int y1 = 0, y2 = destPosition.y; (y1 < image->h) && (y2 < surface->h); y1++, y2++)
 		{

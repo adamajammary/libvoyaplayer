@@ -166,10 +166,14 @@ void MediaPlayer::LVP_SubtitleBitmap::render(SDL_Surface* surface, double progre
 		auto srcPitch  = subtitle->surface->pitch;
 		auto srcPixels = (uint8_t*)subtitle->surface->pixels;
 
-		auto destColors   = surface->format->BytesPerPixel;
-		auto destPitch    = surface->pitch;
-		auto destPixels   = (uint8_t*)surface->pixels;
-		auto destPosition = SDL_Point((subtitle->bitmap.x * destColors), subtitle->bitmap.y);
+		auto destColors = surface->format->BytesPerPixel;
+		auto destPitch  = surface->pitch;
+		auto destPixels = (uint8_t*)surface->pixels;
+
+		SDL_Point destPosition = {
+			(subtitle->bitmap.x * destColors),
+			subtitle->bitmap.y
+		};
 
 		for (int y1 = 0, y2 = destPosition.y; (y1 < subtitle->surface->h) && (y2 < surface->h); y1++, y2++)
 		{
