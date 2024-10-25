@@ -249,14 +249,12 @@ double MediaPlayer::LVP_Media::GetMediaFrameRate(LibFFmpeg::AVStream* stream)
 	if (stream == NULL)
 		return 0;
 
-	auto timeBase = LibFFmpeg::av_stream_get_codec_timebase(stream);
-
 	// r_frame_rate is wrong - Needs adjustment
-	if ((timeBase.num > 0) && (timeBase.den > 0) &&
-		(LibFFmpeg::av_q2d(timeBase) < (LibFFmpeg::av_q2d(stream->r_frame_rate) * 0.7)) &&
+	if ((stream->time_base.num > 0) && (stream->time_base.den > 0) &&
+		(LibFFmpeg::av_q2d(stream->time_base) < (LibFFmpeg::av_q2d(stream->r_frame_rate) * 0.7)) &&
 		(fabs(1.0 - LibFFmpeg::av_q2d(av_div_q(stream->avg_frame_rate, stream->r_frame_rate))) > 0.1))
 	{
-		return LibFFmpeg::av_q2d(timeBase);
+		return LibFFmpeg::av_q2d(stream->time_base);
 	// r_frame_rate is valid
 	} else if ((stream->r_frame_rate.num > 0) && (stream->r_frame_rate.den > 0)) {
 		return LibFFmpeg::av_q2d(stream->r_frame_rate);
