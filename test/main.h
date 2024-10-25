@@ -10,6 +10,8 @@
 
 #include <libvoyaplayer.h>
 
+#include <unordered_map>
+
 namespace LibFT
 {
 	extern "C"
