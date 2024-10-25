@@ -527,15 +527,17 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 		if (strcmp(entry->value, "und") == 0)
 			continue;
 
-		auto key = System::LVP_Text::ToLower(entry->key);
+		auto key = System::LVP_Text::Trim(System::LVP_Text::ToLower(entry->key));
 
-		if (key.starts_with("id3v2_priv."))
+		if (key.empty() || key.starts_with("id3v2_priv."))
 			continue;
 
-		auto value = System::LVP_Text::Replace(entry->value, "\r", "\\r");
-		value      = System::LVP_Text::Replace(value,        "\n", "\\n");
+		auto value = System::LVP_Text::Trim(entry->value);
 
-		if (!key.empty() && !value.empty())
+		value = System::LVP_Text::Replace(value, "\r", "\\r");
+		value = System::LVP_Text::Replace(value, "\n", "\\n");
+
+		if (!value.empty())
 			meta[key] = value;
 	}
 

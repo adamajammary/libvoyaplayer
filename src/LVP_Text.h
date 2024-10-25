@@ -21,6 +21,7 @@ namespace LibVoyaPlayer
 			static LVP_Strings Split(const std::string& text, const std::string& delimiter, bool returnEmpty = true);
 			static std::string ToLower(const std::string& text);
 			static uint16_t*   ToUTF16(const std::string& text);
+			static std::string Trim(const std::string& text);
 
 			template<typename... Args>
 			static std::string Format(const char* formatString, const Args&... args)

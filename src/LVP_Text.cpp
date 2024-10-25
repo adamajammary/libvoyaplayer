@@ -71,3 +71,16 @@ uint16_t* System::LVP_Text::ToUTF16(const std::string& text)
 		return (uint16_t*)SDL_iconv_string("UCS-2-INTERNAL", "UTF-8", text.c_str(), text.size() + 1);
 	#endif
 }
+
+std::string System::LVP_Text::Trim(const std::string& text)
+{
+	auto trimmed = std::string(text);
+
+	while (!trimmed.empty() && (trimmed[0] > 0) && std::isspace(trimmed[0]))
+		trimmed = trimmed.substr(1);
+
+	while (!trimmed.empty() && (trimmed[trimmed.size() - 1] > 0) && std::isspace(trimmed[trimmed.size() - 1]))
+		trimmed = trimmed.substr(0, trimmed.size() - 1);
+
+	return trimmed;
+}
