@@ -4,7 +4,7 @@ LVP_Strings System::LVP_FileSystem::getDirectoryContent(const std::string& direc
 {
 	LVP_Strings directoyContent;
 
-	if (directoryPath.size() >= MAX_PATH)
+	if (directoryPath.size() >= MAX_FILE_PATH)
 		return directoyContent;
 
 	#if defined _windows
@@ -229,7 +229,7 @@ bool System::LVP_FileSystem::IsDVDCSS(const std::string& filePath, size_t fileSi
 
 bool System::LVP_FileSystem::isSubtitleFile(const std::string& filePath)
 {
-	if (!LVP_FileSystem::hasFileExtension(filePath) || (filePath.size() >= MAX_PATH))
+	if (!LVP_FileSystem::hasFileExtension(filePath) || (filePath.size() >= MAX_FILE_PATH))
 		return false;
 
 	auto extension = LVP_FileSystem::GetFileExtension(filePath);

@@ -110,6 +110,8 @@ namespace LibVoyaPlayer
 
 	namespace System
 	{
+		const int MAX_FILE_PATH = 260;
+
 		#if defined _windows
 			const char PATH_SEPARATOR = '\\';
 		#else
