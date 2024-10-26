@@ -1556,7 +1556,7 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 
 		// Write the data from the buffer to the stream
 
-		std::memset(stream, 0, writeSize);
+		memset(stream, 0, writeSize);
 
 		auto buffer = static_cast<const Uint8*>(LVP_Player::audioContext->frameEncoded + LVP_Player::audioContext->bufferOffset);
 		auto volume = (!LVP_Player::state.isMuted ? LVP_Player::state.volume : 0);
