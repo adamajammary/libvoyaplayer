@@ -350,8 +350,6 @@ else()
     add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWR}  ${DIST_DIR}/bin/)
     add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWS}  ${DIST_DIR}/bin/)
     add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SDL}  ${DIST_DIR}/bin/)
-    add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SDLI} ${DIST_DIR}/bin/)
-    add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SDLT} ${DIST_DIR}/bin/)
     add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ZLIB} ${DIST_DIR}/bin/)
 
     add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${DIST_DIR}/bin/*.${DLL_EXT} ${OUT_DIR}/)
