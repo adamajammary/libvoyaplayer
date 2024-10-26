@@ -1219,7 +1219,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 	auto size = (size_t)(scaleResult * LVP_Player::videoContext->frameEncoded->linesize[0]);
 
-	std::memcpy(LVP_Player::videoContext->surface->pixels, LVP_Player::videoContext->frameEncoded->data[0], size);
+	memcpy(LVP_Player::videoContext->surface->pixels, LVP_Player::videoContext->frameEncoded->data[0], size);
 }
 
 void MediaPlayer::LVP_Player::Resize()
