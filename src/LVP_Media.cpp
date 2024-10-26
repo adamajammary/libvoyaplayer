@@ -622,7 +622,7 @@ bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* st
 	if ((mimeType == NULL) || (mimeType->value == NULL))
 		return false;
 
-	return (std::strstr(mimeType->value, "font") || std::strstr(mimeType->value, "ttf") || std::strstr(mimeType->value, "otf"));
+	return (strstr(mimeType->value, "font") || strstr(mimeType->value, "ttf") || strstr(mimeType->value, "otf"));
 }
 
 void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext)
