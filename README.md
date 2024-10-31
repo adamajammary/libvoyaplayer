@@ -45,7 +45,7 @@ libvoyaplayer uses modern [C++20](https://en.cppreference.com/w/cpp/compiler_sup
 Compiler | Version
 -------- | -------
 CLANG | 14
-GCC | 13
+GCC | 11.4
 MSVC | 2019
 
 ## How to build
@@ -77,11 +77,12 @@ Make sure the correct Android SDK path is set as either
 
 ```bash
 cmake .. -G "Unix Makefiles" \
+-D ANDROID_ABI="arm64-v8a" \
+-D ANDROID_NDK="/path/to/ANDROID_NDK" \
+-D ANDROID_PLATFORM="android-29" \
+-D CMAKE_BUILD_TYPE=Release \
 -D CMAKE_SYSTEM_NAME="Android" \
 -D CMAKE_TOOLCHAIN_FILE="/path/to/ANDROID_NDK/build/cmake/android.toolchain.cmake" \
--D ANDROID_NDK="/path/to/ANDROID_NDK" \
--D ANDROID_ABI="arm64-v8a" \
--D ANDROID_PLATFORM="android-29" \
 -D EXT_LIB_DIR="/path/to/libs"
 
 make
@@ -117,15 +118,16 @@ You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos -
 
 ```bash
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
--D CMAKE_SYSTEM_NAME="iOS" \
+-D CMAKE_BUILD_TYPE=Release \
 -D CMAKE_OSX_ARCHITECTURES="arm64" \
 -D CMAKE_OSX_DEPLOYMENT_TARGET="12.5" \
 -D CMAKE_OSX_SYSROOT="/path/to/IOS_SDK" \
+-D CMAKE_SYSTEM_NAME="iOS" \
 -D CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="YOUR_DEVELOPMENT_TEAM_ID" \
 -D EXT_LIB_DIR="/path/to/libs" \
 -D IOS_SDK="iphoneos"
 
-xcodebuild IPHONEOS_DEPLOYMENT_TARGET="12.5" -project voyaplayer.xcodeproj -configuration Release -destination "generic/platform=iOS" -allowProvisioningUpdates
+xcodebuild IPHONEOS_DEPLOYMENT_TARGET="12.5" -configuration "Release" -project voyaplayer.xcodeproj -destination "generic/platform=iOS" -allowProvisioningUpdates
 ```
 
 #### Xcode - Devices
@@ -151,18 +153,21 @@ You can get the macOS SDK path with the following command: `xcrun --sdk macosx -
 
 ```bash
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
+-D CMAKE_BUILD_TYPE=Release \
 -D CMAKE_OSX_ARCHITECTURES="x86_64" \
 -D CMAKE_OSX_DEPLOYMENT_TARGET="12.6" \
 -D CMAKE_OSX_SYSROOT="/path/to/MACOSX_SDK" \
 -D EXT_LIB_DIR="/path/to/libs"
 
-xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -project voyaplayer.xcodeproj -configuration Release
+xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -configuration "Release" -project voyaplayer.xcodeproj
 ```
 
 ### Linux
 
 ```bash
-cmake .. -G "Unix Makefiles" -D EXT_LIB_DIR="/path/to/libs"
+cmake .. -G "Unix Makefiles" \
+-D CMAKE_BUILD_TYPE=Release \
+-D EXT_LIB_DIR="/path/to/libs"
 
 make
 ```
@@ -170,7 +175,10 @@ make
 ### Windows
 
 ```bash
-cmake .. -G "Visual Studio 17 2022" -D EXT_LIB_DIR="/path/to/libs" -D DIRENT_DIR="/path/to/dirent"
+cmake .. -G "Visual Studio 17 2022" \
+-D CMAKE_BUILD_TYPE=Release \
+-D DIRENT_DIR="/path/to/dirent" \
+-D EXT_LIB_DIR="/path/to/libs"
 
 devenv.com voyaplayer.sln -build "Release|x64"
 ```
@@ -438,7 +446,7 @@ struct LVP_MediaDetails {
 ### LVP_ErrorCallback
 
 ```cpp
-using LVP_ErrorCallback  = std::function<void(const std::string& errorMessage, const void* data)>;
+using LVP_ErrorCallback = std::function<void(const std::string& errorMessage, const void* data)>;
 ```
 
 ### LVP_EventsCallback
@@ -450,7 +458,7 @@ using LVP_EventsCallback = std::function<void(LVP_EventType type, const void* da
 ### LVP_VideoCallback
 
 ```cpp
-using LVP_VideoCallback  = std::function<void(SDL_Surface* videoFrame, const void* data)>;
+using LVP_VideoCallback = std::function<void(SDL_Surface* videoFrame, const void* data)>;
 ```
 
 ### LVP_Initialize
@@ -803,6 +811,22 @@ Should be called whenever the window resizes to tell the player to recreate the 
 ```cpp
 void LVP_Resize();
 ```
+
+### LVP_SeekBy
+
+Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
+
+```cpp
+void LVP_SeekBy(int seconds);
+```
+
+Parameters
+
+- **seconds** A negative value seeks backwards, a positive forwards.
+
+Exceptions
+
+- runtime_error
 
 ### LVP_SeekTo
 
