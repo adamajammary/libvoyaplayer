@@ -7,13 +7,14 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
     #if defined _android
         const auto fontPath = "/system/fonts/Roboto-Regular.ttf";
     #elif defined _ios
-		const auto fontPath = TextFormat("%s%s", button->basePath, "Arial.ttf").c_str();
+		auto arial    = TextFormat("%s%s", button->basePath, "Arial.ttf");
+		auto fontPath = arial.c_str();
     #elif defined _linux
-    	const auto fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+    	auto fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
     #elif defined  _macosx
-	    const auto fontPath = "/System/Library/Fonts/Supplemental/Arial.ttf";
+	    auto fontPath = "/System/Library/Fonts/Supplemental/Arial.ttf";
     #elif defined _windows
-	    const auto fontPath = "C:\\Windows\\Fonts\\arial.ttf";
+	    auto fontPath = "C:\\Windows\\Fonts\\arial.ttf";
     #endif
 
     LibFT::FT_Face font = nullptr;
@@ -77,7 +78,7 @@ SDL_Point TestText::GetSurfaceSize(TestButton* button, LibFT::FT_Face font)
 		size.x += (font->glyph->advance.x >> 6);
 	}
 
-	size.y = (font->glyph->metrics.vertAdvance >> 6);
+	size.y = (int)(font->glyph->metrics.vertAdvance >> 6);
 
 	return size;
 }

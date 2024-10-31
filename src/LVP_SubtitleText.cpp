@@ -59,7 +59,7 @@ void MediaPlayer::LVP_SubtitleText::ProcessEvent(LVP_Subtitle* subtitle)
 
 	LVP_SubtitleText::trackLock.lock();
 
-	LibASS::ass_process_chunk(LVP_SubtitleText::track, subtitle->dialogue.c_str(), subtitle->dialogue.size(), start, duration);
+	LibASS::ass_process_chunk(LVP_SubtitleText::track, subtitle->dialogue.c_str(), (int)subtitle->dialogue.size(), start, duration);
 
 	LVP_SubtitleText::trackLock.unlock();
 }
