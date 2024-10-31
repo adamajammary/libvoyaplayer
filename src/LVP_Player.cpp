@@ -505,6 +505,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 		return;
 
 	LVP_Player::packetLock.lock();
+	LVP_Player::subContext->packetsLock.lock();
 
 	LVP_SubtitleBitmap::Remove();
 	LVP_SubtitleText::Remove();
@@ -555,6 +556,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 	LVP_Player::seekToRequest = 0.0;
 	LVP_Player::seekRequested = false;
 
+	LVP_Player::subContext->packetsLock.unlock();
 	LVP_Player::packetLock.unlock();
 }
 
@@ -1831,7 +1833,7 @@ int MediaPlayer::LVP_Player::threadSub()
 			LVP_Player::seekRequested ||
 			LVP_Player::trackRequested ||
 			(LVP_Player::subContext->index < 0)
-			)) {
+		)) {
 			SDL_Delay(DELAY_TIME_DEFAULT);
 		}
 
