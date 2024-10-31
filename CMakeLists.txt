@@ -135,7 +135,7 @@ elseif (IOS)
     set(INFO_PLIST "${SRC_DIR}/ios/MacOSXBundleInfo.plist.in")
     set(RC         "${SRC_DIR}/ios/LaunchScreen.storyboard")
 
-    set(OS_TEST_LIBS "-framework AudioToolbox" "-framework AVFAudio" "-framework CoreBluetooth" "-framework CoreFoundation" "-framework CoreGraphics" "-framework CoreHaptics" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework ImageIO" "-framework Metal" "-framework MobileCoreServices" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit" "-ldav1d" "-framework CoreMedia" "-framework CoreVideo" "-framework Security" "-framework VideoToolbox")
+    set(OS_TEST_LIBS "-framework AudioToolbox" "-framework AVFAudio" "-framework CoreBluetooth" "-framework CoreFoundation" "-framework CoreGraphics" "-framework CoreHaptics" "-framework CoreMotion" "-framework CoreText" "-framework Foundation" "-framework GameController" "-framework ImageIO" "-framework Metal" "-framework MobileCoreServices" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit" "-liconv" "-framework CoreMedia" "-framework CoreVideo" "-framework Security" "-framework VideoToolbox")
 elseif (APPLE)
     set(OS "_macosx")
 
