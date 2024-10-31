@@ -216,10 +216,9 @@ static void handleWindowEvent(const SDL_WindowEvent& event)
 
 static int getSleepTime(uint32_t frameStart)
 {
-    auto timeToRender = (int)(SDL_GetTicks() - frameStart);
-    bool use60FPS     = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
-    auto timePerFrame = (use60FPS ? 16 : 100);
-    auto sleepTime    = (timePerFrame - timeToRender);
+    auto maxTimePerFrame = (LVP_IsPlaying() ? 16 : 50);
+    auto timePerFrame    = (int)(SDL_GetTicks() - frameStart);
+    auto sleepTime       = (maxTimePerFrame - timePerFrame);
 
     return sleepTime;
 }
