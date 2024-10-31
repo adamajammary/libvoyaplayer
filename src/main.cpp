@@ -316,6 +316,14 @@ void LVP_Resize()
 	MediaPlayer::LVP_Player::Resize();
 }
 
+void LVP_SeekBy(int seconds)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::SeekBy(seconds);
+}
+
 void LVP_SeekTo(double percent)
 {
 	if (!isInitialized)

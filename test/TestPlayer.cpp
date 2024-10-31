@@ -162,21 +162,3 @@ void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect& destination)
 
 	TestPlayer::videoLock.unlock();
 }
-
-void TestPlayer::SeekBack()
-{
-	auto duration = (double)LVP_GetDuration();
-	auto progress = (double)(LVP_GetProgress() - TEST_PLAYER_SEEK_DIFF);
-	auto percent  = (progress / duration);
-
-	LVP_SeekTo(percent);
-}
-
-void TestPlayer::SeekForward()
-{
-	auto duration = (double)LVP_GetDuration();
-	auto progress = (double)(LVP_GetProgress() + TEST_PLAYER_SEEK_DIFF);
-	auto percent  = (progress / duration);
-
-	LVP_SeekTo(percent);
-}

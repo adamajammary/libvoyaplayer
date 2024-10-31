@@ -108,10 +108,10 @@ static void handleKeyDownEvent(const SDL_KeyboardEvent& event)
 
     switch (event.keysym.sym) {
     case SDLK_LEFT: case SDLK_AUDIOREWIND:
-        TestPlayer::SeekBack();
+        LVP_SeekBy(-TestPlayer::SeekInterval);
         break;
     case SDLK_RIGHT: case SDLK_AUDIOFASTFORWARD:
-        TestPlayer::SeekForward();
+        LVP_SeekBy(TestPlayer::SeekInterval);
         break;
     default:
         break;
@@ -151,10 +151,10 @@ static void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
             LVP_TogglePause();
         break;
 	case TEST_BUTTON_ID_SEEK_BACK:
-        TestPlayer::SeekBack();
+        LVP_SeekBy(-TestPlayer::SeekInterval);
         break;
 	case TEST_BUTTON_ID_SEEK_FORWARD:
-        TestPlayer::SeekForward();
+        LVP_SeekBy(TestPlayer::SeekInterval);
         break;
     case TEST_BUTTON_ID_STOP:
         LVP_Stop();

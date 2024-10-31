@@ -11,6 +11,9 @@ private:
     TestPlayer()  {}
     ~TestPlayer() {}
 
+public:
+    static const int SeekInterval = 10;
+
 private:
     static SDL_Texture* texture;
     static SDL_Surface* videoFrame;
@@ -21,8 +24,6 @@ public:
     static void Init(SDL_Renderer* renderer = nullptr, const void* data = nullptr);
     static void Quit();
     static void Render(SDL_Renderer* renderer, const SDL_Rect& destination);
-    static void SeekBack();
-    static void SeekForward();
 
 private:
     static void freeResources();

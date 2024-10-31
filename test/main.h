@@ -21,8 +21,6 @@ namespace LibFT
 	}
 }
 
-const int64_t TEST_PLAYER_SEEK_DIFF = 20000;
-
 struct TestAppIcon {
     static const int      Depth  = 24;
     static const uint32_t Format = SDL_PIXELFORMAT_RGB24;

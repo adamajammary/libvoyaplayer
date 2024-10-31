@@ -158,13 +158,13 @@ namespace LibVoyaPlayer
 		#define FREE_THREAD_COND(c)    if (c != NULL) { SDL_DestroyCond(c);c = NULL; }
 		#define FREE_THREAD_MUTEX(m)   if (m != NULL) { SDL_DestroyMutex(m); m = NULL; }
 
-		#define IS_ATTACHMENT(t)    (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
-		#define IS_AUDIO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
-		#define IS_BYTE_SEEK(i)     (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
-		#define IS_FONT(i)          ((i == LibFFmpeg::AV_CODEC_ID_TTF) || (i == LibFFmpeg::AV_CODEC_ID_OTF))
-		#define IS_SUB(t)           (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
-		#define IS_SUB_BITMAP(t)    (t == LibFFmpeg::SUBTITLE_BITMAP)
-		#define IS_VIDEO(t)         (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
+		#define IS_ATTACHMENT(t) (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
+		#define IS_AUDIO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
+		#define IS_BYTE_SEEK(i)  (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
+		#define IS_FONT(i)       ((i == LibFFmpeg::AV_CODEC_ID_TTF) || (i == LibFFmpeg::AV_CODEC_ID_OTF))
+		#define IS_SUB(t)        (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
+		#define IS_SUB_BITMAP(t) (t == LibFFmpeg::SUBTITLE_BITMAP)
+		#define IS_VIDEO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
 
 		const int    DEFAULT_SCALE_FILTER = SWS_LANCZOS;
 		const int    MEGA_BYTE            = 1024000;

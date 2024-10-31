@@ -10,7 +10,8 @@ bool                              MediaPlayer::LVP_Player::isStopping           
 std::mutex                        MediaPlayer::LVP_Player::packetLock            = {};
 bool                              MediaPlayer::LVP_Player::seekRequested         = false;
 bool                              MediaPlayer::LVP_Player::seekRequestedPaused   = false;
-double                            MediaPlayer::LVP_Player::seekRequest           = 0.0;
+int                               MediaPlayer::LVP_Player::seekByRequest         = 0;
+double                            MediaPlayer::LVP_Player::seekToRequest         = 0.0;
 MediaPlayer::LVP_PlayerState      MediaPlayer::LVP_Player::state                 = {};
 MediaPlayer::LVP_SubtitleContext* MediaPlayer::LVP_Player::subContext            = {};
 System::LVP_TimeOut*              MediaPlayer::LVP_Player::timeOut               = NULL;
@@ -510,18 +511,30 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 	LVP_Player::audioContext->bufferOffset    = 0;
 	LVP_Player::audioContext->bufferRemaining = 0;
-	LVP_Player::audioContext->writtenToStream = 0;
 	LVP_Player::audioContext->decodeFrame     = true;
 	LVP_Player::audioContext->lastPogress     = 0.0;
+	LVP_Player::audioContext->writtenToStream = 0;
 
-	int     seekFlags    = 0;
-	int64_t seekPosition = -1;
+	bool seekByBytes = (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0));
+	int  seekFlags   = (seekByBytes ? AVSEEK_FLAG_BYTE : 0);
 
-	if (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0)) {
-		seekFlags    = AVSEEK_FLAG_BYTE;
-		seekPosition = (int64_t)((double)LVP_Player::state.fileSize * LVP_Player::seekRequest);
-	} else {
-		seekPosition = (int64_t)(((double)LVP_Player::state.duration * AV_TIME_BASE_D) * LVP_Player::seekRequest);
+	int64_t seekPosition;
+
+	if (LVP_Player::seekByRequest != 0)
+	{
+		auto newPosition = (LVP_Player::state.progress + (double)LVP_Player::seekByRequest);
+
+		if (seekByBytes)
+			seekPosition = (int64_t)((double)LVP_Player::state.fileSize * (newPosition / (double)LVP_Player::state.duration));
+		else
+			seekPosition = (int64_t)(newPosition * AV_TIME_BASE_D);
+	}
+	else
+	{
+		if (seekByBytes)
+			seekPosition = (int64_t)((double)LVP_Player::state.fileSize * LVP_Player::seekToRequest);
+		else
+			seekPosition = (int64_t)(((double)LVP_Player::state.duration * AV_TIME_BASE_D) * LVP_Player::seekToRequest);
 	}
 
 	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, seekPosition, INT64_MAX, seekFlags) >= 0)
@@ -538,6 +551,8 @@ void MediaPlayer::LVP_Player::handleSeek()
 	if (LVP_Player::videoContext->codec != NULL)
 		LibFFmpeg::avcodec_flush_buffers(LVP_Player::videoContext->codec);
 
+	LVP_Player::seekByRequest = 0;
+	LVP_Player::seekToRequest = 0.0;
 	LVP_Player::seekRequested = false;
 
 	LVP_Player::packetLock.unlock();
@@ -1231,6 +1246,22 @@ void MediaPlayer::LVP_Player::Resize()
 	LVP_Player::videoContext->isReadyForPresent = true;
 }
 
+void MediaPlayer::LVP_Player::SeekBy(int seconds)
+{
+	if (LVP_Player::formatContext == NULL)
+		return;
+
+	LVP_Player::packetLock.lock();
+
+	LVP_Player::seekByRequest += seconds;
+	LVP_Player::seekRequested  = true;
+
+	if (IS_VIDEO(LVP_Player::state.mediaType) && LVP_Player::state.isPaused)
+		LVP_Player::seekRequestedPaused = true;
+
+	LVP_Player::packetLock.unlock();
+}
+
 void MediaPlayer::LVP_Player::SeekTo(double percent)
 {
 	if (LVP_Player::formatContext == NULL)
@@ -1247,7 +1278,7 @@ void MediaPlayer::LVP_Player::SeekTo(double percent)
 
 void MediaPlayer::LVP_Player::seekTo(double percent)
 {
-	LVP_Player::seekRequest   = percent;
+	LVP_Player::seekToRequest = percent;
 	LVP_Player::seekRequested = true;
 
 	if (IS_VIDEO(LVP_Player::state.mediaType) && LVP_Player::state.isPaused)

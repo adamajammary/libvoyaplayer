@@ -28,7 +28,8 @@ namespace LibVoyaPlayer
 			static std::mutex                  packetLock;
 			static bool                        seekRequested;
 			static bool                        seekRequestedPaused;
-			static double                      seekRequest;
+			static int                         seekByRequest;
+			static double                      seekToRequest;
 			static LVP_PlayerState             state;
 			static LVP_SubtitleContext*        subContext;
 			static System::LVP_TimeOut*        timeOut;
@@ -65,6 +66,7 @@ namespace LibVoyaPlayer
 			static void                          Quit();
 			static void                          Render(const SDL_Rect& destination = {});
 			static void                          Resize();
+			static void                          SeekBy(int seconds);
 			static void                          SeekTo(double percent);
 			static bool                          SetAudioDevice(const std::string& device = "");
 			static void                          SetMuted(bool muted = true);

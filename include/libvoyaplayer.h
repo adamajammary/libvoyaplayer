@@ -197,6 +197,13 @@ DLLEXPORT void DLL LVP_Render(const SDL_Rect& destination = {});
 DLLEXPORT void DLL LVP_Resize();
 
 /**
+ * @brief Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
+ * @param seconds A negative value seeks backwards, a positive forwards.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_SeekBy(int seconds);
+
+/**
  * @brief Seeks (asynchronously) to the given position as a percent between 0 and 1.
  * @param percent [0.0-1.0]
  * @throws runtime_error
