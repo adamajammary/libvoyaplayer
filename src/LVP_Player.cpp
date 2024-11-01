@@ -505,7 +505,12 @@ void MediaPlayer::LVP_Player::handleSeek()
 		return;
 
 	LVP_Player::packetLock.lock();
+
+	LVP_Player::audioContext->packetsLock.lock();
 	LVP_Player::subContext->packetsLock.lock();
+	LVP_Player::videoContext->packetsLock.lock();
+
+	LVP_Player::closePackets();
 
 	LVP_SubtitleBitmap::Remove();
 	LVP_SubtitleText::Remove();
@@ -516,10 +521,8 @@ void MediaPlayer::LVP_Player::handleSeek()
 	LVP_Player::audioContext->lastPogress     = 0.0;
 	LVP_Player::audioContext->writtenToStream = 0;
 
-	bool seekByBytes = (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0));
-	int  seekFlags   = (seekByBytes ? AVSEEK_FLAG_BYTE : 0);
-
 	int64_t seekPosition;
+	bool    seekByBytes = (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0));
 
 	if (LVP_Player::seekByRequest != 0)
 	{
@@ -538,13 +541,14 @@ void MediaPlayer::LVP_Player::handleSeek()
 			seekPosition = (int64_t)(((double)LVP_Player::state.duration * AV_TIME_BASE_D) * LVP_Player::seekToRequest);
 	}
 
-	if (LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, seekPosition, INT64_MAX, seekFlags) >= 0)
-	{
-		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, seekPosition, INT64_MAX, 0);
+	int  flags  = (seekByBytes ? AVSEEK_FLAG_BYTE : 0);
+	auto result = LibFFmpeg::avformat_seek_file(LVP_Player::formatContext, -1, INT64_MIN, seekPosition, INT64_MAX, flags);
 
-		LVP_Player::state.progress = ((double)seekPosition / AV_TIME_BASE_D);
-	}
+	if ((result >= 0) && (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL))
+		LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, seekPosition, INT64_MAX, 0);
+
+	if (LVP_Player::audioContext->codec != NULL)
+		LibFFmpeg::avcodec_flush_buffers(LVP_Player::audioContext->codec);
 
 	if (LVP_Player::subContext->codec != NULL)
 		LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext->codec);
@@ -556,7 +560,10 @@ void MediaPlayer::LVP_Player::handleSeek()
 	LVP_Player::seekToRequest = 0.0;
 	LVP_Player::seekRequested = false;
 
+	LVP_Player::videoContext->packetsLock.unlock();
 	LVP_Player::subContext->packetsLock.unlock();
+	LVP_Player::audioContext->packetsLock.unlock();
+
 	LVP_Player::packetLock.unlock();
 }
 
@@ -1644,9 +1651,6 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 	while (!LVP_Player::state.quit)
 	{
-		if (LVP_Player::seekRequested)
-			LVP_Player::closePackets();
-
 		while (LVP_Player::seekRequested && !LVP_Player::state.quit)
 			SDL_Delay(DELAY_TIME_ONE_MS);
 
