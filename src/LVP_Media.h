@@ -27,6 +27,7 @@ namespace LibVoyaPlayer
 			static LibFFmpeg::AVStream*               GetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
 			static std::map<std::string, std::string> GetMediaTrackMeta(LibFFmpeg::AVStream* stream);
 			static LibFFmpeg::AVMediaType             GetMediaType(LibFFmpeg::AVFormatContext* formatContext);
+			static LVP_PTS                            GetPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
 			static LVP_PTS                            GetSubtitlePTS(LibFFmpeg::AVPacket* packet, LibFFmpeg::AVSubtitle& frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
 			static double                             GetSubtitleEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase);
 			static double                             GetVideoPTS(LibFFmpeg::AVFrame* frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
@@ -41,7 +42,6 @@ namespace LibVoyaPlayer
 			static size_t                             getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
 			static LibFFmpeg::AVStream*               getMediaTrackThumbnail(LibFFmpeg::AVFormatContext* formatContext);
 			static std::map<std::string, std::string> getMeta(LibFFmpeg::AVDictionary* metadata);
-			static LVP_PTS                            getPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
 			static bool                               isDRM(LibFFmpeg::AVDictionary* metaData);
 		};
 	}

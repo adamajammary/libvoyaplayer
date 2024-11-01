@@ -12,7 +12,7 @@ LibASS::ASS_Image* MediaPlayer::LVP_SubtitleText::create(double progress)
 
 	LVP_SubtitleText::trackLock.lock();
 
-	auto time  = (long long)(progress * ONE_SECOND_MS);
+	auto time  = (long long)(progress * ONE_SECOND_MS_D);
 	auto image = LibASS::ass_render_frame(LVP_SubtitleText::renderer, LVP_SubtitleText::track, time, NULL);
 
 	LVP_SubtitleText::trackLock.unlock();
@@ -54,8 +54,8 @@ void MediaPlayer::LVP_SubtitleText::ProcessEvent(LVP_Subtitle* subtitle)
 	if ((subtitle == NULL) || subtitle->dialogue.empty() || (LVP_SubtitleText::track == NULL))
 		return;
 
-	auto start    = (long long)(subtitle->pts.start * ONE_SECOND_MS);
-	auto duration = (long long)((subtitle->pts.end - subtitle->pts.start) * ONE_SECOND_MS);
+	auto start    = (long long)(subtitle->pts.start * ONE_SECOND_MS_D);
+	auto duration = (long long)((subtitle->pts.end - subtitle->pts.start) * ONE_SECOND_MS_D);
 
 	LVP_SubtitleText::trackLock.lock();
 

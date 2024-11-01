@@ -542,7 +542,7 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 	return meta;
 }
 
-MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::getPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime)
+MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime)
 {
 	if (packet == NULL)
 		return {};
@@ -565,15 +565,15 @@ MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetSubtitlePTS(LibFFmpeg::AVPacket*
 	if (packet == NULL)
 		return {};
 
-	auto pts = LVP_Media::getPacketPTS(packet, timeBase, startTime);
+	auto pts = LVP_Media::GetPacketPTS(packet, timeBase, startTime);
 
 	if (frame.start_display_time > 0)
-		pts.start += (double)((double)frame.start_display_time / ONE_SECOND_MS);
+		pts.start += (double)((double)frame.start_display_time / ONE_SECOND_MS_D);
 
 	if (frame.end_display_time == UINT32_MAX)
 		pts.end = 0.0;
 	else if (frame.end_display_time > 0)
-		pts.end = (double)(pts.start + (double)((double)frame.end_display_time / ONE_SECOND_MS));
+		pts.end = (double)(pts.start + (double)((double)frame.end_display_time / ONE_SECOND_MS_D));
 	else if (packet->duration > 0)
 		pts.end = (double)(pts.start + (double)((double)packet->duration * LibFFmpeg::av_q2d(timeBase)));
 	else

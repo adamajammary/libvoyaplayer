@@ -20,7 +20,6 @@ namespace LibVoyaPlayer
 			LibFFmpeg::AVFrame*      frameEncoded;
 			LibFFmpeg::AVFrame*      frameHardware;
 			LibFFmpeg::AVFrame*      frameSoftware;
-			double                   frameRate;
 			LibFFmpeg::AVPixelFormat hardwareFormat;
 			bool                     isReadyForRender;
 			bool                     isReadyForPresent;

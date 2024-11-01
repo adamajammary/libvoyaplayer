@@ -6,7 +6,6 @@ MediaPlayer::LVP_VideoContext::LVP_VideoContext()
 	this->frameEncoded       = NULL;
 	this->frameHardware      = NULL;
 	this->frameSoftware      = NULL;
-	this->frameRate          = 0.0;
 	this->hardwareFormat     = LibFFmpeg::AV_PIX_FMT_NONE;
 	this->isReadyForRender   = false;
 	this->isReadyForPresent  = false;

@@ -277,8 +277,8 @@ std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::getChapters(LibFFmpeg::AV
 		lastChapterEnd = chapter->end;
 
 		auto timeBase = LibFFmpeg::av_q2d(chapter->time_base);
-		auto end      = (int64_t)((double)chapter->end   * timeBase * ONE_SECOND_MS);
-		auto start    = (int64_t)((double)chapter->start * timeBase * ONE_SECOND_MS);
+		auto end      = (int64_t)((double)chapter->end   * timeBase * ONE_SECOND_MS_D);
+		auto start    = (int64_t)((double)chapter->start * timeBase * ONE_SECOND_MS_D);
 		auto title    = LibFFmpeg::av_dict_get(chapter->metadata, "title", NULL, 0);
 
 		chapters.push_back({
@@ -444,7 +444,7 @@ double MediaPlayer::LVP_Player::GetPlaybackSpeed()
 
 int64_t MediaPlayer::LVP_Player::GetProgress()
 {
-	return (int64_t)(LVP_Player::state.progress * ONE_SECOND_MS);
+	return (int64_t)(LVP_Player::state.progress * ONE_SECOND_MS_D);
 }
 
 SDL_Rect MediaPlayer::LVP_Player::getScaledVideoDestination(const SDL_Rect& destination)
@@ -546,6 +546,9 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 	if ((result >= 0) && (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL))
 		LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, seekPosition, INT64_MAX, 0);
+
+	if (LVP_Player::seekRequestedPaused)
+		LVP_Player::state.progress = (double)(std::max(std::min((seekPosition / AV_TIME_BASE_I64), LVP_Player::state.duration), 0LL));
 
 	if (LVP_Player::audioContext->codec != NULL)
 		LibFFmpeg::avcodec_flush_buffers(LVP_Player::audioContext->codec);
@@ -1070,14 +1073,9 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 
 	LVP_Player::videoContext->frameHardware = LibFFmpeg::av_frame_alloc();
 	LVP_Player::videoContext->frameSoftware = LibFFmpeg::av_frame_alloc();
-	LVP_Player::videoContext->frameRate     = (1.0 / LVP_Media::GetMediaFrameRate(LVP_Player::videoContext->stream));
 
-	if ((LVP_Player::videoContext->frameHardware == NULL) ||
-		(LVP_Player::videoContext->frameSoftware == NULL) ||
-		(LVP_Player::videoContext->frameRate <= 0))
-	{
+	if ((LVP_Player::videoContext->frameHardware == NULL) || (LVP_Player::videoContext->frameSoftware == NULL))
 		throw std::runtime_error("Failed to allocate a video context frame.");
-	}
 
 	if (LVP_Player::videoContext->frameEncoded != NULL)
 		LVP_Player::videoContext->frameEncoded->linesize[0] = 0;
@@ -1860,6 +1858,27 @@ int MediaPlayer::LVP_Player::threadSub()
 		if (packet == NULL)
 			continue;
 
+		auto packetPTS = LVP_Media::GetPacketPTS(
+			packet,
+			LVP_Player::subContext->stream->time_base,
+			LVP_Player::audioContext->stream->start_time
+		);
+
+		// Sub is behind audio, skip packet to catch up.
+
+		auto packetDelayStart = (packetPTS.start - LVP_Player::state.progress);
+		auto packetDelayEnd   = (packetPTS.end   - LVP_Player::state.progress);
+
+		if ((packetPTS.end > 0.0) && ((packetDelayStart <= MAX_SUB_DELAY) || (packetDelayEnd <= 0.0)))
+		{
+			#if defined _DEBUG
+				printf("PACKET_DELAY: %.3fs [%.3fs]\n", packetDelayStart, packetDelayEnd);
+			#endif
+
+			if (packetDelayEnd <= 0.0)
+				continue;
+		}
+
 		// Decode subtitle packet to frame
 
 		int  frameDecoded;
@@ -1905,16 +1924,16 @@ int MediaPlayer::LVP_Player::threadSub()
 
 		// Sub is behind audio, skip frame to catch up.
 
-		auto delayTimeStart = (framePTS.start - LVP_Player::state.progress);
-		auto delayTimeEnd   = (framePTS.end   - LVP_Player::state.progress);
+		auto frameDelayStart = (framePTS.start - LVP_Player::state.progress);
+		auto frameDelayEnd   = (framePTS.end   - LVP_Player::state.progress);
 
-		if ((framePTS.end > 0.0) && ((delayTimeStart <= MAX_SUB_DELAY) || (delayTimeEnd <= 0.0)))
+		if ((framePTS.end > 0.0) && ((frameDelayStart <= MAX_SUB_DELAY) || (frameDelayEnd <= 0.0)))
 		{
 			#if defined _DEBUG
-				printf("DELAY: %.3fs [%.3fs]\n", delayTimeStart, delayTimeEnd);
+				printf("FRAME_DELAY: %.3fs [%.3fs]\n", frameDelayStart, frameDelayEnd);
 			#endif
 
-			if (delayTimeEnd <= 0.0)
+			if (frameDelayEnd <= 0.0)
 				continue;
 		}
 
@@ -1972,9 +1991,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 {
 	LVP_Player::state.threads[LVP_THREAD_VIDEO] = true;
 
-	int  errorCount         = 0;
-	auto maxFrameDurationS  = (LVP_Player::videoContext->frameRate * 2.0);
-	auto maxFrameDurationMS = (int)(maxFrameDurationS * ONE_SECOND_MS);
+	int errorCount = 0;
 
 	while (!LVP_Player::state.quit)
 	{
@@ -2092,29 +2109,24 @@ int MediaPlayer::LVP_Player::threadVideo()
 		if (LVP_Player::state.quit)
 			break;
 
+		auto timeUntilPTS = (int)((LVP_Player::videoContext->pts - LVP_Player::state.progress) * ONE_SECOND_MS_D);
+
 		// Update video if seek was requested while paused
 
 		if (LVP_Player::seekRequestedPaused)
 		{
-			// Keep seeking until the video and audio catch up
+			// Keep seeking until the video catches up to the audio
 
-			if (std::abs(LVP_Player::state.progress - LVP_Player::videoContext->pts) > maxFrameDurationS)
+			if (timeUntilPTS > ONE_SECOND_MS)
 				continue;
 
 			LVP_Player::seekRequestedPaused = false;
-
-			LVP_Player::videoContext->isReadyForRender  = true;
-			LVP_Player::videoContext->isReadyForPresent = true;
 		}
-
-		auto sleepTime = (int)((LVP_Player::videoContext->pts - LVP_Player::state.progress) * ONE_SECOND_MS);
 
 		LVP_Player::videoContext->isReadyForRender = true;
 
-		// Video is ahead of audio, wait or slow down.
-
-		if (sleepTime > 0)
-			SDL_Delay(std::min(sleepTime, maxFrameDurationMS));
+		if ((timeUntilPTS > 0) && (timeUntilPTS <= ONE_SECOND_MS))
+			SDL_Delay(timeUntilPTS);
 
 		LVP_Player::videoContext->isReadyForPresent = true;
 	}

@@ -168,7 +168,8 @@ namespace LibVoyaPlayer
 
 		const int    DEFAULT_SCALE_FILTER = SWS_LANCZOS;
 		const int    MEGA_BYTE            = 1024000;
-		const double ONE_SECOND_MS        = 1000.0;
+		const double ONE_SECOND_MS_D      = 1000.0;
+		const int    ONE_SECOND_MS        = 1000;
 		const int    SUB_STREAM_EXTERNAL  = 1000;
 
 		const int64_t AV_TIME_BASE_I64 = 1000000LL;
