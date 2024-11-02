@@ -18,7 +18,7 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://github.com/libsdl-org/SDL) | [2.30.8](https://github.com/libsdl-org/SDL/releases/download/release-2.30.8/SDL2-2.30.8.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
+[SDL2](https://github.com/libsdl-org/SDL) | [2.30.9](https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
 [libass](https://github.com/libass/libass) | [0.17.3](https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
 [fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.15.0](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.15.0/fontconfig-2.15.0.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
 [libexpat](https://github.com/libexpat/libexpat) | [2.6.3](https://github.com/libexpat/libexpat/releases/download/R_2_6_3/expat-2.6.3.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
