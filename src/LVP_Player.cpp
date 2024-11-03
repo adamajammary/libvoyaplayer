@@ -548,7 +548,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 		LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, -1, INT64_MIN, seekPosition, INT64_MAX, 0);
 
 	if (LVP_Player::seekRequestedPaused)
-		LVP_Player::state.progress = (double)(std::max(std::min((seekPosition / AV_TIME_BASE_I64), LVP_Player::state.duration), 0LL));
+		LVP_Player::state.progress = std::max((double)std::min((seekPosition / AV_TIME_BASE_I64), LVP_Player::state.duration), 0.0);
 
 	if (LVP_Player::audioContext->codec != NULL)
 		LibFFmpeg::avcodec_flush_buffers(LVP_Player::audioContext->codec);
