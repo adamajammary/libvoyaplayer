@@ -1,6 +1,7 @@
 #ifndef LVP_MAIN_H
 #define LVP_MAIN_H
 
+#include <algorithm> // min/max(x)
 #include <map>
 #include <mutex>
 #include <queue>
