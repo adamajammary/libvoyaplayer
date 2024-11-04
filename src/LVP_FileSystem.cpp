@@ -137,7 +137,7 @@ LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& 
 			if (mediaType == LVP_MEDIA_TYPE_SUBTITLE)
 				subtitleFiles.push_back(subtitleFile);
 		} catch (const std::exception& e) {
-			fprintf(stderr, "ERROR: %s\n", e.what());
+			LOG("ERROR: %s\n", e.what());
 			continue;
 		}
 

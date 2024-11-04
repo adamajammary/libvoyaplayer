@@ -133,9 +133,6 @@ namespace LibVoyaPlayer
 
 	namespace MediaPlayer
 	{
-		#define ARE_DIFFERENT_DOUBLES(a, b) ((a > (b + 0.01)) || (a < (b - 0.01)))
-		#define AVFRAME_IS_VALID(f)         ((f != NULL) && (f->data[0] != NULL) && (f->linesize[0] > 0) && (f->width > 0) && (f->height > 0))
-
 		#define DELETE_POINTER(p)      if (p != NULL) { delete p; p = NULL; }
 		#define FREE_ASS_LIBRARY(l)    if (l != NULL) { LibASS::ass_library_done(l); l = NULL; }
 		#define FREE_ASS_RENDERER(r)   if (r != NULL) { LibASS::ass_renderer_done(r); r = NULL; }

@@ -1336,12 +1336,9 @@ void MediaPlayer::LVP_Player::SetMuted(bool muted)
 
 void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 {
-	auto newSpeed = std::max(0.5, std::min(2.0, speed));
+	auto validSpeed = std::max(0.5, std::min(2.0, speed));
 
-	if (!ARE_DIFFERENT_DOUBLES(newSpeed, LVP_Player::state.playbackSpeed))
-		return;
-
-	LVP_Player::state.playbackSpeed = newSpeed;
+	LVP_Player::state.playbackSpeed = validSpeed;
 
 	LVP_Player::callbackEvents(LVP_EVENT_PLAYBACK_SPEED_CHANGED);
 }
@@ -1411,20 +1408,31 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 
 			auto result = LibFFmpeg::avcodec_send_packet(LVP_Player::audioContext->codec, packet);
 
-			if ((result < 0) || LVP_Player::state.quit) {
+			if ((result < 0) || LVP_Player::state.quit)
+			{
+				if ((result != AVERROR(EAGAIN)) && (result != AVERROR_EOF))
+				{
+					#if defined _DEBUG
+						char strerror[AV_ERROR_MAX_STRING_SIZE];
+						LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+						LOG("%s\n", strerror);
+					#endif
+				}
+
 				FREE_AVPACKET(packet);
+
 				break;
 			}
 
 			// Some packets contain multiple frames
 
-			while (result == 0)
+			while (result >= 0)
 			{
 				result = LibFFmpeg::avcodec_receive_frame(LVP_Player::audioContext->codec, LVP_Player::audioContext->frame);
 
 				if (result < 0)
 				{
-					if (result != AVERROR(EAGAIN))
+					if ((result != AVERROR(EAGAIN)) && (result != AVERROR_EOF))
 					{
 						#if defined _DEBUG
 							char strerror[AV_ERROR_MAX_STRING_SIZE];
@@ -2027,108 +2035,115 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 		LVP_Player::packetLock.unlock();
 
-		if ((result < 0) || LVP_Player::state.quit) {
+		if ((result < 0) || LVP_Player::state.quit)
+		{
+			if ((result == AVERROR(EAGAIN)) || (result == AVERROR_EOF))
+				continue;
+
+			errorCount++;
+
 			FREE_AVPACKET(packet);
+
+			#if defined _DEBUG
+				char strerror[AV_ERROR_MAX_STRING_SIZE];
+				LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+				LOG("%s\n", strerror);
+			#endif
+
+			if (errorCount >= MAX_ERRORS) {
+				LVP_Player::stop("Failed to decode video.");
+				break;
+			}
+
 			continue;
 		}
 
-		result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext->codec, LVP_Player::videoContext->frameHardware);
-
-		FREE_AVPACKET(packet);
-
-		if (LVP_Player::state.quit)
-			break;
-
-		// Process video frame content
-
-		if (LVP_Player::isHardwarePixelFormat(LVP_Player::videoContext->frameHardware->format))
+		while (result >= 0)
 		{
-			result = LibFFmpeg::av_hwframe_transfer_data(
-				LVP_Player::videoContext->frameSoftware,
-				LVP_Player::videoContext->frameHardware,
-				0
-			);
+			result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext->codec, LVP_Player::videoContext->frameHardware);
 
-			LVP_Player::videoContext->frameSoftware->best_effort_timestamp = LVP_Player::videoContext->frameHardware->best_effort_timestamp;
-			LVP_Player::videoContext->frameSoftware->pts                   = LVP_Player::videoContext->frameHardware->pts;
-			LVP_Player::videoContext->frameSoftware->pkt_dts               = LVP_Player::videoContext->frameHardware->pkt_dts;
+			if ((result == AVERROR(EAGAIN)) || (result == AVERROR_EOF))
+				break;
 
-			LVP_Player::videoContext->frame = LVP_Player::videoContext->frameSoftware;
-		} else {
-			LVP_Player::videoContext->frame = LVP_Player::videoContext->frameHardware;
-		}
-
-		if ((result < 0) || !AVFRAME_IS_VALID(LVP_Player::videoContext->frame))
-		{
-			if (result != AVERROR(EAGAIN))
+			if (result < 0)
 			{
+				errorCount++;
+
 				#if defined _DEBUG
 					char strerror[AV_ERROR_MAX_STRING_SIZE];
 					LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 					LOG("%s\n", strerror);
 				#endif
 
-				errorCount++;
-			}
-					
-			if (errorCount >= MAX_ERRORS) {
-				LVP_Player::stop("Too many errors occured while decoding the video.");
 				break;
 			}
 
-			if (LVP_Player::state.progress > 1.0) {
-				LibFFmpeg::av_frame_unref(LVP_Player::videoContext->frame);
-				LVP_Player::videoContext->frame = LibFFmpeg::av_frame_alloc();
+			// Process video frame content
+
+			if (LVP_Player::isHardwarePixelFormat(LVP_Player::videoContext->frameHardware->format))
+			{
+				LibFFmpeg::av_hwframe_transfer_data(LVP_Player::videoContext->frameSoftware, LVP_Player::videoContext->frameHardware, 0);
+
+				LVP_Player::videoContext->frameSoftware->best_effort_timestamp = LVP_Player::videoContext->frameHardware->best_effort_timestamp;
+				LVP_Player::videoContext->frameSoftware->pts                   = LVP_Player::videoContext->frameHardware->pts;
+				LVP_Player::videoContext->frameSoftware->pkt_dts               = LVP_Player::videoContext->frameHardware->pkt_dts;
+
+				LVP_Player::videoContext->frame = LVP_Player::videoContext->frameSoftware;
+			} else {
+				LVP_Player::videoContext->frame = LVP_Player::videoContext->frameHardware;
 			}
 
-			continue;
+			if (IS_AUDIO(LVP_Player::state.mediaType) && (LVP_Player::videoContext->stream->attached_pic.size > 0))
+			{
+				// Always display music cover image
+
+				LVP_Player::videoContext->pts = LVP_Player::state.progress;
+			}
+			else
+			{
+				// Calculate video PTS (present time)
+
+				LVP_Player::videoContext->pts = LVP_Media::GetVideoPTS(
+					LVP_Player::videoContext->frame,
+					LVP_Player::videoContext->stream->time_base,
+					LVP_Player::audioContext->stream->start_time
+				);
+			}
+
+			// Wait while paused (unless a seek is requested)
+
+			while (LVP_Player::state.isPaused && !LVP_Player::seekRequested && !LVP_Player::seekRequestedPaused && !LVP_Player::state.quit)
+				SDL_Delay(DELAY_TIME_DEFAULT);
+
+			if (LVP_Player::state.quit)
+				break;
+
+			auto timeUntilPTS = (int)((LVP_Player::videoContext->pts - LVP_Player::state.progress) * ONE_SECOND_MS_D);
+
+			// Update video if seek was requested while paused
+
+			if (LVP_Player::seekRequestedPaused)
+			{
+				// Keep seeking until the video catches up to the audio
+
+				if (timeUntilPTS > ONE_SECOND_MS)
+					continue;
+
+				LVP_Player::seekRequestedPaused = false;
+			}
+
+			LVP_Player::videoContext->isReadyForRender = true;
+
+			if ((timeUntilPTS > 0) && (timeUntilPTS <= ONE_SECOND_MS))
+				SDL_Delay(timeUntilPTS);
+
+			LVP_Player::videoContext->isReadyForPresent = true;
 		}
 
-		errorCount = 0;
+		FREE_AVPACKET(packet);
 
-		// Always display music cover image
-		if (IS_AUDIO(LVP_Player::state.mediaType) && (LVP_Player::videoContext->stream->attached_pic.size > 0))
-		{
-			LVP_Player::videoContext->pts = LVP_Player::state.progress;
-		}
-		// Calculate video PTS (present time)
-		else
-		{
-			LVP_Player::videoContext->pts = LVP_Media::GetVideoPTS(
-				LVP_Player::videoContext->frame,
-				LVP_Player::videoContext->stream->time_base,
-				LVP_Player::audioContext->stream->start_time
-			);
-		}
-
-		// Wait while paused (unless a seek is requested)
-
-		while (LVP_Player::state.isPaused && !LVP_Player::seekRequested && !LVP_Player::seekRequestedPaused && !LVP_Player::state.quit)
-			SDL_Delay(DELAY_TIME_DEFAULT);
-
-		if (LVP_Player::state.quit)
-			break;
-
-		auto timeUntilPTS = (int)((LVP_Player::videoContext->pts - LVP_Player::state.progress) * ONE_SECOND_MS_D);
-
-		// Update video if seek was requested while paused
-
-		if (LVP_Player::seekRequestedPaused)
-		{
-			// Keep seeking until the video catches up to the audio
-
-			if (timeUntilPTS > ONE_SECOND_MS)
-				continue;
-
-			LVP_Player::seekRequestedPaused = false;
-		}
-
-		LVP_Player::videoContext->isReadyForRender = true;
-
-		if ((timeUntilPTS > 0) && (timeUntilPTS <= ONE_SECOND_MS))
-			SDL_Delay(timeUntilPTS);
-
-		LVP_Player::videoContext->isReadyForPresent = true;
+		if ((result == AVERROR(EAGAIN)) || (result == AVERROR_EOF) || (result >= 0))
+			errorCount = 0;
 	}
 
 	LVP_Player::state.threads[LVP_THREAD_VIDEO] = false;
