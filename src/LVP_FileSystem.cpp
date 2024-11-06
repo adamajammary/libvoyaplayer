@@ -130,14 +130,20 @@ LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& 
 			continue;
 		}
 
-		try {
+		try
+		{
 			auto subtitleFile = LVP_Text::Format("%s%c%s", directory.c_str(), PATH_SEPARATOR, file.c_str());
 			auto mediaType    = MediaPlayer::LVP_Player::GetMediaType(subtitleFile);
 
 			if (mediaType == LVP_MEDIA_TYPE_SUBTITLE)
 				subtitleFiles.push_back(subtitleFile);
-		} catch (const std::exception& e) {
-			LOG("ERROR: %s\n", e.what());
+		}
+		catch (const std::exception& e)
+		{
+			#if defined _DEBUG
+				LOG("ERROR: %s\n", e.what());
+			#endif
+
 			continue;
 		}
 
