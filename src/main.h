@@ -15,14 +15,16 @@
 #elif defined _ios
 	#include <dirent.h>   // opendir(x)
 	#include <unistd.h>   // chdir(x)
+	#include <os/log.h>   // os_log
 	#include <sys/stat.h> // stat64, lstat64(x)
 #elif defined _linux
 	#include <dirent.h>   // opendir(x)
 	#include <sys/stat.h> // stat64, lstat64(x)
 #elif defined _macosx
-	#include <unistd.h>   // chdir(x)
-	#include <sys/dir.h>  // opendir(x)
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <unistd.h>                // chdir(x)
+	#include <Foundation/Foundation.h> // NSLog(x)
+	#include <sys/dir.h>               // opendir(x)
+	#include <sys/stat.h>              // stat64, lstat64(x)
 #elif defined _windows
 	#include <direct.h>   // _chdir(x)
 	#include <dirent.h>   // _wopendir(x)
