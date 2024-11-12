@@ -29,8 +29,8 @@ namespace LibVoyaPlayer
 			static LibFFmpeg::AVMediaType             GetMediaType(LibFFmpeg::AVFormatContext* formatContext);
 			static LVP_PTS                            GetPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
 			static LVP_PTS                            GetSubtitlePTS(LibFFmpeg::AVPacket* packet, LibFFmpeg::AVSubtitle& frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
-			static double                             GetSubtitleEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase);
-			static double                             GetVideoPTS(LibFFmpeg::AVFrame* frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
+			static double                             GetSubtitlePGSEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase);
+			static double                             GetVideoPTS(LVP_VideoContext* videoContext, int64_t startTime);
 			static bool                               IsStreamWithFontAttachments(LibFFmpeg::AVStream* stream);
 			static void                               SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext);
 			static void                               SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext* mediaContext, int extSubFileIndex = -1);

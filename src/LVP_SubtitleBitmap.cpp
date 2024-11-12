@@ -82,7 +82,7 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 			subtitle->bitmap.h,
 			32,
 			subContext->frameEncoded->linesize[0],
-			SDL_PIXELFORMAT_RGBA8888
+			SDL_PIXELFORMAT_RGBA32
 		);
 
 		LVP_SubtitleBitmap::subsLock.lock();
@@ -234,7 +234,7 @@ void MediaPlayer::LVP_SubtitleBitmap::UpdatePGSEndPTS(LibFFmpeg::AVPacket* packe
 		if (sub->pts.end > 0.0)
 			continue;
 
-		sub->pts.end = LVP_Media::GetSubtitleEndPTS(packet, timeBase);
+		sub->pts.end = LVP_Media::GetSubtitlePGSEndPTS(packet, timeBase);
 
 		#if defined _DEBUG
 			printf("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);

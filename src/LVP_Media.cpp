@@ -582,7 +582,7 @@ MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetSubtitlePTS(LibFFmpeg::AVPacket*
 	return pts;
 }
 
-double MediaPlayer::LVP_Media::GetSubtitleEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase)
+double MediaPlayer::LVP_Media::GetSubtitlePGSEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase)
 {
 	if (packet == NULL)
 		return 0.0;
@@ -592,14 +592,14 @@ double MediaPlayer::LVP_Media::GetSubtitleEndPTS(LibFFmpeg::AVPacket* packet, co
 	return (end * LibFFmpeg::av_q2d(timeBase));
 }
 
-double MediaPlayer::LVP_Media::GetVideoPTS(LibFFmpeg::AVFrame* frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime)
+double MediaPlayer::LVP_Media::GetVideoPTS(LVP_VideoContext* videoContext, int64_t startTime)
 {
-	auto pts = (double)frame->best_effort_timestamp;
+	auto pts = (double)videoContext->frame->best_effort_timestamp;
 
 	if (startTime != AV_NOPTS_VALUE)
 		pts -= (double)startTime;
 
-	pts *= LibFFmpeg::av_q2d(timeBase);
+	pts *= LibFFmpeg::av_q2d(videoContext->stream->time_base);
 
 	return pts;
 }

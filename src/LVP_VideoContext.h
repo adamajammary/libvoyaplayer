@@ -29,6 +29,9 @@ namespace LibVoyaPlayer
 			LibFFmpeg::SwsContext*   scaleContext;
 			SDL_Surface*             surface;
 			SDL_Texture*             texture;
+
+		public:
+			int getTimeUntilPTS(double progress) const;
 		};
 	}
 }

@@ -4,7 +4,7 @@
 
 char*       BASE_PATH  = nullptr;
 bool        QUIT       = false;
-const char* VIDEO_FILE = "caminandes_1_llama_drama_2013_300p.ogv";
+const char* VIDEO_FILE = "caminandes_3_llamigos_2016_240p.mp4";
 
 #if defined _android
 static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)

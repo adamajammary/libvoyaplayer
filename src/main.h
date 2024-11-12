@@ -162,11 +162,13 @@ namespace LibVoyaPlayer
 		#define IS_AUDIO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
 		#define IS_BYTE_SEEK(i)  (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
 		#define IS_FONT(i)       ((i == LibFFmpeg::AV_CODEC_ID_TTF) || (i == LibFFmpeg::AV_CODEC_ID_OTF))
+		#define IS_INVALID_PTS() (LVP_Player::seekRequestedBack && (LVP_Player::state.progress > LVP_Player::seekPTS))
 		#define IS_SUB(t)        (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
 		#define IS_SUB_BITMAP(t) (t == LibFFmpeg::SUBTITLE_BITMAP)
 		#define IS_VIDEO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
 
 		const int    DEFAULT_SCALE_FILTER = SWS_LANCZOS;
+		const int    DELAY_TIME_DEFAULT   = 15;
 		const int    MEGA_BYTE            = 1024000;
 		const double ONE_SECOND_MS_D      = 1000.0;
 		const int    ONE_SECOND_MS        = 1000;
@@ -175,18 +177,12 @@ namespace LibVoyaPlayer
 		const int64_t AV_TIME_BASE_I64 = 1000000LL;
 		const double  AV_TIME_BASE_D   = 1000000.0;
 
-		const int    DELAY_TIME_DEFAULT   = 15;
-		const double DELAY_TIME_DEFAULT_S = 0.015;
-		const int    DELAY_TIME_ONE_MS    = 1;
-
 		const int    MAX_255x255   = 65025;
 		const int    MAX_ERRORS    = 100;
 		const double MAX_SUB_DELAY = -0.1;
 
-		const int    MIN_PACKET_QUEUE_SIZE   = 25;
-		const double MIN_SUB_DISPLAY_TIME    = 0.015;
-		const int    MIN_SUB_PACKET_SIZE     = 100;
-		const double MIN_SUB_TIME_TO_PTS     = (DELAY_TIME_DEFAULT_S + MIN_SUB_DISPLAY_TIME);
+		const int    MIN_PACKET_QUEUE_SIZE = 25;
+		const double MIN_SUB_TIME_TO_PTS   = 0.03;
 
 		enum LVP_RGBA
 		{

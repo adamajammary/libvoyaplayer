@@ -26,7 +26,9 @@ namespace LibVoyaPlayer
 			static bool                        isStopping;
 			static bool                        isOpening;
 			static std::mutex                  packetLock;
+			static double                      seekPTS;
 			static bool                        seekRequested;
+			static bool                        seekRequestedBack;
 			static bool                        seekRequestedPaused;
 			static int                         seekByRequest;
 			static double                      seekToRequest;
@@ -81,6 +83,7 @@ namespace LibVoyaPlayer
 			static void                          callbackVideoIsAvailable(SDL_Surface* surface);
 			static void                          close();
 			static void                          closeAudioContext();
+			static void                          closePackets(LVP_MediaContext* context);
 			static void                          closePackets();
 			static void                          closeStream(LibFFmpeg::AVMediaType streamType);
 			static void                          closeSubContext();

@@ -29,3 +29,8 @@ MediaPlayer::LVP_VideoContext::~LVP_VideoContext()
 	FREE_SWS(this->scaleContext);
 	FREE_TEXTURE(this->texture);
 }
+
+int MediaPlayer::LVP_VideoContext::getTimeUntilPTS(double progress) const
+{
+	return (int)((this->pts - progress) * ONE_SECOND_MS_D);
+}
