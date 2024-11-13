@@ -25,12 +25,21 @@ void TestButton::create()
 	printf("SDL_SURFACE_CREATE: %s\n", SDL_GetError());
 
     //this->size    = { surface->w, surface->h };
-    //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+    this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+
+	printf("SDL_TEXTURE_CREATE: %s\n", SDL_GetError());
 
 	if (surface)
 		SDL_FreeSurface(surface);
 
 	printf("SDL_SURFACE_FREE: %s\n", SDL_GetError());
+
+	if (this->texture) {
+		SDL_DestroyTexture(this->texture);
+		this->texture = nullptr;
+	}
+
+	printf("SDL_TEXTURE_FREE: %s\n", SDL_GetError());
 }
 
 void TestButton::destroy()
