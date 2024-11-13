@@ -21,10 +21,10 @@ void TestButton::create()
 {
     auto surface = this->getSurface();
 
-    this->size    = { surface->w, surface->h };
-    this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+    //this->size    = { surface->w, surface->h };
+    //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
 
-    SDL_FreeSurface(surface);
+    //SDL_FreeSurface(surface);
 }
 
 void TestButton::destroy()
