@@ -597,7 +597,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 	{
 		char strerror[AV_ERROR_MAX_STRING_SIZE];
 		LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-		LOG("SEEK_ERROR: %s\n", strerror);
+		LOG("SEEK: %s\n", strerror);
 	}
 	#endif
 
@@ -1472,7 +1472,7 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 					#if defined _DEBUG
 						char strerror[AV_ERROR_MAX_STRING_SIZE];
 						LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-						LOG("AUDIO_DECODE_ERROR: %s\n", strerror);
+						LOG("AUDIO_DECODE: %s\n", strerror);
 					#endif
 				}
 
@@ -1498,7 +1498,7 @@ void MediaPlayer::LVP_Player::threadAudio(void* userData, Uint8* stream, int str
 						#if defined _DEBUG
 							char strerror[AV_ERROR_MAX_STRING_SIZE];
 							LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-							LOG("AUDIO_DECODE_ERROR: %s\n", strerror);
+							LOG("AUDIO_DECODE: %s\n", strerror);
 						#endif
 
 						LVP_Player::audioContext->bufferRemaining = 0;
@@ -1784,7 +1784,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 				#if defined _DEBUG
 					char strerror[AV_ERROR_MAX_STRING_SIZE];
 					LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-					LOG("PACKET_READ_ERROR: %s\n", strerror);
+					LOG("PACKET_READ: %s\n", strerror);
 				#endif
 
 				if (errorCount < MAX_ERRORS)
@@ -2155,7 +2155,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 			#if defined _DEBUG
 				char strerror[AV_ERROR_MAX_STRING_SIZE];
 				LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-				LOG("VIDEO_DECODE_ERROR: %s\n", strerror);
+				LOG("VIDEO_DECODE: %s\n", strerror);
 			#endif
 
 			if (errorCount >= MAX_ERRORS) {
@@ -2184,7 +2184,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 				#if defined _DEBUG
 					char strerror[AV_ERROR_MAX_STRING_SIZE];
 					LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-					LOG("VIDEO_DECODE_ERROR: %s\n", strerror);
+					LOG("VIDEO_DECODE: %s\n", strerror);
 				#endif
 
 				break;
