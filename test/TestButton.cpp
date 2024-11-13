@@ -20,13 +20,14 @@ TestButton::~TestButton()
 void TestButton::create()
 {
     //auto surface = this->getSurface();
-
-    //this->size    = { surface->w, surface->h };
-    //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
-
 	auto surface = SDL_CreateRGBSurfaceWithFormat(0, 64, 64, 32, SDL_PIXELFORMAT_RGBA32);
 
 	printf("SDL_SURFACE: %s\n", SDL_GetError());
+
+    this->size    = { surface->w, surface->h };
+    this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+
+	printf("SDL_TEXTURE: %s\n", SDL_GetError());
 
     SDL_FreeSurface(surface);
 }
