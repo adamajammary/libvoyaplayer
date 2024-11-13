@@ -1,7 +1,5 @@
 #include "TestText.h"
 
-LibFT::FT_Library TestText::ftLibrary = nullptr;
-
 SDL_Surface* TestText::GetSurface(TestButton* button)
 {
     #if defined _android
@@ -17,9 +15,16 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
 	    auto fontPath = "C:\\Windows\\Fonts\\arial.ttf";
     #endif
 
-    LibFT::FT_Face font = nullptr;
+	LibFT::FT_Library library = nullptr;
 
-    auto ftError = LibFT::FT_New_Face(TestText::ftLibrary, fontPath, 0, &font);
+	auto ftError = LibFT::FT_Init_FreeType(&library);
+
+	if (!library || (ftError != LibFT::FT_Err_Ok))
+		throw std::runtime_error(TextFormat("Failed to initialize FreeType2: %d", ftError));
+
+	LibFT::FT_Face font = nullptr;
+	
+	ftError = LibFT::FT_New_Face(library, fontPath, 0, &font);
 
     if (!font || (ftError != LibFT::FT_Err_Ok))
         throw std::runtime_error(TextFormat("Failed to open font '%s': %d", fontPath, ftError));
@@ -63,6 +68,7 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
 	}
 
 	LibFT::FT_Done_Face(font);
+	LibFT::FT_Done_FreeType(library);
 
 	return surface;
 }
@@ -81,14 +87,4 @@ SDL_Point TestText::GetSurfaceSize(TestButton* button, LibFT::FT_Face font)
 	size.y = (int)(font->glyph->metrics.vertAdvance >> 6);
 
 	return size;
-}
-
-LibFT::FT_Error TestText::Init()
-{
-	return LibFT::FT_Init_FreeType(&TestText::ftLibrary);
-}
-
-void TestText::Quit()
-{
-	LibFT::FT_Done_FreeType(TestText::ftLibrary);
 }

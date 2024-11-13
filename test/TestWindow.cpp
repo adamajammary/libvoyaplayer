@@ -66,11 +66,6 @@ void TestWindow::Init(int width, int height, const char* basePath)
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
         throw std::runtime_error(TextFormat("Failed to initialize SDL: %s", SDL_GetError()));
 
-	auto ftError = TestText::Init();
-
-	if (ftError != LibFT::FT_Err_Ok)
-		throw std::runtime_error(TextFormat("Failed to initialize FreeType2: %d", ftError));
-
 	const auto WINDOW_FLAGS = (SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
     TestWindow::window = SDL_CreateWindow(TestWindow::title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, WINDOW_FLAGS);
@@ -173,8 +168,6 @@ void TestWindow::Quit()
 		SDL_DestroyWindow(TestWindow::window);
 		TestWindow::window = nullptr;
 	}
-
-	TestText::Quit();
 
 	SDL_Quit();
 }

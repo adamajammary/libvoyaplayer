@@ -170,7 +170,7 @@ static void handleUserEvent(const SDL_UserEvent& event)
 
     switch (eventType) {
     case LVP_EVENT_MEDIA_OPENED:
-        TestWindow::UpdateTitle("Caminandes 1: Llama Drama (2013)");
+        TestWindow::UpdateTitle("Caminandes 3: Llamigos (2016)");
 
         TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
 
