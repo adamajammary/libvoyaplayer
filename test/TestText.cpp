@@ -43,9 +43,9 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
 	auto pixels   = (uint8_t*)surface->pixels;
 	auto position = SDL_Point();
 
-	for (size_t i = 0; button->label[i] != 0; i++)
+	for (auto charCode : button->label)
 	{
-		LibFT::FT_Load_Char(font, button->label[i], FT_LOAD_RENDER);
+		LibFT::FT_Load_Char(font, charCode, FT_LOAD_RENDER);
 
 		auto offsetY = (position.y + (surface->h - font->glyph->bitmap_top));
 
@@ -77,9 +77,9 @@ SDL_Point TestText::GetSurfaceSize(TestButton* button, LibFT::FT_Face font)
 {
 	SDL_Point size = {};
 
-	for (size_t i = 0; button->label[i] != 0; i++)
+	for (auto charCode : button->label)
 	{
-		LibFT::FT_Load_Char(font, button->label[i], FT_LOAD_BITMAP_METRICS_ONLY);
+		LibFT::FT_Load_Char(font, charCode, FT_LOAD_BITMAP_METRICS_ONLY);
 
 		size.x += (font->glyph->advance.x >> 6);
 	}
