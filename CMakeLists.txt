@@ -387,7 +387,7 @@ elseif (OS STREQUAL "_macosx")
     add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_AV1} @executable_path/${EXT_LIB_AV1} ${DIST_DIR}/bin/${EXT_LIB_AVFO})
 
     add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change @rpath/${EXT_LIB_EXP} @executable_path/${EXT_LIB_EXP} ${DIST_DIR}/bin/${EXT_LIB_FC})
-    add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change @rpath/${EXT_LIB_FT}  @executable_path/${EXT_LIB_FT}  ${DIST_DIR}/bin/${EXT_LIB_FC})
+    add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_FT}             @executable_path/${EXT_LIB_FT}  ${DIST_DIR}/bin/${EXT_LIB_FC})
 
     add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_ASS}             @executable_path/${EXT_LIB_ASS}  ${DIST_DIR}/bin/libvoyaplayer.dylib)
     add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_AVC}             @executable_path/${EXT_LIB_AVC}  ${DIST_DIR}/bin/libvoyaplayer.dylib)
