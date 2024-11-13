@@ -19,12 +19,16 @@ TestButton::~TestButton()
 
 void TestButton::create()
 {
-    auto surface = this->getSurface();
+    //auto surface = this->getSurface();
 
     //this->size    = { surface->w, surface->h };
     //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
 
-    //SDL_FreeSurface(surface);
+	auto surface = SDL_CreateRGBSurfaceWithFormat(0, 64, 64, 32, SDL_PIXELFORMAT_RGBA32);
+
+	printf("SDL_SURFACE: %s\n", SDL_GetError());
+
+    SDL_FreeSurface(surface);
 }
 
 void TestButton::destroy()
@@ -126,7 +130,7 @@ SDL_Surface* TestButton::getSurface()
 	auto surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA32);
 
 	if (pixels)
-		memcpy(surface->pixels, pixels, pixelsSize);
+		std::memcpy(surface->pixels, pixels, pixelsSize);
 
 	std::free(pixels);
 
