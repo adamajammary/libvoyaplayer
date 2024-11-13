@@ -21,9 +21,8 @@ void TestButton::create()
 {
     auto surface = this->getSurface();
 
-    this->size    = { surface->w, surface->h };
+    //this->size    = { surface->w, surface->h };
     //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
-	this->texture = nullptr;
 
     SDL_FreeSurface(surface);
 }
@@ -95,12 +94,18 @@ SDL_Surface* TestButton::getSurface()
 
 		for (int y1 = 0, y2 = offsetY; (y1 < (int)font->glyph->bitmap.rows) && (y2 < surface->h); y1++, y2++)
 		{
+			if (offsetY < 0)
+				continue;
+
 			auto offsetX = ((position.x + font->glyph->bitmap_left) * colors);
 			auto rowSrc  = (y1 * (int)font->glyph->bitmap.width);
 			auto rowDest = (y2 * surface->pitch);
 
 			for (int x1 = 0, x2 = offsetX; (x1 < (int)font->glyph->bitmap.width) && (x2 < surface->pitch); x1++, x2 += colors)
 			{
+				if (offsetX < 0)
+					continue;
+
 				pixels[rowDest + x2]     = color.r;
 				pixels[rowDest + x2 + 1] = color.g;
 				pixels[rowDest + x2 + 2] = color.b;
