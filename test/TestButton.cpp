@@ -21,8 +21,8 @@ void TestButton::create()
 {
     auto surface = this->getSurface();
 
-    //this->size    = { surface->w, surface->h };
-    //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+    this->size    = { surface->w, surface->h };
+    this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
 
     SDL_FreeSurface(surface);
 }
@@ -79,12 +79,13 @@ SDL_Surface* TestButton::getSurface()
     const SDL_Color WHITE = { 0xFF, 0xFF, 0xFF, 0xFF };
     const SDL_Color GRAY  = { 0xAA, 0xAA, 0xAA, 0xFF };
 
-	auto color    = (this->enabled ? WHITE : GRAY);
-	auto size     = this->getSurfaceSize(font);
-	auto surface  = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA32);
-	auto colors   = surface->format->BytesPerPixel;
-	auto pixels   = (uint8_t*)surface->pixels;
-	auto position = SDL_Point();
+	auto color      = (this->enabled ? WHITE : GRAY);
+	auto colors     = 4;
+	auto size       = this->getSurfaceSize(font);
+	auto pitch      = (size.x * colors);
+	auto pixelsSize = (size_t)(size.y * pitch);
+	auto pixels     = (uint8_t*)std::calloc(pixelsSize, sizeof(uint8_t));
+	auto position   = SDL_Point();
 
 	if (font->glyph->bitmap.pixel_mode != 2)
 		throw std::runtime_error(TextFormat("Font pixel mode: %d", (int)font->glyph->bitmap.pixel_mode));
@@ -93,18 +94,18 @@ SDL_Surface* TestButton::getSurface()
 	{
 		LibFT::FT_Load_Char(font, charCode, FT_LOAD_RENDER);
 
-		auto offsetY = (position.y + (surface->h - font->glyph->bitmap_top));
+		auto offsetY = (position.y + (size.y - font->glyph->bitmap_top));
 
-		for (int y1 = 0, y2 = offsetY; (y1 < (int)font->glyph->bitmap.rows) && (y2 < surface->h); y1++, y2++)
+		for (int y1 = 0, y2 = offsetY; (y1 < (int)font->glyph->bitmap.rows) && (y2 < size.y); y1++, y2++)
 		{
 			if (offsetY < 0)
 				continue;
 
 			auto offsetX = ((position.x + font->glyph->bitmap_left) * colors);
 			auto rowSrc  = (y1 * font->glyph->bitmap.pitch);
-			auto rowDest = (y2 * surface->pitch);
+			auto rowDest = (y2 * pitch);
 
-			for (int x1 = 0, x2 = offsetX; (x1 < font->glyph->bitmap.pitch) && (x2 < surface->pitch); x1++, x2 += colors)
+			for (int x1 = 0, x2 = offsetX; (x1 < font->glyph->bitmap.pitch) && (x2 < pitch); x1++, x2 += colors)
 			{
 				if (offsetX < 0)
 					continue;
@@ -121,6 +122,13 @@ SDL_Surface* TestButton::getSurface()
 
 	LibFT::FT_Done_Face(font);
 	LibFT::FT_Done_FreeType(library);
+
+	auto surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA32);
+
+	if (pixels)
+		std::memcpy(surface->pixels, pixels, pixelsSize);
+
+	std::free(pixels);
 
 	return surface;
 }
