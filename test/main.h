@@ -10,7 +10,6 @@
 
 #include <libvoyaplayer.h>
 
-#include <cstring>
 #include <unordered_map>
 
 namespace LibFT

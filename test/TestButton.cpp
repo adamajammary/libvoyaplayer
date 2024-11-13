@@ -126,7 +126,7 @@ SDL_Surface* TestButton::getSurface()
 	auto surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA32);
 
 	if (pixels)
-		std::memcpy(surface->pixels, pixels, pixelsSize);
+		memcpy(surface->pixels, pixels, pixelsSize);
 
 	std::free(pixels);
 
