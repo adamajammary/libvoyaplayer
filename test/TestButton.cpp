@@ -86,6 +86,9 @@ SDL_Surface* TestButton::getSurface()
 	auto pixels   = (uint8_t*)surface->pixels;
 	auto position = SDL_Point();
 
+	if (font->glyph->bitmap.pixel_mode != 2)
+		throw std::runtime_error(TextFormat("Font pixel mode: %d", (int)font->glyph->bitmap.pixel_mode));
+
 	for (auto charCode : this->label)
 	{
 		LibFT::FT_Load_Char(font, charCode, FT_LOAD_RENDER);
@@ -98,10 +101,10 @@ SDL_Surface* TestButton::getSurface()
 				continue;
 
 			auto offsetX = ((position.x + font->glyph->bitmap_left) * colors);
-			auto rowSrc  = (y1 * (int)font->glyph->bitmap.width);
+			auto rowSrc  = (y1 * font->glyph->bitmap.pitch);
 			auto rowDest = (y2 * surface->pitch);
 
-			for (int x1 = 0, x2 = offsetX; (x1 < (int)font->glyph->bitmap.width) && (x2 < surface->pitch); x1++, x2 += colors)
+			for (int x1 = 0, x2 = offsetX; (x1 < font->glyph->bitmap.pitch) && (x2 < surface->pitch); x1++, x2 += colors)
 			{
 				if (offsetX < 0)
 					continue;
