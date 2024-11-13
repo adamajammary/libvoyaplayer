@@ -22,7 +22,8 @@ void TestButton::create()
     auto surface = this->getSurface();
 
     this->size    = { surface->w, surface->h };
-    this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+    //this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+	this->texture = nullptr;
 
     SDL_FreeSurface(surface);
 }
@@ -137,5 +138,5 @@ void TestButton::update(const std::string& label)
     this->label = label;
 
     this->destroy();
-    //this->create();
+    this->create();
 }
