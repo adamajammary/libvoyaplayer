@@ -217,7 +217,8 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 
 		button->background = { offsetX, (lineY + ((lineHeight - button->size.y) / 2)), button->size.x, button->size.y };
 
-		SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
+		if (button->texture)
+			SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
 
 		offsetX += (button->background.w + padding10);
 
