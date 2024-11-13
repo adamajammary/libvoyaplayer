@@ -137,5 +137,5 @@ void TestButton::update(const std::string& label)
     this->label = label;
 
     this->destroy();
-    this->create();
+    //this->create();
 }

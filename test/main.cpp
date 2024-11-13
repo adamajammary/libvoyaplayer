@@ -314,7 +314,7 @@ int SDL_main(int argc, char* argv[])
 
             handleEvents();
 
-            //TestWindow::UpdateProgress();
+            TestWindow::UpdateProgress();
 
             if (QUIT)
                 break;
