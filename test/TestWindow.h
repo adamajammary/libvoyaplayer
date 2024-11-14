@@ -32,7 +32,7 @@ public:
     static void          UpdateTitle(const std::string& title = "");
 
 private:
-    static void initButtons(const char* basePath);
+    static void initButtons();
 
     #if defined _linux || defined _macosx || defined _windows
     static void initIcon(const char* basePath);

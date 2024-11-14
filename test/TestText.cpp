@@ -5,9 +5,8 @@ LibFT::FT_Library TestText::library = nullptr;
 
 SDL_Surface* TestText::GetSurface(TestButton* button)
 {
-    auto fontSize = (int)(button->fontSize * button->dpiScale);
-    
-    LibFT::FT_Set_Char_Size(TestText::font, 0, (fontSize << 6), 0, 0);
+   
+    LibFT::FT_Set_Char_Size(TestText::font, 0, (button->fontSize << 6), 0, 0);
 
     const SDL_Color WHITE = { 0xFF, 0xFF, 0xFF, 0xFF };
     const SDL_Color GRAY  = { 0xAA, 0xAA, 0xAA, 0xFF };
@@ -68,7 +67,7 @@ SDL_Point TestText::getSurfaceSize(TestButton* button, LibFT::FT_Face font)
     return size;
 }
 
-void TestText::Init()
+void TestText::Init(const char* basePath)
 {
     auto ftError = LibFT::FT_Init_FreeType(&TestText::library);
 
@@ -78,7 +77,7 @@ void TestText::Init()
     #if defined _android
         const auto fontPath = "/system/fonts/Roboto-Regular.ttf";
     #elif defined _ios
-        auto arial    = TextFormat("%s%s", button->basePath, "Arial.ttf");
+        auto arial    = TextFormat("%s%s", basePath, "Arial.ttf");
         auto fontPath = arial.c_str();
     #elif defined _linux
         auto fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";

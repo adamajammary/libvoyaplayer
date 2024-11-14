@@ -1,15 +1,12 @@
 #include "TestButton.h"
 
-TestButton::TestButton(SDL_Renderer* renderer, float dpiScale, const char* basePath, TestButtonId id, const std::string& label, bool enabled)
+TestButton::TestButton(int fontSize, TestButtonId id, const std::string& label, bool enabled)
 {
     this->background = {};
-    this->basePath   = basePath;
-    this->dpiScale   = dpiScale;
     this->enabled    = enabled;
-    this->fontSize   = 14.0f;
+    this->fontSize   = fontSize;
     this->id         = id;
     this->label      = label;
-    this->renderer   = renderer;
     this->size       = {};
     this->texture    = nullptr;
 
@@ -23,10 +20,11 @@ TestButton::~TestButton()
 
 void TestButton::create()
 {
-    auto surface = TestText::GetSurface(this);
+    auto renderer = TestWindow::GetRenderer();
+    auto surface  = TestText::GetSurface(this);
 
     this->size    = { surface->w, surface->h };
-    this->texture = SDL_CreateTextureFromSurface(this->renderer, surface);
+    this->texture = SDL_CreateTextureFromSurface(renderer, surface);
 
 	SDL_FreeSurface(surface);
 }

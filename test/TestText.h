@@ -17,7 +17,7 @@ private:
 
 public:
     static SDL_Surface* GetSurface(TestButton* button);
-    static void         Init();
+    static void         Init(const char* basePath);
     static void         Quit();
 
 private:

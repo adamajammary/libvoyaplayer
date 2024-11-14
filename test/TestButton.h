@@ -18,22 +18,17 @@ enum TestButtonId
 class TestButton
 {
 public:
-    TestButton(SDL_Renderer* renderer, float dpiScale, const char* basePath, TestButtonId id, const std::string& label, bool enabled = true);
+    TestButton(int fontSize, TestButtonId id, const std::string& label, bool enabled = true);
     ~TestButton();
 
 public:
     SDL_Rect     background;
-    float        dpiScale;
     bool         enabled;
-    float        fontSize;
+    int          fontSize;
     TestButtonId id;
     std::string  label;
     SDL_Point    size;
     SDL_Texture* texture;
-
-private:
-    const char*   basePath;
-    SDL_Renderer* renderer;
 
 public:
     void create();

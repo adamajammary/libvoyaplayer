@@ -66,7 +66,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
         throw std::runtime_error(TextFormat("Failed to initialize SDL: %s", SDL_GetError()));
 
-	TestText::Init();
+	TestText::Init(basePath);
 
 	const auto WINDOW_FLAGS = (SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
@@ -89,34 +89,35 @@ void TestWindow::Init(int width, int height, const char* basePath)
 	TestWindow::initIcon(basePath);
 	#endif
 	
-	TestWindow::initButtons(basePath);
+	TestWindow::initButtons();
 }
 
-void TestWindow::initButtons(const char* basePath)
+void TestWindow::initButtons()
 {
 	auto dpiScale = TestWindow::GetDPIScale();
+	auto fontSize = (int)(14.0f * dpiScale);
 
-	auto open = new TestButton(TestWindow::renderer, dpiScale, basePath, TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PLAY_PAUSE] = open;
 	TestWindow::buttons.push_back(open);
 
-	auto stop = new TestButton(TestWindow::renderer, dpiScale, basePath, TEST_BUTTON_ID_STOP, "STOP", false);
+	auto stop = new TestButton(fontSize, TEST_BUTTON_ID_STOP, "STOP", false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_STOP] = stop;
 	TestWindow::buttons.push_back(stop);
 
-	auto seekBack = new TestButton(TestWindow::renderer, dpiScale, basePath, TEST_BUTTON_ID_SEEK_BACK, "<< SEEK", false);
+	auto seekBack = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_BACK, "<< SEEK", false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_BACK] = seekBack;
 	TestWindow::buttons.push_back(seekBack);
 
-	auto seekForward = new TestButton(TestWindow::renderer, dpiScale, basePath, TEST_BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
+	auto seekForward = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_FORWARD] = seekForward;
 	TestWindow::buttons.push_back(seekForward);
 
-	auto progress = new TestButton(TestWindow::renderer, dpiScale, basePath, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
+	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PROGRESS] = progress;
 	TestWindow::buttons.push_back(progress);
