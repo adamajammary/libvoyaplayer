@@ -56,6 +56,7 @@ static std::string TimeFormat(int64_t milliSeconds)
 
 #include "TestButton.h"
 #include "TestPlayer.h"
+#include "TestText.h"
 #include "TestWindow.h"
 
 #endif

@@ -22,27 +22,24 @@ public:
     ~TestButton();
 
 public:
-    SDL_Rect     background = {};
-    bool         enabled    = true;
-    TestButtonId id         = TEST_BUTTON_ID_UNKNOWN;
-    SDL_Point    size       = {};
-    SDL_Texture* texture    = nullptr;
+    SDL_Rect     background;
+    float        dpiScale;
+    bool         enabled;
+    float        fontSize;
+    TestButtonId id;
+    std::string  label;
+    SDL_Point    size;
+    SDL_Texture* texture;
 
 private:
-    const char*   basePath = nullptr;
-    float         dpiScale = 1.0f;
-    std::string   label    = "";
-    SDL_Renderer* renderer = nullptr;
+    const char*   basePath;
+    SDL_Renderer* renderer;
 
 public:
     void create();
     void destroy();
     void enable(bool enabled = true);
     void update(const std::string& label);
-
-private:
-    SDL_Surface* getSurface();
-    SDL_Point    getSurfaceSize(LibFT::FT_Face font);
 };
 
 using TestButtonIds = std::unordered_map<TestButtonId, TestButton*>;
