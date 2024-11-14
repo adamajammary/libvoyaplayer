@@ -378,10 +378,9 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 			SDL_UnlockSurface(thumbnail);
 	}
 
-	FREE_SWS(contextRGB);
-	FREE_AVPOINTER(frameRGB->data[0]);
 	FREE_AVFRAME(frameRGB);
 	FREE_AVFRAME(frame);
+	FREE_SWS(contextRGB);
 	FREE_AVCODEC(codec);
 
 	return thumbnail;
