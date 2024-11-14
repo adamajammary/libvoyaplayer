@@ -1246,7 +1246,11 @@ void MediaPlayer::LVP_Player::renderVideo()
 			FREE_AVFRAME(LVP_Player::videoContext->frameEncoded);
 	}
 
+	LVP_Player::packetLock.lock();
+
 	auto pixelFormat = (LibFFmpeg::AVPixelFormat)LVP_Player::videoContext->frame->format;
+
+	LVP_Player::packetLock.unlock();
 
 	if ((LVP_Player::videoContext->frameEncoded == NULL) || (pixelFormat == LibFFmpeg::AV_PIX_FMT_NONE))
 		return;
@@ -1268,22 +1272,22 @@ void MediaPlayer::LVP_Player::renderVideo()
 	if (LVP_Player::videoContext->scaleContext == NULL)
 		return;
 
-	auto scaleResult = LibFFmpeg::sws_scale(
+	LVP_Player::packetLock.lock();
+
+	auto scaleResult = LibFFmpeg::sws_scale_frame(
 		LVP_Player::videoContext->scaleContext,
-		LVP_Player::videoContext->frame->data,
-		LVP_Player::videoContext->frame->linesize,
-		0,
-		LVP_Player::videoContext->frame->height,
-		LVP_Player::videoContext->frameEncoded->data,
-		LVP_Player::videoContext->frameEncoded->linesize
+		LVP_Player::videoContext->frameEncoded,
+		LVP_Player::videoContext->frame
 	);
+
+	LVP_Player::packetLock.unlock();
 
 	if (scaleResult <= 0)
 		return;
 
 	auto size = (size_t)(scaleResult * LVP_Player::videoContext->frameEncoded->linesize[0]);
 
-	memcpy(LVP_Player::videoContext->surface->pixels, LVP_Player::videoContext->frameEncoded->data[0], size);
+	std::memcpy(LVP_Player::videoContext->surface->pixels, LVP_Player::videoContext->frameEncoded->data[0], size);
 }
 
 void MediaPlayer::LVP_Player::Resize()
@@ -2192,6 +2196,8 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 			// Process video frame content
 
+			LVP_Player::packetLock.lock();
+
 			if (LVP_Player::isHardwarePixelFormat(LVP_Player::videoContext->frameHardware->format))
 			{
 				LibFFmpeg::av_hwframe_transfer_data(LVP_Player::videoContext->frameSoftware, LVP_Player::videoContext->frameHardware, 0);
@@ -2211,6 +2217,8 @@ int MediaPlayer::LVP_Player::threadVideo()
 				LVP_Player::videoContext->pts = LVP_Player::state.progress;
 			else
 				LVP_Player::videoContext->pts = LVP_Media::GetVideoPTS(LVP_Player::videoContext, LVP_Player::audioContext->stream->start_time);
+
+			LVP_Player::packetLock.unlock();
 
 			// Wait while paused (unless a seek is requested)
 

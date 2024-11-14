@@ -2,6 +2,7 @@
 #define LVP_MAIN_H
 
 #include <algorithm> // min/max(x)
+#include <cstring>   // memcpy(x)
 #include <map>
 #include <mutex>
 #include <queue>

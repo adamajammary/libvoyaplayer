@@ -357,7 +357,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 
 	SDL_Surface* thumbnail = NULL;
 
-	result = LibFFmpeg::sws_scale(contextRGB, frame->data, frame->linesize, 0, frame->height, frameRGB->data, frameRGB->linesize);
+	result = LibFFmpeg::sws_scale_frame(contextRGB, frameRGB, frame);
 
 	if (result > 0)
 		thumbnail = SDL_CreateRGBSurfaceWithFormat(0, frame->width, frame->height, 24, SDL_PIXELFORMAT_RGB24);
@@ -372,7 +372,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 
 		thumbnail->pitch = frameRGB->linesize[0];
 
-		memcpy(thumbnail->pixels, frameRGB->data[0], size);
+		std::memcpy(thumbnail->pixels, frameRGB->data[0], size);
 
 		if (lock)
 			SDL_UnlockSurface(thumbnail);
