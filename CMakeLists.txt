@@ -376,6 +376,11 @@ endif()
 if (OS STREQUAL "_linux")
     add_custom_target(testvoyaplayer_rpath ALL DEPENDS testvoyaplayer)
 
+    add_custom_command(TARGET testvoyaplayer_rpath COMMAND patchelf --set-rpath '' ${DIST_DIR}/bin/${EXT_LIB_AVC})
+    add_custom_command(TARGET testvoyaplayer_rpath COMMAND patchelf --set-rpath '' ${DIST_DIR}/bin/${EXT_LIB_AVD})
+    add_custom_command(TARGET testvoyaplayer_rpath COMMAND patchelf --set-rpath '' ${DIST_DIR}/bin/${EXT_LIB_AVFI})
+    add_custom_command(TARGET testvoyaplayer_rpath COMMAND patchelf --set-rpath '' ${DIST_DIR}/bin/${EXT_LIB_AVFO})
+
     add_custom_command(TARGET testvoyaplayer_rpath COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/libvoyaplayer.so)
     add_custom_command(TARGET testvoyaplayer_rpath COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/testvoyaplayer)
 elseif (OS STREQUAL "_macosx")
