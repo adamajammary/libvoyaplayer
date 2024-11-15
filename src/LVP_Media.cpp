@@ -304,11 +304,11 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	}
 	else
 	{
-		auto seekFlags = (IS_BYTE_SEEK(formatContext->iformat) ? AVSEEK_FLAG_BYTE : 0);
-		auto seekPos   = LVP_Media::getMediaThumbnailSeekPos(formatContext);
+		bool isByteSeek = IS_BYTE_SEEK(formatContext->iformat);
+		auto seekPos    = LVP_Media::getMediaThumbnailSeekPos(formatContext, isByteSeek);
 
 		if (seekPos > 0)
-			LibFFmpeg::avformat_seek_file(formatContext, -1, INT64_MIN, seekPos, INT64_MAX, seekFlags);
+			LibFFmpeg::av_seek_frame(formatContext, -1, seekPos, (isByteSeek ? AVSEEK_FLAG_BYTE : 0));
 
 		auto packet = LibFFmpeg::av_packet_alloc();
 
@@ -340,7 +340,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 
 	auto frameRGB = LibFFmpeg::av_frame_alloc();
 
-	LibFFmpeg::av_image_alloc(frameRGB->data, frameRGB->linesize, frame->width, frame->height, LibFFmpeg::AV_PIX_FMT_RGB24, 1);
+	LibFFmpeg::av_image_alloc(frameRGB->data, frameRGB->linesize, frame->width, frame->height, LibFFmpeg::AV_PIX_FMT_RGBA, 1);
 
 	auto contextRGB = LibFFmpeg::sws_getContext(
 		frame->width,
@@ -348,7 +348,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 		(LibFFmpeg::AVPixelFormat)frame->format,
 		frame->width,
 		frame->height,
-		LibFFmpeg::AV_PIX_FMT_RGB24,
+		LibFFmpeg::AV_PIX_FMT_RGBA,
 		DEFAULT_SCALE_FILTER,
 		NULL,
 		NULL,
@@ -360,22 +360,15 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	result = LibFFmpeg::sws_scale_frame(contextRGB, frameRGB, frame);
 
 	if (result > 0)
-		thumbnail = SDL_CreateRGBSurfaceWithFormat(0, frame->width, frame->height, 24, SDL_PIXELFORMAT_RGB24);
+		thumbnail = SDL_CreateRGBSurfaceWithFormat(0, frame->width, frame->height, 32, SDL_PIXELFORMAT_RGBA32);
 
 	if (thumbnail != NULL)
 	{
-		bool lock = SDL_MUSTLOCK(thumbnail);
-		auto size = (size_t)(frame->width * thumbnail->format->BytesPerPixel * frame->height);
-
-		if (lock)
-			SDL_LockSurface(thumbnail);
-
 		thumbnail->pitch = frameRGB->linesize[0];
 
-		std::memcpy(thumbnail->pixels, frameRGB->data[0], size);
+		auto size = (size_t)(frame->height * frame->width * thumbnail->format->BytesPerPixel);
 
-		if (lock)
-			SDL_UnlockSurface(thumbnail);
+		std::memcpy(thumbnail->pixels, frameRGB->data[0], size);
 	}
 
 	FREE_AVFRAME(frameRGB);
@@ -386,7 +379,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	return thumbnail;
 }
 
-int64_t MediaPlayer::LVP_Media::getMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext)
+int64_t MediaPlayer::LVP_Media::getMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext, bool isByteSeek)
 {
 	if (formatContext == NULL)
 		return 0;
@@ -404,7 +397,7 @@ int64_t MediaPlayer::LVP_Media::getMediaThumbnailSeekPos(LibFFmpeg::AVFormatCont
 	else if (formatContext->duration > AV_TIME_10)
 		seekPos = AV_TIME_10;
 
-	if (!IS_BYTE_SEEK(formatContext->iformat))
+	if (!isByteSeek)
 		return seekPos;
 
 	auto fileSize = System::LVP_FileSystem::GetFileSize(formatContext->url);

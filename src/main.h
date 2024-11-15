@@ -252,6 +252,13 @@ namespace LibVoyaPlayer
 			int width  = 0;
 			int height = 0;
 		};
+
+		struct LVP_SubtitleContext : LVP_MediaContext
+		{
+			LVP_Strings                 external      = {};
+			LibFFmpeg::AVFormatContext* formatContext = NULL;
+			LVP_Size                    videoSize     = {};
+		};
 	}
 }
 
@@ -261,7 +268,6 @@ using namespace LibVoyaPlayer;
 #include "LVP_PlayerState.h"
 
 #include "LVP_AudioContext.h"
-#include "LVP_SubtitleContext.h"
 #include "LVP_VideoContext.h"
 
 #include "LVP_FileSystem.h"

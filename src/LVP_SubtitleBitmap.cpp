@@ -18,72 +18,12 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 		if (!IS_SUB_BITMAP(subtitle->type) || (subtitle->bitmap.w < 1) || (subtitle->bitmap.h < 1))
 			continue;
 
-		subContext->scaleContext = LibFFmpeg::sws_getCachedContext(
-			subContext->scaleContext,
-			subtitle->bitmap.w,
-			subtitle->bitmap.h,
-			subContext->codec->pix_fmt,
-			subtitle->bitmap.w,
-			subtitle->bitmap.h,
-			LibFFmpeg::AV_PIX_FMT_RGBA,
-			DEFAULT_SCALE_FILTER,
-			NULL,
-			NULL,
-			NULL
-		);
+		subtitle->surface = SDL_CreateRGBSurfaceWithFormat(0, subtitle->bitmap.w, subtitle->bitmap.h, 32, SDL_PIXELFORMAT_RGBA32);
 
-		if (subContext->scaleContext == NULL)
-			continue;
+		auto size   = (subtitle->bitmap.w * subtitle->bitmap.h);
+		auto pixels = (uint8_t*)subtitle->surface->pixels;
 
-		if ((subContext->frameEncoded == NULL) ||
-			(subContext->frameEncoded->width  != subtitle->bitmap.w) ||
-			(subContext->frameEncoded->height != subtitle->bitmap.h))
-		{
-			FREE_AVFRAME(subContext->frameEncoded);
-
-			subContext->frameEncoded = LibFFmpeg::av_frame_alloc();
-
-			if (subContext->frameEncoded == NULL)
-				continue;
-
-			auto result = LibFFmpeg::av_image_alloc(
-				subContext->frameEncoded->data,
-				subContext->frameEncoded->linesize,
-				subtitle->bitmap.w,
-				subtitle->bitmap.h,
-				LibFFmpeg::AV_PIX_FMT_RGBA,
-				1
-			);
-
-			if (result <= 0) {
-				FREE_AVFRAME(subContext->frameEncoded);
-				continue;
-			}
-		}
-
-		auto result = LibFFmpeg::sws_scale(
-			subContext->scaleContext,
-			subtitle->bitmap.data,
-			subtitle->bitmap.linesize,
-			0,
-			subtitle->bitmap.h,
-			subContext->frameEncoded->data,
-			subContext->frameEncoded->linesize
-		);
-
-		if (result <= 0) {
-			FREE_AVFRAME(subContext->frameEncoded);
-			continue;
-		}
-
-		subtitle->surface = SDL_CreateRGBSurfaceWithFormatFrom(
-			subContext->frameEncoded->data[0],
-			subtitle->bitmap.w,
-			subtitle->bitmap.h,
-			32,
-			subContext->frameEncoded->linesize[0],
-			SDL_PIXELFORMAT_RGBA32
-		);
+		LibFFmpeg::sws_convertPalette8ToPacked32(subtitle->bitmap.data[0], pixels, size, subtitle->bitmap.data[1]);
 
 		LVP_SubtitleBitmap::subsLock.lock();
 

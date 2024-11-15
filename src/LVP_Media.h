@@ -38,7 +38,7 @@ namespace LibVoyaPlayer
 		private:
 			static const LibFFmpeg::AVCodecHWConfig*  getHardwareConfig(const LibFFmpeg::AVCodec* decoder);
 			static LibFFmpeg::AVPixelFormat           getHardwarePixelFormat(LibFFmpeg::AVCodecContext* codec, const LibFFmpeg::AVPixelFormat* pixelFormats);
-			static int64_t                            getMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext);
+			static int64_t                            getMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext, bool isByteSeek);
 			static size_t                             getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
 			static LibFFmpeg::AVStream*               getMediaTrackThumbnail(LibFFmpeg::AVFormatContext* formatContext);
 			static std::map<std::string, std::string> getMeta(LibFFmpeg::AVDictionary* metadata);
