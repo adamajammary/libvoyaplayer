@@ -1,5 +1,5 @@
-#ifndef LVP_GLOBAL_H
-	#include "LVP_Global.h"
+#ifndef LVP_MAIN_H
+	#include "main.h"
 #endif
 
 #ifndef LVP_TIMEOUT_H
@@ -21,10 +21,9 @@ namespace LibVoyaPlayer
 
 		public:
 			static int InterruptCallback(void* data);
-			bool       isTimedOut();
+			bool       isTimedOut() const;
 			void       start();
 			void       stop();
-
 		};
 	}
 }

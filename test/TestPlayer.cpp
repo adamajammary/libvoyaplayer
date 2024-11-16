@@ -23,7 +23,7 @@ void TestPlayer::freeResources()
 
 }
 
-void TestPlayer::handleError(const std::string &errorMessage, const void* data)
+void TestPlayer::handleError(const std::string& errorMessage, const void* data)
 {
 	fprintf(stderr, "%s\n", errorMessage.c_str());
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "testvoyaplayer", errorMessage.c_str(), NULL);
@@ -111,9 +111,9 @@ void TestPlayer::Quit()
 	TestPlayer::freeResources();
 }
 
-void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect &destination)
+void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect& destination)
 {
-	LVP_Render(&destination);
+	LVP_Render(destination);
 
 	if (!renderer || !TestPlayer::videoFrame)
 		return;
@@ -161,22 +161,4 @@ void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect &destination)
 	}
 
 	TestPlayer::videoLock.unlock();
-}
-
-void TestPlayer::SeekBack()
-{
-	auto duration = (double)LVP_GetDuration();
-	auto progress = (double)(LVP_GetProgress() - SEEK_DIFF);
-	auto percent  = (progress / duration);
-
-	LVP_SeekTo(percent);
-}
-
-void TestPlayer::SeekForward()
-{
-	auto duration = (double)LVP_GetDuration();
-	auto progress = (double)(LVP_GetProgress() + SEEK_DIFF);
-	auto percent  = (progress / duration);
-
-	LVP_SeekTo(percent);
 }

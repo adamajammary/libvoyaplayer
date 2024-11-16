@@ -1,17 +1,13 @@
 #define SDL_MAIN_HANDLED
 
-#include "TestPlayer.h"
-#include "TestWindow.h"
-
-const int MS_PER_FRAME_FPS60 = (1000 / 60);
-const int MS_PER_FRAME_IDLE  = 200;
+#include "main.h"
 
 char*       BASE_PATH  = nullptr;
 bool        QUIT       = false;
-const char* VIDEO_FILE = "caminandes_1_llama_drama_2013_300p.ogv";
+const char* VIDEO_FILE = "caminandes_3_llamigos_2016_240p.mp4";
 
 #if defined _android
-jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
+static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
 {
     auto jniClass = environment->FindClass(classPath.c_str());
 
@@ -21,7 +17,7 @@ jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
     return jniClass;
 }
 
-JNIEnv* getAndroidJniEnvironment()
+static JNIEnv* getAndroidJniEnvironment()
 {
     auto jniEnvironment = (JNIEnv*)SDL_AndroidGetJNIEnv();
 
@@ -31,7 +27,7 @@ JNIEnv* getAndroidJniEnvironment()
     return jniEnvironment;
 }
 
-AAssetManager* getAndroidJniAssetManager()
+static AAssetManager* getAndroidJniAssetManager()
 {
 	auto jniEnvironment    = getAndroidJniEnvironment();
 	auto jniObjectActivity = (jobject)SDL_AndroidGetActivity();
@@ -105,24 +101,24 @@ static void openVideo()
     LVP_Open(TextFormat("%s%s", BASE_PATH, VIDEO_FILE));
 }
 
-static void handleKeyDownEvent(const SDL_KeyboardEvent &event)
+static void handleKeyDownEvent(const SDL_KeyboardEvent& event)
 {
     if (LVP_IsStopped())
         return;
 
     switch (event.keysym.sym) {
     case SDLK_LEFT: case SDLK_AUDIOREWIND:
-        TestPlayer::SeekBack();
+        LVP_SeekBy(-TestPlayer::SeekInterval);
         break;
     case SDLK_RIGHT: case SDLK_AUDIOFASTFORWARD:
-        TestPlayer::SeekForward();
+        LVP_SeekBy(TestPlayer::SeekInterval);
         break;
     default:
         break;
     }
 }
 
-static void handleKeyUpEvent(const SDL_KeyboardEvent &event)
+static void handleKeyUpEvent(const SDL_KeyboardEvent& event)
 {
     switch (event.keysym.sym) {
     case SDLK_SPACE: case SDLK_AUDIOPLAY:
@@ -148,19 +144,19 @@ static void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
         return;
 
     switch (button->id) {
-	case BUTTON_ID_PLAY_PAUSE:
+	case TEST_BUTTON_ID_PLAY_PAUSE:
         if (LVP_IsStopped())
             openVideo();
         else
             LVP_TogglePause();
         break;
-	case BUTTON_ID_SEEK_BACK:
-        TestPlayer::SeekBack();
+	case TEST_BUTTON_ID_SEEK_BACK:
+        LVP_SeekBy(-TestPlayer::SeekInterval);
         break;
-	case BUTTON_ID_SEEK_FORWARD:
-        TestPlayer::SeekForward();
+	case TEST_BUTTON_ID_SEEK_FORWARD:
+        LVP_SeekBy(TestPlayer::SeekInterval);
         break;
-    case BUTTON_ID_STOP:
+    case TEST_BUTTON_ID_STOP:
         LVP_Stop();
         break;
     default:
@@ -168,42 +164,43 @@ static void handleMouseUpEvent(const SDL_MouseButtonEvent& event)
 	}
 }
 
-static void handleUserEvent(const SDL_UserEvent &event)
+static void handleUserEvent(const SDL_UserEvent& event)
 {
     auto eventType = (LVP_EventType)event.code;
 
     switch (eventType) {
     case LVP_EVENT_MEDIA_OPENED:
-        TestWindow::UpdateTitle("Caminandes 1: Llama Drama (2013)");
+        TestWindow::UpdateTitle("Caminandes 3: Llamigos (2016)");
 
-        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PAUSE");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
 
-        TestWindow::EnableButton(BUTTON_ID_SEEK_BACK,    true);
-        TestWindow::EnableButton(BUTTON_ID_SEEK_FORWARD, true);
-        TestWindow::EnableButton(BUTTON_ID_STOP,         true);
+        TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    true);
+        TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, true);
+        TestWindow::EnableButton(TEST_BUTTON_ID_STOP,         true);
+
         break;
     case LVP_EVENT_MEDIA_PAUSED:
-        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PLAY");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
         break;
     case LVP_EVENT_MEDIA_PLAYING:
-        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PAUSE");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
         break;
     case LVP_EVENT_MEDIA_STOPPED:
         TestWindow::UpdateTitle();
 
-        TestWindow::UpdateButton(BUTTON_ID_PLAY_PAUSE, "PLAY");
-        TestWindow::UpdateButton(BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00");
 
-        TestWindow::EnableButton(BUTTON_ID_SEEK_BACK,    false);
-        TestWindow::EnableButton(BUTTON_ID_SEEK_FORWARD, false);
-        TestWindow::EnableButton(BUTTON_ID_STOP,         false);
+        TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    false);
+        TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, false);
+        TestWindow::EnableButton(TEST_BUTTON_ID_STOP,         false);
         break;
     default:
         break;
     }
 }
 
-static void handleWindowEvent(const SDL_WindowEvent &event)
+static void handleWindowEvent(const SDL_WindowEvent& event)
 {
     switch (event.event) {
     case SDL_WINDOWEVENT_CLOSE:
@@ -219,10 +216,9 @@ static void handleWindowEvent(const SDL_WindowEvent &event)
 
 static int getSleepTime(uint32_t frameStart)
 {
-    auto timeToRender = (int)(SDL_GetTicks() - frameStart);
-    bool use60FPS     = (LVP_IsPlaying() && (LVP_GetMediaType() == LVP_MEDIA_TYPE_VIDEO));
-    auto timePerFrame = (use60FPS ? MS_PER_FRAME_FPS60 : MS_PER_FRAME_IDLE);
-    auto sleepTime    = (timePerFrame - timeToRender);
+    auto maxTimePerFrame = (LVP_IsPlaying() ? 16 : 50);
+    auto timePerFrame    = (int)(SDL_GetTicks() - frameStart);
+    auto sleepTime       = (maxTimePerFrame - timePerFrame);
 
     return sleepTime;
 }
@@ -257,7 +253,8 @@ static void handleEvents()
     }
 }
 
-static void init() {
+static void init()
+{
     initBasePath();
 
     TestWindow::Init(800, 600, BASE_PATH);
@@ -266,34 +263,33 @@ static void init() {
     openVideo();
 }
 
-static void quit() {
+static void quit()
+{
     TestPlayer::Quit();
     TestWindow::Quit();
 }
 
 static void render()
 {
-    bool isPlayerActive = !LVP_IsStopped();
     auto renderer       = TestWindow::GetRenderer();
     auto window         = TestWindow::GetDimensions();
     auto windowDPIScale = TestWindow::GetDPIScale();
 
-    const auto CONTROLS_HEIGHT = (int)(40.0f * windowDPIScale);
+    const auto CONTROLS_HEIGHT = (int)(40.0F * windowDPIScale);
 
     SDL_Rect player   = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
     SDL_Rect controls = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
 
     SDL_SetRenderTarget(renderer, nullptr);
 
-    if (isPlayerActive)
+    if (!LVP_IsStopped())
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
     else
         SDL_SetRenderDrawColor(renderer, 32, 32, 32, 0xFF);
 
     SDL_RenderClear(renderer);
 
-    if (isPlayerActive)
-        TestPlayer::Render(renderer, player);
+    TestPlayer::Render(renderer, player);
 
     TestWindow::RenderControls(controls, windowDPIScale);
 
@@ -317,6 +313,7 @@ int SDL_main(int argc, char* argv[])
             auto frameStart = SDL_GetTicks();
 
             handleEvents();
+
             TestWindow::UpdateProgress();
 
             if (QUIT)

@@ -1,18 +1,18 @@
 #include "TestWindow.h"
 
-ButtonIds     TestWindow::buttonIds;
-Buttons       TestWindow::buttons;
-SDL_Renderer* TestWindow::renderer = nullptr;
-std::string   TestWindow::title    = "Voya Player Library";
-SDL_Window*   TestWindow::window   = nullptr;
+TestButtonIds TestWindow::buttonIds = {};
+TestButtons   TestWindow::buttons   = {};
+SDL_Renderer* TestWindow::renderer  = nullptr;
+std::string   TestWindow::title     = "Voya Player Library";
+SDL_Window*   TestWindow::window    = nullptr;
 
-void TestWindow::EnableButton(ButtonId id, bool enabled)
+void TestWindow::EnableButton(TestButtonId id, bool enabled)
 {
 	if (TestWindow::buttonIds.contains(id))
 		TestWindow::buttonIds[id]->enable(enabled);
 }
 
-Button* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
+TestButton* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
 {
 	#if defined _ios || defined _macosx
 		auto      scale    = TestWindow::GetDPIScale();
@@ -66,8 +66,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
         throw std::runtime_error(TextFormat("Failed to initialize SDL: %s", SDL_GetError()));
 
-	if (TTF_Init() < 0)
-		throw std::runtime_error(TextFormat("Failed to initialize TTF: %s", TTF_GetError()));
+	TestText::Init(basePath);
 
 	const auto WINDOW_FLAGS = (SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
@@ -90,36 +89,37 @@ void TestWindow::Init(int width, int height, const char* basePath)
 	TestWindow::initIcon(basePath);
 	#endif
 	
-	TestWindow::initButtons(basePath);
+	TestWindow::initButtons();
 }
 
-void TestWindow::initButtons(const char* basePath)
+void TestWindow::initButtons()
 {
 	auto dpiScale = TestWindow::GetDPIScale();
+	auto fontSize = (int)(14.0f * dpiScale);
 
-	auto open = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_PLAY_PAUSE, "PAUSE");
+	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
 
-	TestWindow::buttonIds[BUTTON_ID_PLAY_PAUSE] = open;
+	TestWindow::buttonIds[TEST_BUTTON_ID_PLAY_PAUSE] = open;
 	TestWindow::buttons.push_back(open);
 
-	auto stop = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_STOP, "STOP", false);
+	auto stop = new TestButton(fontSize, TEST_BUTTON_ID_STOP, "STOP", false);
 
-	TestWindow::buttonIds[BUTTON_ID_STOP] = stop;
+	TestWindow::buttonIds[TEST_BUTTON_ID_STOP] = stop;
 	TestWindow::buttons.push_back(stop);
 
-	auto seekBack = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_SEEK_BACK, "<< SEEK", false);
+	auto seekBack = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_BACK, "<< SEEK", false);
 
-	TestWindow::buttonIds[BUTTON_ID_SEEK_BACK] = seekBack;
+	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_BACK] = seekBack;
 	TestWindow::buttons.push_back(seekBack);
 
-	auto seekForward = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
+	auto seekForward = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
 
-	TestWindow::buttonIds[BUTTON_ID_SEEK_FORWARD] = seekForward;
+	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_FORWARD] = seekForward;
 	TestWindow::buttons.push_back(seekForward);
 
-	auto progress = new Button(TestWindow::renderer, dpiScale, basePath, BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
+	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
 
-	TestWindow::buttonIds[BUTTON_ID_PROGRESS] = progress;
+	TestWindow::buttonIds[TEST_BUTTON_ID_PROGRESS] = progress;
 	TestWindow::buttons.push_back(progress);
 }
 
@@ -128,16 +128,23 @@ void TestWindow::initIcon(const char* basePath)
 {
 	auto icon   = TextFormat("%s%s", basePath, "icon.ppm");
 	auto file   = std::fopen(icon.c_str(), "rb");
-	auto pixels = (uint8_t*)std::malloc(Icon::size);
+	auto pixels = (uint8_t*)std::malloc(TestAppIcon::Size);
 
 	std::fseek(file, 13, SEEK_SET);
 
 	if (pixels)
-		std::fread(pixels, 1, Icon::size, file);
+		std::fread(pixels, 1, TestAppIcon::Size, file);
 
 	std::fclose(file);
 
-	auto surface = SDL_CreateRGBSurfaceWithFormatFrom(pixels, Icon::width, Icon::height, Icon::depth, Icon::pitch, Icon::format);
+	auto surface = SDL_CreateRGBSurfaceWithFormatFrom(
+		pixels,
+		TestAppIcon::Width,
+		TestAppIcon::Height,
+		TestAppIcon::Depth,
+		TestAppIcon::Pitch,
+		TestAppIcon::Format
+	);
 
 	if (surface)
 		SDL_SetWindowIcon(TestWindow::window, surface);
@@ -165,8 +172,9 @@ void TestWindow::Quit()
 		TestWindow::window = nullptr;
 	}
 
-	TTF_Quit();
-    SDL_Quit();
+	TestText::Quit();
+
+	SDL_Quit();
 }
 
 void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
@@ -214,7 +222,8 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 
 		button->background = { offsetX, (lineY + ((lineHeight - button->size.y) / 2)), button->size.x, button->size.y };
 
-		SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
+		if (button->texture)
+			SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
 
 		offsetX += (button->background.w + padding10);
 
@@ -225,7 +234,7 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 	}
 }
 
-void TestWindow::UpdateButton(ButtonId id, const std::string& label)
+void TestWindow::UpdateButton(TestButtonId id, const std::string& label)
 {
 	if (TestWindow::buttonIds.contains(id))
 		TestWindow::buttonIds[id]->update(label);
@@ -239,7 +248,7 @@ void TestWindow::UpdateProgress()
 	auto duration = TimeFormat(LVP_GetDuration());
 	auto progress = TimeFormat(LVP_GetProgress());
 
-	TestWindow::UpdateButton(BUTTON_ID_PROGRESS, TextFormat("%s / %s", progress.c_str(), duration.c_str()));
+	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, TextFormat("%s / %s", progress.c_str(), duration.c_str()));
 }
 
 void TestWindow::UpdateTitle(const std::string& title)
