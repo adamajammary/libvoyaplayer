@@ -90,7 +90,7 @@ void MediaPlayer::LVP_SubtitleText::render(LibASS::ASS_Image* image, SDL_Surface
 {
 	while (image != NULL)
 	{
-		if ((image->w < 1) || (image->h < 1)) {
+		if ((image->w <= 0) || (image->h <= 0)) {
 			image = image->next;
 			continue;
 		}

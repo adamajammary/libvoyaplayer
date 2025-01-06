@@ -15,7 +15,7 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 
 		LVP_SubtitleBitmap::queue.pop();
 
-		if (!IS_SUB_BITMAP(subtitle->type) || (subtitle->bitmap.w < 1) || (subtitle->bitmap.h < 1))
+		if (!IS_SUB_BITMAP(subtitle->type) || (subtitle->bitmap.w <= 0) || (subtitle->bitmap.h <= 0))
 			continue;
 
 		subtitle->surface = SDL_CreateRGBSurfaceWithFormat(0, subtitle->bitmap.w, subtitle->bitmap.h, 32, SDL_PIXELFORMAT_RGBA32);

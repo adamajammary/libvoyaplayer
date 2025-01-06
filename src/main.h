@@ -2,7 +2,7 @@
 #define LVP_MAIN_H
 
 #include <algorithm> // min/max(x)
-#include <cstring>   // memcpy(x)
+#include <cstring>   // memcpy(x), memset(x)
 #include <map>
 #include <mutex>
 #include <queue>
@@ -204,10 +204,10 @@ namespace LibVoyaPlayer
 
 		struct LVP_AudioDevice
 		{
-			std::string       device        = "";
-			SDL_AudioDeviceID deviceID      = 0;
-			bool              isDeviceReady = true;
-
+			std::string       device  = "";
+			SDL_AudioDeviceID id      = 0;
+			bool              isReady = true;
+			bool              update  = false;
 		};
 
 		struct LVP_AudioFilter

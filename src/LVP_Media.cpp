@@ -1,24 +1,8 @@
 #include "LVP_Media.h"
 
-std::string MediaPlayer::LVP_Media::GetAudioChannelLayout(const LibFFmpeg::AVChannelLayout& layout)
+double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext, LibFFmpeg::AVFrame* frame)
 {
-	char buffer[DEFAULT_CHAR_BUFFER_SIZE];
-
-	LibFFmpeg::av_channel_layout_describe(&layout, buffer, DEFAULT_CHAR_BUFFER_SIZE);
-
-	auto channelLayout = std::string(buffer);
-
-	if (channelLayout == "2 channels")
-		return "stereo";
-	else if (channelLayout == "1 channel")
-		return "mono";
-
-	return channelLayout;
-}
-
-double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext)
-{
-	auto pts = (double)audioContext->frame->best_effort_timestamp;
+	auto pts = (double)frame->best_effort_timestamp;
 
 	if (audioContext->stream->start_time != AV_NOPTS_VALUE)
 		pts -= (double)audioContext->stream->start_time;
@@ -26,7 +10,7 @@ double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext)
 	pts *= LibFFmpeg::av_q2d(audioContext->stream->time_base);
 
 	if (pts < 0)
-		pts = (audioContext->lastPogress + audioContext->frameDuration);
+		pts = (audioContext->lastPogress + audioContext->packetDuration);
 
 	return pts;
 }
@@ -76,7 +60,7 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(Lib
 	if (IS_AUDIO(stream->codecpar->codec_type))
 	{
 		if (stream->codecpar->ch_layout.nb_channels > 0)
-			meta["channel_layout"] = LVP_Media::GetAudioChannelLayout(stream->codecpar->ch_layout);
+			meta["channel_layout"] = LVP_AudioSpecs::getChannelLayoutName(stream->codecpar->ch_layout);
 
 		auto sampleFormat = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)stream->codecpar->format);
 
@@ -114,7 +98,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 		return 0;
 
 	// Perform an extra scan if duration was not calculated in the initial scan
-	if ((formatContext->duration < 1) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
+	if ((formatContext->duration <= 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
 		return 0;
 
 	if (formatContext->duration > 0)
@@ -603,7 +587,7 @@ bool MediaPlayer::LVP_Media::isDRM(LibFFmpeg::AVDictionary* metaData)
 
 bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* stream)
 {
-	if ((stream == NULL) || (stream->codecpar == NULL) || !IS_ATTACHMENT(stream->codecpar->codec_type) || (stream->codecpar->extradata_size < 1))
+	if ((stream == NULL) || (stream->codecpar == NULL) || !IS_ATTACHMENT(stream->codecpar->codec_type) || (stream->codecpar->extradata_size <= 0))
 		return false;
 
 	if (IS_FONT(stream->codecpar->codec_id))
