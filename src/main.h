@@ -136,7 +136,9 @@ namespace LibVoyaPlayer
 
 	namespace MediaPlayer
 	{
-		#define DELETE_POINTER(p)      if (p != NULL) { delete p; p = NULL; }
+		#define ARE_EQUAL_DOUBLES(a, b) ((a > (b - 0.01)) && (a < (b + 0.01)))
+		#define DELETE_POINTER(p)       if (p != NULL) { delete p; p = NULL; }
+
 		#define FREE_ASS_LIBRARY(l)    if (l != NULL) { LibASS::ass_library_done(l); l = NULL; }
 		#define FREE_ASS_RENDERER(r)   if (r != NULL) { LibASS::ass_renderer_done(r); r = NULL; }
 		#define FREE_ASS_TRACK(t)      if (t != NULL) { LibASS::ass_free_track(t); t = NULL; }
@@ -196,6 +198,7 @@ namespace LibVoyaPlayer
 		enum LVP_Threads
 		{
 			LVP_THREAD_AUDIO,
+			LVP_THREAD_AUDIO_CALLBACK,
 			LVP_THREAD_PACKETS,
 			LVP_THREAD_SUBTITLE,
 			LVP_THREAD_VIDEO,
@@ -204,10 +207,8 @@ namespace LibVoyaPlayer
 
 		struct LVP_AudioDevice
 		{
-			std::string       device  = "";
-			SDL_AudioDeviceID id      = 0;
-			bool              isReady = true;
-			bool              update  = false;
+			std::string       device = "";
+			SDL_AudioDeviceID id     = 0;
 		};
 
 		struct LVP_AudioFilter

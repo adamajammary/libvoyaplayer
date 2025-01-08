@@ -5,7 +5,6 @@ MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(LibFFmpeg::AVFrame* frame, double pl
 	this->playbackSpeed = playbackSpeed;
 	this->channelLayout = frame->ch_layout;
 	this->format        = frame->format;
-	this->sampleCount   = frame->nb_samples;
 	this->sampleRate    = frame->sample_rate;
 }
 
@@ -14,7 +13,6 @@ MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(LibFFmpeg::AVFrame* frame)
 	this->playbackSpeed = 1.0;
 	this->channelLayout = frame->ch_layout;
 	this->format        = frame->format;
-	this->sampleCount   = frame->nb_samples;
 	this->sampleRate    = frame->sample_rate;
 }
 
@@ -23,13 +21,12 @@ MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs()
 	this->playbackSpeed = 1.0;
 	this->channelLayout = {};
 	this->format        = 0;
-	this->sampleCount   = 0;
 	this->sampleRate    = 0;
 }
 
 bool MediaPlayer::LVP_AudioSpecs::equals(LibFFmpeg::AVFrame* frame, double playbackSpeed) const
 {
-	if (playbackSpeed != this->playbackSpeed)
+	if (!ARE_EQUAL_DOUBLES(playbackSpeed, this->playbackSpeed))
 		return false;
 
 	if (frame->ch_layout.nb_channels != this->channelLayout.nb_channels)
@@ -39,37 +36,6 @@ bool MediaPlayer::LVP_AudioSpecs::equals(LibFFmpeg::AVFrame* frame, double playb
 		return false;
 
 	if (frame->sample_rate != this->sampleRate)
-		return false;
-
-	return true;
-}
-
-bool MediaPlayer::LVP_AudioSpecs::equals(LibFFmpeg::AVFrame* frame) const
-{
-	if (frame->ch_layout.nb_channels != this->channelLayout.nb_channels)
-		return false;
-
-	if (frame->format != this->format)
-		return false;
-
-	if (frame->nb_samples != this->sampleCount)
-		return false;
-
-	if (frame->sample_rate != this->sampleRate)
-		return false;
-
-	return true;
-}
-
-bool MediaPlayer::LVP_AudioSpecs::equals(const SDL_AudioSpec& specs) const
-{
-	if (specs.channels != this->channelLayout.nb_channels)
-		return false;
-
-	if (specs.freq != this->sampleRate)
-		return false;
-
-	if (LVP_AudioSpecs::getSampleFormat(specs.format) != this->format)
 		return false;
 
 	return true;
@@ -132,5 +98,13 @@ SDL_AudioFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(LibFFmpeg::AVSample
 			break;
 	}
 
-	return LibFFmpeg::AV_SAMPLE_FMT_NONE;
+	return 0;
+}
+
+int MediaPlayer::LVP_AudioSpecs::getSampleRate(int sampleRate, double playbackSpeed)
+{
+	if (ARE_EQUAL_DOUBLES(playbackSpeed, 1.0))
+		return sampleRate;
+
+	return (int)std::ceil((double)sampleRate / playbackSpeed);
 }

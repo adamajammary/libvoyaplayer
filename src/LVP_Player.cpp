@@ -77,8 +77,9 @@ void MediaPlayer::LVP_Player::close()
 	LVP_Player::state.quit = true;
 
 	while (
-		LVP_Player::state.threads[LVP_THREAD_AUDIO]    ||
-		LVP_Player::state.threads[LVP_THREAD_PACKETS]  ||
+		LVP_Player::state.threads[LVP_THREAD_AUDIO] ||
+		LVP_Player::state.threads[LVP_THREAD_AUDIO_CALLBACK] ||
+		LVP_Player::state.threads[LVP_THREAD_PACKETS] ||
 		LVP_Player::state.threads[LVP_THREAD_SUBTITLE] ||
 		LVP_Player::state.threads[LVP_THREAD_VIDEO]
 	) {
@@ -189,197 +190,39 @@ void MediaPlayer::LVP_Player::closeVideoContext()
 	DELETE_POINTER(LVP_Player::videoContext);
 }
 
-void MediaPlayer::LVP_Player::createAudioBuffer(int bufferSize)
+int MediaPlayer::LVP_Player::decodeAudioFrame(LibFFmpeg::AVFrame* frame)
 {
+    if (LVP_Player::state.isPaused || (frame == NULL))
+        return -1;
+
+	auto bufferSize = LibFFmpeg::av_samples_get_buffer_size(
+		NULL,
+		frame->ch_layout.nb_channels,
+		frame->nb_samples,
+		(LibFFmpeg::AVSampleFormat)frame->format,
+		1
+	);
+
 	if (LVP_Player::audioContext->buffer == NULL)
 		LVP_Player::audioContext->buffer = (uint8_t*)std::malloc(bufferSize);
 	else if (bufferSize > LVP_Player::audioContext->bufferSize)
 		LVP_Player::audioContext->buffer = (uint8_t*)std::realloc(LVP_Player::audioContext->buffer, bufferSize);
 
 	LVP_Player::audioContext->bufferSize = bufferSize;
-}
-
-void MediaPlayer::LVP_Player::decodeAudio(uint8_t* stream, int& streamSize, LibFFmpeg::AVFrame* frame)
-{
-	while (streamSize > 0)
-	{
-		if (LVP_Player::audioContext->bufferOffset >= LVP_Player::audioContext->dataSize)
-		{
-			if (frame == NULL)
-				break;
-
-			auto dataSize = LVP_Player::decodeAudioFrame(frame);
-
-			if (dataSize < 0)
-			{
-				auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format);
-				auto sampleSize   = LibFFmpeg::av_samples_get_buffer_size(NULL, LVP_Player::audioContext->deviceSpecs.channels, 1, sampleFormat, 1);
-
-				FREE_POINTER(LVP_Player::audioContext->buffer);
-
-				LVP_Player::audioContext->dataSize = (512 / sampleSize * sampleSize);
-			} else {
-				LVP_Player::audioContext->dataSize = dataSize;
-			}
-
-			LVP_Player::audioContext->bufferOffset = 0;
-		}
-
-		int writeSize = (LVP_Player::audioContext->dataSize - LVP_Player::audioContext->bufferOffset);
-
-		if (writeSize > streamSize)
-			writeSize = streamSize;
-
-		auto buffer = (LVP_Player::audioContext->buffer != NULL ? (const uint8_t*)(LVP_Player::audioContext->buffer + LVP_Player::audioContext->bufferOffset) : NULL);
-		auto volume = (!LVP_Player::state.isMuted ? LVP_Player::state.volume : 0);
-
-		if ((volume == SDL_MIX_MAXVOLUME) && (buffer != NULL))
-		{
-			std::memcpy(stream, buffer, writeSize);
-		}
-		else
-		{
-			std::memset(stream, 0, writeSize);
-
-			if ((volume > 0) && (buffer != NULL))
-				SDL_MixAudioFormat(stream, buffer, LVP_Player::audioContext->deviceSpecs.format, writeSize, volume);
-		}
-
-		streamSize -= writeSize;
-		stream     += writeSize;
-
-		LVP_Player::audioContext->bufferOffset += writeSize;
-	}
-}
-
-int MediaPlayer::LVP_Player::decodeAudioFrame(LibFFmpeg::AVFrame* frame)
-{
-    if (LVP_Player::state.isPaused)
-        return -1;
-
-	// Conversion not needed - use frame data directly.
-
-	auto frameSpecs = LVP_AudioSpecs(frame);
-
-	if (frameSpecs.equals(LVP_Player::audioContext->deviceSpecs))
-	{
-		auto bufferSize = LibFFmpeg::av_samples_get_buffer_size(
-			NULL,
-			frameSpecs.channelLayout.nb_channels,
-			frameSpecs.sampleCount,
-			(LibFFmpeg::AVSampleFormat)frameSpecs.format,
-			1
-		);
-
-		LVP_Player::createAudioBuffer(bufferSize);
-
-		if (LVP_Player::audioContext->buffer == NULL) {
-			LVP_Player::stop("Failed to create an audio buffer.");
-			return AVERROR(ENOMEM);
-		}
-
-		std::memcpy(LVP_Player::audioContext->buffer, frame->data[0], bufferSize);
-
-		return bufferSize;
-	}
-
-	// Conversion needed - resample frame data to device format.
-
-	auto deviceFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format);
-	
-	if (!LVP_Player::audioContext->frameSpecs.equals(frame) || (LVP_Player::audioContext->swrContext == NULL))
-	{
-		auto deviceChannelLayout = LVP_AudioSpecs::getChannelLayout(LVP_Player::audioContext->deviceSpecs.channels);
-
-		auto allocResult = LibFFmpeg::swr_alloc_set_opts2(
-			&LVP_Player::audioContext->swrContext,
-            &deviceChannelLayout,
-			deviceFormat,
-			LVP_Player::audioContext->deviceSpecs.freq,
-            &frameSpecs.channelLayout,
-			(LibFFmpeg::AVSampleFormat)frameSpecs.format,
-			frameSpecs.sampleRate,
-            0,
-			NULL
-		);
-
-		if ((allocResult < 0) || (LibFFmpeg::swr_init(LVP_Player::audioContext->swrContext) < 0)) {
-			LVP_Player::stop("Failed to create an audio resample context.");
-			return -1;
-        }
-
-		LVP_Player::audioContext->frameSpecs = frameSpecs;
-		LVP_Player::audioDevice.update       = true;
-    }
-
-	auto sampleSize = (int)((int64_t)frameSpecs.sampleCount * LVP_Player::audioContext->deviceSpecs.freq / frameSpecs.sampleRate + 256);
-	auto bufferSize = LibFFmpeg::av_samples_get_buffer_size(NULL, LVP_Player::audioContext->deviceSpecs.channels, sampleSize, deviceFormat, 0);
-
-	if (bufferSize < 0) {
-		LVP_Player::stop("Failed to calculate required size for audio resample buffer.");
-        return -1;
-    }
-
-	LVP_Player::createAudioBuffer(bufferSize);
 
 	if (LVP_Player::audioContext->buffer == NULL) {
 		LVP_Player::stop("Failed to create an audio buffer.");
 		return AVERROR(ENOMEM);
 	}
 
-	auto convertedSamplesPerChannel = LibFFmpeg::swr_convert(
-		LVP_Player::audioContext->swrContext,
-		&LVP_Player::audioContext->buffer,
-		sampleSize,
-		(const uint8_t**)frame->extended_data,
-		frameSpecs.sampleCount
-	);
+	std::memcpy(LVP_Player::audioContext->buffer, frame->extended_data[0], bufferSize);
 
-	if (convertedSamplesPerChannel < 0) {
-		LVP_Player::stop("Failed to convert the audio frame to device specifications.");
-		return -1;
-    }
-
-	auto bytesPerSample = LibFFmpeg::av_get_bytes_per_sample(deviceFormat);
-	auto convertedSize  = (convertedSamplesPerChannel * LVP_Player::audioContext->deviceSpecs.channels * bytesPerSample);
-
-	return convertedSize;
+	return bufferSize;
 }
 
-void MediaPlayer::LVP_Player::decodeAudioPacket(LibFFmpeg::AVPacket* packet)
+void MediaPlayer::LVP_Player::decodeAudioFrames()
 {
-	LVP_Player::packetLock.lock();
-
-	auto result = LibFFmpeg::avcodec_send_packet(LVP_Player::audioContext->codec, packet);
-
-	LVP_Player::packetLock.unlock();
-
-	if ((result < 0) && (result != AVERROR(EAGAIN)))
-	{
-		#if defined _DEBUG
-			char strerror[AV_ERROR_MAX_STRING_SIZE];
-			LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-			LOG("AUDIO_SEND_PACKET: %s\n", strerror);
-		#endif
-
-		LVP_Player::stop("Failed to decode audio.");
-	}
-}
-
-LVP_Strings MediaPlayer::LVP_Player::GetAudioDevices()
-{
-	LVP_Strings devices;
-
-	for (int i = 0; i < SDL_GetNumAudioDevices(0); i++)
-		devices.push_back(SDL_GetAudioDeviceName(i, 0));
-
-	return devices;
-}
-
-std::vector<LibFFmpeg::AVFrame*> MediaPlayer::LVP_Player::getAudioFrames()
-{
-	std::vector<LibFFmpeg::AVFrame*> frames;
-	int                              result;
+	int result;
 
 	while (true)
 	{
@@ -398,7 +241,7 @@ std::vector<LibFFmpeg::AVFrame*> MediaPlayer::LVP_Player::getAudioFrames()
 			break;
 		}
 
-		// Apply atempo (speed) filter to frame
+		// Apply filter to frame
 
 		if (!LVP_Player::audioContext->filterSpecs.equals(frame, LVP_Player::state.playbackSpeed) || (LVP_Player::audioContext->filter.filterGraph == NULL))
 		{
@@ -434,9 +277,13 @@ std::vector<LibFFmpeg::AVFrame*> MediaPlayer::LVP_Player::getAudioFrames()
 			continue;
 		}
 
-		// Add valid frames
+		// Add filtered frame
 
-		frames.push_back(frame);
+		LVP_Player::audioContext->framesLock.lock();
+
+		LVP_Player::audioContext->frames.push(frame);
+
+		LVP_Player::audioContext->framesLock.unlock();
 	}
 
 	if ((result < 0) && (result != AVERROR(EAGAIN)))
@@ -457,37 +304,54 @@ std::vector<LibFFmpeg::AVFrame*> MediaPlayer::LVP_Player::getAudioFrames()
 
 		LVP_Player::packetLock.unlock();
 	}
-
-	return frames;
 }
 
-LibFFmpeg::AVPacket* MediaPlayer::LVP_Player::getAudioPacket()
+void MediaPlayer::LVP_Player::decodeAudioPacket(LibFFmpeg::AVPacket* packet)
 {
-	LibFFmpeg::AVPacket* packet = NULL;
+	LVP_Player::packetLock.lock();
 
-	LVP_Player::audioContext->packetsLock.lock();
+	auto result = LibFFmpeg::avcodec_send_packet(LVP_Player::audioContext->codec, packet);
 
-	if (!LVP_Player::audioContext->packets.empty())
+	LVP_Player::packetLock.unlock();
+
+	if ((result < 0) && (result != AVERROR(EAGAIN)))
 	{
-		packet = LVP_Player::audioContext->packets.front();
+		#if defined _DEBUG
+			char strerror[AV_ERROR_MAX_STRING_SIZE];
+			LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+			LOG("AUDIO_SEND_PACKET: %s\n", strerror);
+		#endif
 
-		LVP_Player::audioContext->packets.pop();
+		LVP_Player::stop("Failed to decode audio.");
+	}
+}
+
+LVP_Strings MediaPlayer::LVP_Player::GetAudioDevices()
+{
+	LVP_Strings devices;
+
+	for (int i = 0; i < SDL_GetNumAudioDevices(0); i++)
+		devices.push_back(SDL_GetAudioDeviceName(i, 0));
+
+	return devices;
+}
+
+LibFFmpeg::AVFrame* MediaPlayer::LVP_Player::getAudioFrame()
+{
+	LibFFmpeg::AVFrame* frame = NULL;
+
+	LVP_Player::audioContext->framesLock.lock();
+
+	if (!LVP_Player::audioContext->frames.empty())
+	{
+		frame = LVP_Player::audioContext->frames.front();
+
+		LVP_Player::audioContext->frames.pop();
 	}
 
-	LVP_Player::audioContext->packetsLock.unlock();
+	LVP_Player::audioContext->framesLock.unlock();
 
-	if ((packet != NULL) && (packet->data == NULL))
-	{
-		FREE_AVPACKET(packet);
-
-		LVP_Player::packetLock.lock();
-
-		LibFFmpeg::avcodec_flush_buffers(LVP_Player::audioContext->codec);
-
-		LVP_Player::packetLock.unlock();
-	}
-
-	return packet;
+	return frame;
 }
 
 int MediaPlayer::LVP_Player::GetAudioTrack()
@@ -602,6 +466,35 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string& fil
 	FREE_AVFORMAT(formatContext);
 
 	return details;
+}
+
+LibFFmpeg::AVPacket* MediaPlayer::LVP_Player::getMediaPacket(LVP_MediaContext* context)
+{
+	LibFFmpeg::AVPacket* packet = NULL;
+
+	context->packetsLock.lock();
+
+	if (!context->packets.empty())
+	{
+		packet = context->packets.front();
+
+		context->packets.pop();
+	}
+
+	context->packetsLock.unlock();
+
+	if ((packet != NULL) && (packet->data == NULL))
+	{
+		FREE_AVPACKET(packet);
+
+		LVP_Player::packetLock.lock();
+
+		LibFFmpeg::avcodec_flush_buffers(context->codec);
+
+		LVP_Player::packetLock.unlock();
+	}
+
+	return packet;
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
@@ -905,8 +798,6 @@ void MediaPlayer::LVP_Player::handleTrack()
 	bool isPaused     = LVP_Player::state.isPaused;
 	auto lastProgress = (double)(LVP_Player::state.progress / (double)LVP_Player::state.duration);
 
-	LVP_Player::audioDevice.isReady = false;
-
 	switch (mediaType) {
 	case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
 		if (!isPaused)
@@ -950,8 +841,6 @@ void MediaPlayer::LVP_Player::handleTrack()
 		break;
 	}
 
-	LVP_Player::audioDevice.isReady = true;
-
 	LVP_Player::trackRequested = false;
 
 	LVP_Player::packetLock.unlock();
@@ -964,30 +853,34 @@ void MediaPlayer::LVP_Player::initAudioFilter(LibFFmpeg::AVFrame* frame)
 {
 	auto abuffer     = LibFFmpeg::avfilter_get_by_name("abuffer");
 	auto abuffersink = LibFFmpeg::avfilter_get_by_name("abuffersink");
-	auto atempo      = LibFFmpeg::avfilter_get_by_name("atempo");
+	auto aresample   = LibFFmpeg::avfilter_get_by_name("aresample");
 
-	auto filterGraph  = LibFFmpeg::avfilter_graph_alloc();
-	auto bufferSource = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffer,     "src");
-	auto bufferSink   = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
-	auto filterATempo = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, atempo,      "atempo");
+	auto filterGraph    = LibFFmpeg::avfilter_graph_alloc();
+	auto bufferSource   = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffer,     "src");
+	auto bufferSink     = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
+	auto filterResample = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, aresample,   "aresample");
 
-	auto channelLayout = LVP_AudioSpecs::getChannelLayoutName(frame->ch_layout);
-	auto sampleFormat  = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)frame->format);
-	auto timeBase      = LVP_Player::audioContext->stream->time_base;
+	auto inChannelLayout = LVP_AudioSpecs::getChannelLayoutName(frame->ch_layout);
+	auto inSampleFormat  = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)frame->format);
 
-	LibFFmpeg::av_opt_set(bufferSource,     "channel_layout", channelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set(bufferSource,     "sample_fmt",     sampleFormat,          AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set_int(bufferSource, "sample_rate",    frame->sample_rate,    AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set_q(bufferSource,   "time_base",      timeBase,              AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set(bufferSource,     "channel_layout", inChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set(bufferSource,     "sample_fmt",     inSampleFormat,          AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set_int(bufferSource, "sample_rate",    frame->sample_rate,      AV_OPT_SEARCH_CHILDREN);
 
-	LibFFmpeg::av_opt_set_double(filterATempo, "tempo", LVP_Player::state.playbackSpeed, AV_OPT_SEARCH_CHILDREN);
+	auto outChannelLayout = LVP_AudioSpecs::getChannelLayoutName(LVP_AudioSpecs::getChannelLayout(LVP_Player::audioContext->deviceSpecs.channels));
+	auto outSampleFormat  = LibFFmpeg::av_get_sample_fmt_name(LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format));
+	auto outSampleRate    = LVP_AudioSpecs::getSampleRate(LVP_Player::audioContext->deviceSpecs.freq, LVP_Player::state.playbackSpeed);
 
-	LibFFmpeg::avfilter_init_str(bufferSource, NULL);
-	LibFFmpeg::avfilter_init_str(bufferSink,   NULL);
-	LibFFmpeg::avfilter_init_str(filterATempo, NULL);
+	LibFFmpeg::av_opt_set(filterResample,     "out_chlayout",    outChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set(filterResample,     "out_sample_fmt",  outSampleFormat,          AV_OPT_SEARCH_CHILDREN);
+	LibFFmpeg::av_opt_set_int(filterResample, "out_sample_rate", outSampleRate,            AV_OPT_SEARCH_CHILDREN);
 
-	LibFFmpeg::avfilter_link(bufferSource, 0, filterATempo, 0);
-	LibFFmpeg::avfilter_link(filterATempo, 0, bufferSink,   0);
+	LibFFmpeg::avfilter_init_str(bufferSource,   NULL);
+	LibFFmpeg::avfilter_init_str(bufferSink,     NULL);
+	LibFFmpeg::avfilter_init_str(filterResample, NULL);
+
+	LibFFmpeg::avfilter_link(bufferSource,   0, filterResample, 0);
+	LibFFmpeg::avfilter_link(filterResample, 0, bufferSink, 0);
 
 	if (LibFFmpeg::avfilter_graph_config(filterGraph, NULL) < 0)
 		throw std::runtime_error("Failed to initialize a valid audio filter.");
@@ -1126,7 +1019,7 @@ void MediaPlayer::LVP_Player::openAudioDevice()
 		0,
 		&LVP_Player::audioContext->deviceSpecsWanted,
 		&LVP_Player::audioContext->deviceSpecs,
-		(SDL_AUDIO_ALLOW_CHANNELS_CHANGE | SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)
+		(SDL_AUDIO_ALLOW_CHANNELS_CHANGE | SDL_AUDIO_ALLOW_FORMAT_CHANGE | SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)
 	);
 
 	if (LVP_Player::audioDevice.id < 2)
@@ -1272,21 +1165,24 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	if ((sampleRate <= 0) || (channelCount <= 0))
 		throw std::runtime_error(System::LVP_Text::Format("Invalid audio: %d channels, %d bps", channelCount, sampleRate).c_str());
 
-	// https://developer.apple.com/documentation/audiotoolbox/kaudiounitproperty_maximumframesperslice
+	auto sampleCount  = LVP_Player::audioContext->codec->frame_size;
+	auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->codec->sample_fmt);
 
 	LVP_Player::audioContext->deviceSpecsWanted = {
 		.freq     = sampleRate,
-		.format   = AUDIO_S16SYS,
+		.format   = (SDL_AudioFormat)(sampleFormat > 0 ? sampleFormat : AUDIO_S16SYS),
 		.channels = (uint8_t)channelCount,
 		.silence  = 0,
-		.samples  = (uint16_t)LVP_Player::audioContext->codec->frame_size,
+		.samples  = (uint16_t)(sampleCount > 0 ? sampleCount : 4096),
 		.padding  = 0,
 		.size     = 0,
-		.callback = LVP_Player::threadAudio,
+		.callback = LVP_Player::threadAudioCallback,
 		.userdata = NULL
 	};
 
 	LVP_Player::openAudioDevice();
+
+	std::thread(LVP_Player::threadAudio).detach();
 }
 
 /**
@@ -1423,9 +1319,6 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 	if (LVP_Player::state.isStopped)
 		return;
 
-	if (LVP_Player::audioDevice.update)
-		LVP_Player::updateAudioDevice();
-
 	if (LVP_Player::trackRequested)
 		LVP_Player::handleTrack();
 
@@ -1445,7 +1338,7 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 		LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
 	}
 
-	if (LVP_Player::videoContext->isReadyForPresent)
+	if (LVP_Player::videoContext->isReadyForPresent && (LVP_Player::videoContext->surface != NULL))
 	{
 		LVP_Player::videoContext->isReadyForPresent = false;
 
@@ -1588,8 +1481,6 @@ void MediaPlayer::LVP_Player::seekTo(double percent)
 
 bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string& device)
 {
-	LVP_Player::audioDevice.isReady = false;
-
 	bool isSuccess = true;
 	bool isPaused  = LVP_Player::state.isPaused;
 
@@ -1613,23 +1504,25 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string& device)
 	if (!isPaused)
 		SDL_PauseAudioDevice(audioDevice.id, 0);
 
-	LVP_Player::audioDevice.isReady = true;
-
 	return isSuccess;
 }
 
-void MediaPlayer::LVP_Player::setAudioProgress(LibFFmpeg::AVPacket* packet, LibFFmpeg::AVFrame* frame)
+void MediaPlayer::LVP_Player::setAudioPacketDuration(LibFFmpeg::AVPacket* packet)
 {
-	// Save packet duration (if available)
+	if ((packet == NULL) || (packet->duration <= 0))
+		return;
 
-	if ((packet != NULL) && (packet->duration > 0))
-	{
-		auto packetDuration = ((double)packet->duration / LVP_Player::state.playbackSpeed);
-		auto streamTimeBase = LibFFmpeg::av_q2d(LVP_Player::audioContext->stream->time_base);
-	
-		LVP_Player::audioContext->packetDuration = (packetDuration * streamTimeBase);
-	}
-	
+	auto packetDuration = ((double)packet->duration / LVP_Player::state.playbackSpeed);
+	auto streamTimeBase = LibFFmpeg::av_q2d(LVP_Player::audioContext->stream->time_base);
+
+	LVP_Player::audioContext->packetDuration = (packetDuration * streamTimeBase);
+}
+
+void MediaPlayer::LVP_Player::setAudioProgress(LibFFmpeg::AVFrame* frame)
+{
+	if (frame == NULL)
+		return;
+
 	// Save last valid progress
 	
 	if (LVP_Player::state.progress > 0)
@@ -1706,50 +1599,99 @@ void MediaPlayer::LVP_Player::stop(const std::string& errorMessage)
 		LVP_Player::CallbackError(errorMessage);
 }
 
-void MediaPlayer::LVP_Player::threadAudio(void* userData, uint8_t* stream, int streamSize)
+int MediaPlayer::LVP_Player::threadAudio()
 {
-	if (!LVP_Player::audioDevice.isReady)
-		return;
-
 	LVP_Player::state.threads[LVP_THREAD_AUDIO] = true;
 
-	if (LVP_Player::audioContext->bufferOffset > 0)
+	while (!LVP_Player::state.quit)
 	{
-		LVP_Player::decodeAudio(stream, streamSize);
-
-		if (LVP_Player::audioContext->bufferOffset < LVP_Player::audioContext->dataSize) {
-			LVP_Player::state.threads[LVP_THREAD_AUDIO] = false;
-			return;
+		while (!LVP_Player::state.quit && (
+			LVP_Player::state.isPaused ||
+			LVP_Player::audioContext->packets.empty() ||
+			(LVP_Player::audioContext->frames.size() >= MIN_PACKET_QUEUE_SIZE)))
+		{
+			SDL_Delay(DELAY_TIME_DEFAULT);
 		}
+
+		if (LVP_Player::state.quit)
+			break;
+
+		auto packet = LVP_Player::getMediaPacket(LVP_Player::audioContext);
+
+		if (packet == NULL)
+			continue;
+
+		LVP_Player::setAudioPacketDuration(packet);
+
+		LVP_Player::decodeAudioPacket(packet);
+
+		LVP_Player::decodeAudioFrames();
+
+		FREE_AVPACKET(packet);
 	}
-
-	auto packet = LVP_Player::getAudioPacket();
-
-	if (packet == NULL)
-	{
-		std::memset(stream, 0, streamSize);
-
-		LVP_Player::state.threads[LVP_THREAD_AUDIO] = false;
-
-		return;
-	}	
-
-	LVP_Player::decodeAudioPacket(packet);
-
-	auto frames = LVP_Player::getAudioFrames();
-
-	for (auto frame : frames)
-	{
-		LVP_Player::decodeAudio(stream, streamSize, frame);
-
-		LVP_Player::setAudioProgress(packet, frame);
-
-		FREE_AVFRAME(frame);
-	}
-
-	FREE_AVPACKET(packet);
 
 	LVP_Player::state.threads[LVP_THREAD_AUDIO] = false;
+
+	return 0;
+}
+
+void MediaPlayer::LVP_Player::threadAudioCallback(void* userData, uint8_t* stream, int streamSize)
+{
+	LVP_Player::state.threads[LVP_THREAD_AUDIO_CALLBACK] = true;
+
+	while (streamSize > 0)
+	{
+		if (LVP_Player::audioContext->bufferOffset >= LVP_Player::audioContext->dataSize)
+		{
+			auto frame    = LVP_Player::getAudioFrame();
+			auto dataSize = LVP_Player::decodeAudioFrame(frame);
+
+			LVP_Player::setAudioProgress(frame);
+
+			FREE_AVFRAME(frame);
+
+			if (dataSize < 0)
+			{
+				auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format);
+				auto sampleSize   = LibFFmpeg::av_samples_get_buffer_size(NULL, LVP_Player::audioContext->deviceSpecs.channels, 1, sampleFormat, 1);
+
+				FREE_POINTER(LVP_Player::audioContext->buffer);
+
+				LVP_Player::audioContext->dataSize = (512 / sampleSize * sampleSize);
+			} else {
+				LVP_Player::audioContext->dataSize = dataSize;
+			}
+
+			LVP_Player::audioContext->bufferOffset = 0;
+		}
+
+		int writeSize = (LVP_Player::audioContext->dataSize - LVP_Player::audioContext->bufferOffset);
+
+		if (writeSize > streamSize)
+			writeSize = streamSize;
+
+		auto buffer = (LVP_Player::audioContext->buffer != NULL ? (const uint8_t*)(LVP_Player::audioContext->buffer + LVP_Player::audioContext->bufferOffset) : NULL);
+		auto volume = (!LVP_Player::state.isMuted ? LVP_Player::state.volume : 0);
+
+		if ((volume == SDL_MIX_MAXVOLUME) && (buffer != NULL))
+		{
+			std::memcpy(stream, buffer, writeSize);
+		}
+		else
+		{
+			std::memset(stream, 0, writeSize);
+
+			if ((volume > 0) && (buffer != NULL))
+				SDL_MixAudioFormat(stream, buffer, LVP_Player::audioContext->deviceSpecs.format, writeSize, volume);
+		}
+
+		streamSize -= writeSize;
+		stream     += writeSize;
+
+		LVP_Player::audioContext->bufferOffset += writeSize;
+	}
+
+	LVP_Player::state.threads[LVP_THREAD_AUDIO_CALLBACK] = false;
 }
 
 int MediaPlayer::LVP_Player::threadPackets()
@@ -1974,30 +1916,10 @@ int MediaPlayer::LVP_Player::threadSub()
 
 		// Get subtitle packet from queue
 
-		LibFFmpeg::AVPacket* packet = NULL;
-
-		LVP_Player::subContext->packetsLock.lock();
-
-		if (!LVP_Player::subContext->packets.empty()) {
-			packet = LVP_Player::subContext->packets.front();
-			LVP_Player::subContext->packets.pop();
-		}
-
-		LVP_Player::subContext->packetsLock.unlock();
+		auto packet = LVP_Player::getMediaPacket(LVP_Player::subContext);
 
 		if (packet == NULL)
 			continue;
-
-		if (packet->data == NULL)
-		{
-			FREE_AVPACKET(packet);
-
-			LVP_Player::packetLock.lock();
-			LibFFmpeg::avcodec_flush_buffers(LVP_Player::subContext->codec);
-			LVP_Player::packetLock.unlock();
-
-			continue;
-		}
 
 		auto packetPTS = LVP_Media::GetPacketPTS(
 			packet,
@@ -2150,30 +2072,10 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 		// Get video packet from queue
 
-		LibFFmpeg::AVPacket* packet = NULL;
-
-		LVP_Player::videoContext->packetsLock.lock();
-
-		if (!LVP_Player::videoContext->packets.empty()) {
-			packet = LVP_Player::videoContext->packets.front();
-			LVP_Player::videoContext->packets.pop();
-		}
-
-		LVP_Player::videoContext->packetsLock.unlock();
+		auto packet = LVP_Player::getMediaPacket(LVP_Player::videoContext);
 
 		if (packet == NULL)
 			continue;
-
-		if (packet->data == NULL)
-		{
-			FREE_AVPACKET(packet);
-
-			LVP_Player::packetLock.lock();
-			LibFFmpeg::avcodec_flush_buffers(LVP_Player::videoContext->codec);
-			LVP_Player::packetLock.unlock();
-
-			continue;
-		}
 
 		// Decode video packet to frame
 
@@ -2319,32 +2221,4 @@ void MediaPlayer::LVP_Player::TogglePause()
 		LVP_Player::pause();
 	else
 		LVP_Player::play();
-}
-
-void MediaPlayer::LVP_Player::updateAudioDevice()
-{
-	LVP_Player::audioDevice.isReady = false;
-	LVP_Player::audioDevice.update  = false;
-
-	bool isPaused = LVP_Player::state.isPaused;
-
-	if (!isPaused)
-		SDL_PauseAudioDevice(LVP_Player::audioDevice.id, 1);
-
-	while (LVP_Player::state.threads[LVP_THREAD_AUDIO] && !LVP_Player::state.quit)
-		SDL_Delay(DELAY_TIME_DEFAULT);
-
-	if (LVP_Player::state.quit)
-		return;
-
-	LVP_Player::audioContext->deviceSpecsWanted.samples = LVP_Player::audioContext->frameSpecs.sampleCount;
-
-	LVP_Player::openAudioDevice();
-
-	LVP_Player::audioContext->bufferOffset = 0;
-
-	if (!isPaused)
-		SDL_PauseAudioDevice(LVP_Player::audioDevice.id, 0);
-
-	LVP_Player::audioDevice.isReady = true;
 }

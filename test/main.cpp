@@ -113,6 +113,12 @@ static void handleKeyDownEvent(const SDL_KeyboardEvent& event)
     case SDLK_RIGHT: case SDLK_AUDIOFASTFORWARD:
         LVP_SeekBy(TestPlayer::SeekInterval);
         break;
+    case SDLK_PLUS: case SDLK_KP_PLUS:
+        LVP_SetPlaybackSpeed(LVP_GetPlaybackSpeed() + 0.1);
+        break;
+    case SDLK_MINUS: case SDLK_KP_MINUS:
+        LVP_SetPlaybackSpeed(LVP_GetPlaybackSpeed() - 0.1);
+        break;
     default:
         break;
     }
@@ -189,7 +195,7 @@ static void handleUserEvent(const SDL_UserEvent& event)
         TestWindow::UpdateTitle();
 
         TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00 1.0x");
 
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    false);
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, false);

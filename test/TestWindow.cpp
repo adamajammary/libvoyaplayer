@@ -117,7 +117,7 @@ void TestWindow::initButtons()
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_FORWARD] = seekForward;
 	TestWindow::buttons.push_back(seekForward);
 
-	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00", false);
+	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00 1.0x", false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PROGRESS] = progress;
 	TestWindow::buttons.push_back(progress);
@@ -248,7 +248,7 @@ void TestWindow::UpdateProgress()
 	auto duration = TimeFormat(LVP_GetDuration());
 	auto progress = TimeFormat(LVP_GetProgress());
 
-	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, TextFormat("%s / %s", progress.c_str(), duration.c_str()));
+	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, TextFormat("%s / %s %.1fx", progress.c_str(), duration.c_str(), LVP_GetPlaybackSpeed()));
 }
 
 void TestWindow::UpdateTitle(const std::string& title)

@@ -10,16 +10,13 @@ MediaPlayer::LVP_AudioContext::LVP_AudioContext()
 	this->deviceSpecsWanted = {};
 	this->filter            = {};
 	this->filterSpecs       = {};
-	this->frameSpecs        = {};
+	this->frames            = {};
 	this->lastPogress       = 0.0;
 	this->packetDuration    = 0.0;
-	this->swrContext        = NULL;
 }
 
 MediaPlayer::LVP_AudioContext::~LVP_AudioContext()
 {
 	FREE_POINTER(this->buffer);
-	FREE_SWR(this->swrContext);
-
 	FREE_AVFILTER_GRAPH(this->filter.filterGraph);
 }
