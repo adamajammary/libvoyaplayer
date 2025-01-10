@@ -1,8 +1,8 @@
 #ifndef LVP_MAIN_H
 #define LVP_MAIN_H
 
-#include <algorithm> // min/max(x)
-#include <cstring>   // memcpy(x), memset(x)
+#include <algorithm> // min/max()
+#include <cstring>   // memcpy(), memset(), strcmp()
 #include <map>
 #include <mutex>
 #include <queue>
@@ -10,25 +10,25 @@
 #include <vector>
 
 #if defined _android
-	#include <dirent.h>   // opendir(x)
-	#include <unistd.h>   // chdir(x)
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <dirent.h>   // opendir()
+	#include <unistd.h>   // chdir()
+	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _ios
-	#include <dirent.h>   // opendir(x)
-	#include <unistd.h>   // chdir(x)
+	#include <dirent.h>   // opendir()
+	#include <unistd.h>   // chdir()
 	#include <os/log.h>   // os_log
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _linux
-	#include <dirent.h>   // opendir(x)
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <dirent.h>   // opendir()
+	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _macosx
-	#include <unistd.h>                // chdir(x)
-	#include <Foundation/Foundation.h> // NSLog(x)
-	#include <sys/dir.h>               // opendir(x)
-	#include <sys/stat.h>              // stat64, lstat64(x)
+	#include <unistd.h>                // chdir()
+	#include <Foundation/Foundation.h> // NSLog()
+	#include <sys/dir.h>               // opendir()
+	#include <sys/stat.h>              // stat64, lstat64()
 #elif defined _windows
-	#include <direct.h>   // _chdir(x)
-	#include <dirent.h>   // _wopendir(x)
+	#include <direct.h>   // _chdir()
+	#include <dirent.h>   // _wopendir()
 #endif
 
 #ifndef LIB_SDL2_H
@@ -184,8 +184,9 @@ namespace LibVoyaPlayer
 		const int    MAX_ERRORS    = 100;
 		const double MAX_SUB_DELAY = -0.1;
 
-		const int    MIN_PACKET_QUEUE_SIZE = 25;
-		const double MIN_SUB_TIME_TO_PTS   = 0.03;
+		const int      MIN_PACKET_QUEUE_SIZE     = 25;
+		const double   MIN_SUB_TIME_TO_PTS       = 0.03;
+		const uint32_t MIN_VALID_AUDIO_DEVICE_ID = 2U;
 
 		enum LVP_RGBA
 		{

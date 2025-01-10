@@ -239,6 +239,12 @@ static void handleEvents()
         case SDL_QUIT:
             QUIT = true;
             break;
+        case SDL_AUDIODEVICEADDED:
+            LVP_AddAudioDevice(event.adevice);
+            break;
+        case SDL_AUDIODEVICEREMOVED:
+            LVP_RemoveAudioDevice(event.adevice);
+            break;
         case SDL_KEYDOWN:
             handleKeyDownEvent(event.key);
             break;

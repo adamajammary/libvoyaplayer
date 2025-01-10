@@ -28,6 +28,12 @@ namespace LibVoyaPlayer
 			std::mutex                      framesLock;
 			double                          lastPogress;
 			double                          packetDuration;
+
+		public:
+			void free();
+
+		private:
+			void clearFrames();
 		};
 	}
 }

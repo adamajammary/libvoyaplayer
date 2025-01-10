@@ -28,6 +28,12 @@
 DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
+ * @brief Tells the player that a new audio device was connected.
+ * @param adevice SDL2 audio device event.
+ */
+DLLEXPORT void DLL LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+
+/**
  * @returns a list of available audio devices.
  */
 DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
@@ -182,6 +188,12 @@ DLLEXPORT void DLL LVP_Open(const std::wstring& filePath);
  * @brief Cleans up allocated resources.
  */
 DLLEXPORT void DLL LVP_Quit();
+
+/**
+ * @brief Tells the player that an audio device was disconnected.
+ * @param adevice SDL2 audio device event.
+ */
+DLLEXPORT void DLL LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 
 /**
  * @brief Generates and renders a video frame.

@@ -55,6 +55,11 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	}
 }
 
+void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice)
+{
+	MediaPlayer::LVP_Player::AddAudioDevice(adevice);
+}
+
 std::vector<std::string> LVP_GetAudioDevices()
 {
 	return MediaPlayer::LVP_Player::GetAudioDevices();
@@ -298,6 +303,11 @@ void LVP_Quit()
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	SDL_AudioQuit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+}
+
+void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice)
+{
+	MediaPlayer::LVP_Player::RemoveAudioDevice(adevice);
 }
 
 void LVP_Render(const SDL_Rect& destination)

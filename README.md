@@ -474,6 +474,18 @@ Exceptions
 
 - runtime_error
 
+### LVP_AddAudioDevice
+
+Tells the player that a new audio device was connected.
+
+```cpp
+void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+```
+
+Parameters
+
+- **adevice** SDL2 audio device event.
+
 ### LVP_GetAudioDevices
 
 Returns a list of available audio devices.
@@ -564,7 +576,7 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::string& filePath);
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -580,7 +592,7 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::wstring& filePath);
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -608,7 +620,7 @@ LVP_MediaType LVP_GetMediaType(const std::string& filePath);
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -624,7 +636,7 @@ LVP_MediaType LVP_GetMediaType(const std::wstring& filePath);
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -760,7 +772,7 @@ void LVP_Open(const std::string& filePath);
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -776,7 +788,7 @@ void LVP_Open(const std::wstring& filePath);
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -789,6 +801,18 @@ Cleans up allocated resources.
 ```cpp
 void LVP_Quit();
 ```
+
+### LVP_RemoveAudioDevice
+
+Tells the player that an audio device was disconnected.
+
+```cpp
+void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
+```
+
+Parameters
+
+- **adevice** SDL2 audio device event.
 
 ### LVP_Render
 
@@ -803,7 +827,7 @@ void LVP_Render(const SDL_Rect& destination = {});
 
 Parameters
 
-- **destination** Optional clipping/scaling region used by the hardware renderer
+- **destination** Optional clipping/scaling region used by the hardware renderer.
 
 ### LVP_Resize
 
@@ -857,7 +881,7 @@ bool LVP_SetAudioDevice(const std::string& device);
 
 Parameters
 
-- **device** Name of the audio device
+- **device** Name of the audio device.
 
 ### LVP_SetMuted
 
@@ -869,7 +893,7 @@ void LVP_SetMuted(bool muted);
 
 Parameters
 
-- **muted** true to mute or false to unmute
+- **muted** true to mute or false to unmute.
 
 Exceptions
 
@@ -901,7 +925,7 @@ void LVP_SetTrack(const LVP_MediaTrack& track);
 
 Parameters
 
-- **track** -1 to disable subtitles or >= 0 for a valid media track
+- **track** -1 to disable subtitles or >= 0 for a valid media track.
 
 Exceptions
 

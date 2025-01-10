@@ -17,6 +17,25 @@ MediaPlayer::LVP_AudioContext::LVP_AudioContext()
 
 MediaPlayer::LVP_AudioContext::~LVP_AudioContext()
 {
+	this->free();
+}
+
+void MediaPlayer::LVP_AudioContext::clearFrames()
+{
+	this->framesLock.lock();
+
+	while (!this->frames.empty()) {
+		FREE_AVFRAME(this->frames.front());
+		this->frames.pop();
+	}
+
+	this->framesLock.unlock();
+}
+
+void MediaPlayer::LVP_AudioContext::free()
+{
 	FREE_POINTER(this->buffer);
 	FREE_AVFILTER_GRAPH(this->filter.filterGraph);
+
+	LVP_AudioContext::clearFrames();
 }

@@ -40,6 +40,7 @@ namespace LibVoyaPlayer
 			static LVP_VideoContext*           videoContext;
 
 		public:
+			static void                          AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
 			static void                          CallbackError(const std::string& errorMessage);
 			static void                          Close();
 			static LVP_Strings                   GetAudioDevices();
@@ -66,6 +67,7 @@ namespace LibVoyaPlayer
 			static bool                          IsStopped();
 			static void                          Open(const std::string& filePath);
 			static void                          Quit();
+			static void                          RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 			static void                          Render(const SDL_Rect& destination = {});
 			static void                          Resize();
 			static void                          SeekBy(int seconds);
@@ -83,13 +85,14 @@ namespace LibVoyaPlayer
 			static void                          callbackVideoIsAvailable(SDL_Surface* surface);
 			static void                          close();
 			static void                          closeAudioContext();
+			static void                          closeAudioDevice();
 			static void                          closePackets(LVP_MediaContext* context);
 			static void                          closePackets();
 			static void                          closeStream(LibFFmpeg::AVMediaType streamType);
 			static void                          closeSubContext();
 			static void                          closeThreads();
 			static void                          closeVideoContext();
-			static int                           decodeAudioFrame(LibFFmpeg::AVFrame* frame);
+			static int                           decodeAudioFrame();
 			static void                          decodeAudioFrames();
 			static void                          decodeAudioPacket(LibFFmpeg::AVPacket* packet);
 			static LibFFmpeg::AVFrame*           getAudioFrame();
