@@ -18,7 +18,7 @@ MediaPlayer::LVP_PlayerState      MediaPlayer::LVP_Player::state                
 MediaPlayer::LVP_SubtitleContext* MediaPlayer::LVP_Player::subContext            = {};
 System::LVP_TimeOut*              MediaPlayer::LVP_Player::timeOut               = NULL;
 bool                              MediaPlayer::LVP_Player::trackRequested        = false;
-LVP_MediaTrack                    MediaPlayer::LVP_Player::trackRequest          = {};
+std::queue<LVP_MediaTrack>        MediaPlayer::LVP_Player::trackRequests         = {};
 MediaPlayer::LVP_VideoContext*    MediaPlayer::LVP_Player::videoContext          = {};
 
 void MediaPlayer::LVP_Player::Init(const LVP_CallbackContext& callbackContext)
@@ -41,7 +41,7 @@ void MediaPlayer::LVP_Player::AddAudioDevice(const SDL_AudioDeviceEvent& adevice
 	LVP_Player::openAudioDevice();
 
 	if (!isPaused)
-		SDL_PauseAudioDevice(audioDevice.id, 0);
+		LVP_Player::play();
 }
 
 void MediaPlayer::LVP_Player::CallbackError(const std::string& errorMessage)
@@ -352,8 +352,6 @@ void MediaPlayer::LVP_Player::decodeAudioPacket(LibFFmpeg::AVPacket* packet)
 			LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 			LOG("AUDIO_SEND_PACKET: %s\n", strerror);
 		#endif
-
-		LVP_Player::stop("Failed to decode audio.");
 	}
 }
 
@@ -797,79 +795,81 @@ void MediaPlayer::LVP_Player::handleTrack()
 
 	LVP_Player::packetLock.lock();
 
-	auto mediaType        = (LibFFmpeg::AVMediaType)LVP_Player::trackRequest.mediaType;
-	bool isSameAudioTrack = (IS_AUDIO(mediaType) && (LVP_Player::trackRequest.track == LVP_Player::audioContext->index));
-	bool isSameSubTrack   = (IS_SUB(mediaType)   && (LVP_Player::trackRequest.track == LVP_Player::subContext->index));
-
-	if (isSameAudioTrack || isSameSubTrack)
+	while (!LVP_Player::trackRequests.empty())
 	{
-		LVP_Player::trackRequested = false;
+		const auto& trackRequest = LVP_Player::trackRequests.front();
 
-		LVP_Player::packetLock.unlock();
+		LVP_Player::trackRequests.pop();
 
-		return;
-	}
+		auto mediaType = (LibFFmpeg::AVMediaType)trackRequest.mediaType;
+		bool isAudio   = IS_AUDIO(mediaType);
+		bool isSub     = IS_SUB(mediaType);
 
-	// DISABLE SUBS
+		bool isSameAudioTrack = (isAudio && (trackRequest.track == LVP_Player::audioContext->index));
+		bool isSameSubTrack   = (isSub   && (trackRequest.track == LVP_Player::subContext->index));
 
-	if (IS_SUB(mediaType) && (LVP_Player::trackRequest.track < 0))
-	{
-		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+		if (isSameAudioTrack || isSameSubTrack)
+			continue;
 
-		LVP_SubtitleBitmap::Remove();
-		LVP_SubtitleText::Remove();
+		// DISABLE SUBS
 
-		LVP_Player::trackRequested = false;
+		if (isSub && (trackRequest.track < 0))
+		{
+			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
 
-		LVP_Player::packetLock.unlock();
+			LVP_SubtitleBitmap::Remove();
+			LVP_SubtitleText::Remove();
 
-		return;
-	}
-
-	bool isPaused     = LVP_Player::state.isPaused;
-	auto lastProgress = (double)(LVP_Player::state.progress / (double)LVP_Player::state.duration);
-
-	switch (mediaType) {
-	case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
-		if (!isPaused)
-			SDL_PauseAudioDevice(LVP_Player::audioDevice.id, 1);
-
-		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
-
-		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, LVP_Player::trackRequest.track, LVP_Player::audioContext);
-
-		try {
-			LVP_Player::openThreadAudio();
-		} catch (const std::exception& e) {
-			LVP_Player::CallbackError(e.what());
+			continue;
 		}
 
-		if (!LVP_Player::seekRequested)
-			LVP_Player::seekTo(lastProgress);
+		bool isPaused     = LVP_Player::state.isPaused;
+		auto lastProgress = (double)(LVP_Player::state.progress / (double)LVP_Player::state.duration);
 
-		if (!isPaused)
-			SDL_PauseAudioDevice(LVP_Player::audioDevice.id, 0);
+		switch (mediaType) {
+		case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
+			if (!isPaused)
+				LVP_Player::pause();
 
-		break;
-	case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
-		LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
 
-		LVP_SubtitleBitmap::Remove();
-		LVP_SubtitleText::Remove();
+			LVP_Player::audioContext->free();
 
-		if (LVP_Player::trackRequest.track >= SUB_STREAM_EXTERNAL)
-			LVP_Player::openSubExternal(LVP_Player::trackRequest.track);
-		else
-			LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, LVP_Player::trackRequest.track, LVP_Player::subContext);
+			LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, trackRequest.track, LVP_Player::audioContext);
 
-		LVP_Player::openThreadSub();
+			try {
+				LVP_Player::openThreadAudio();
+			} catch (const std::exception& e) {
+				LVP_Player::CallbackError(e.what());
+			}
 
-		if (!LVP_Player::seekRequested)
-			LVP_Player::seekTo(lastProgress);
+			if (!LVP_Player::seekRequested)
+				LVP_Player::seekTo(lastProgress);
 
-		break;
-	default:
-		break;
+			if (!isPaused)
+				LVP_Player::play();
+
+			break;
+		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
+			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+
+			LVP_SubtitleBitmap::Remove();
+			LVP_SubtitleText::Remove();
+
+			if (trackRequest.track >= SUB_STREAM_EXTERNAL)
+				LVP_Player::openSubExternal(trackRequest.track);
+			else
+				LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, trackRequest.track, LVP_Player::subContext);
+
+			LVP_Player::openThreadSub();
+
+			if (!LVP_Player::seekRequested)
+				LVP_Player::seekTo(lastProgress);
+
+			break;
+		default:
+			break;
+		}
 	}
 
 	LVP_Player::trackRequested = false;
@@ -1207,7 +1207,8 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 
 	LVP_Player::openAudioDevice();
 
-	std::thread(LVP_Player::threadAudio).detach();
+	if (!LVP_Player::state.threads[LVP_THREAD_AUDIO])
+		std::thread(LVP_Player::threadAudio).detach();
 }
 
 /**
@@ -1226,7 +1227,8 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		printf("\n%s\n", subHeader.c_str());
 	#endif
 
-	std::thread(LVP_Player::threadSub).detach();
+	if (!LVP_Player::state.threads[LVP_THREAD_SUBTITLE])
+		std::thread(LVP_Player::threadSub).detach();
 
 	LVP_Player::subContext->formatContext = LVP_Player::formatContext;
 
@@ -1290,7 +1292,8 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 
 	// THREAD
 
-	std::thread(LVP_Player::threadVideo).detach();
+	if (!LVP_Player::state.threads[LVP_THREAD_VIDEO])
+		std::thread(LVP_Player::threadVideo).detach();
 
 	// STREAM/TRACK
 
@@ -1356,11 +1359,8 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 	if (LVP_Player::state.isStopped)
 		return;
 
-	if (LVP_Player::trackRequested)
-		LVP_Player::handleTrack();
-
-	if (LVP_Player::seekRequested)
-		LVP_Player::handleSeek();
+	LVP_Player::handleTrack();
+	LVP_Player::handleSeek();
 
 	if (LVP_Player::videoContext->isReadyForRender)
 	{
@@ -1521,7 +1521,7 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string& device)
 	bool isPaused = LVP_Player::state.isPaused;
 
 	if (!isPaused)
-		SDL_PauseAudioDevice(LVP_Player::audioDevice.id, 1);
+		LVP_Player::pause();
 
 	LVP_Player::audioDevice.device = std::string(device);
 
@@ -1529,7 +1529,7 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string& device)
 		LVP_Player::openAudioDevice();
 
 	if (!isPaused)
-		SDL_PauseAudioDevice(audioDevice.id, 0);
+		LVP_Player::play();
 
 	return (LVP_Player::audioDevice.id >= MIN_VALID_AUDIO_DEVICE_ID);
 }
@@ -1602,7 +1602,8 @@ void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack& track)
 
 	LVP_Player::packetLock.lock();
 
-	LVP_Player::trackRequest   = track;
+	LVP_Player::trackRequests.push(track);
+
 	LVP_Player::trackRequested = true;
 
 	LVP_Player::packetLock.unlock();
@@ -1634,6 +1635,8 @@ int MediaPlayer::LVP_Player::threadAudio()
 	{
 		while (!LVP_Player::state.quit && (LVP_Player::audioDevice.id >= MIN_VALID_AUDIO_DEVICE_ID) && (
 			LVP_Player::state.isPaused ||
+			LVP_Player::seekRequested ||
+			LVP_Player::trackRequested ||
 			LVP_Player::audioContext->packets.empty() ||
 			(LVP_Player::audioContext->frames.size() >= MIN_PACKET_QUEUE_SIZE)))
 		{
@@ -1938,11 +1941,11 @@ int MediaPlayer::LVP_Player::threadSub()
 		// Wait until subtitle packets are available
 
 		while (!LVP_Player::state.quit && (
-			LVP_Player::subContext->packets.empty() ||
 			(LVP_Player::state.isPaused && !LVP_Player::seekRequestedPaused) ||
 			LVP_Player::seekRequested ||
 			LVP_Player::trackRequested ||
-			(LVP_Player::subContext->index < 0)
+			(LVP_Player::subContext->index < 0) ||
+			LVP_Player::subContext->packets.empty()
 		)) {
 			SDL_Delay(DELAY_TIME_DEFAULT);
 		}

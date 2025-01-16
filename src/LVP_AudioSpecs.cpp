@@ -29,13 +29,16 @@ bool MediaPlayer::LVP_AudioSpecs::equals(LibFFmpeg::AVFrame* frame, double playb
 	if (!ARE_EQUAL_DOUBLES(playbackSpeed, this->playbackSpeed))
 		return false;
 
-	if (frame->ch_layout.nb_channels != this->channelLayout.nb_channels)
-		return false;
-
 	if (frame->format != this->format)
 		return false;
 
 	if (frame->sample_rate != this->sampleRate)
+		return false;
+
+	if (frame->ch_layout.nb_channels != this->channelLayout.nb_channels)
+		return false;
+
+	if (LibFFmpeg::av_channel_layout_compare(&frame->ch_layout, &this->channelLayout) == 1)
 		return false;
 
 	return true;

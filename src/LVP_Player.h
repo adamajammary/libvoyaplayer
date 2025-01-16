@@ -36,7 +36,7 @@ namespace LibVoyaPlayer
 			static LVP_SubtitleContext*        subContext;
 			static System::LVP_TimeOut*        timeOut;
 			static bool                        trackRequested;
-			static LVP_MediaTrack              trackRequest;
+			static std::queue<LVP_MediaTrack>  trackRequests;
 			static LVP_VideoContext*           videoContext;
 
 		public:
