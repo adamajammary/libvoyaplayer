@@ -794,6 +794,30 @@ Exceptions
 
 - runtime_error
 
+### LVP_Pause
+
+Pauses the currently loaded media file.
+
+Exceptions
+
+- runtime_error
+
+```cpp
+void LVP_Pause();
+```
+
+### LVP_Play
+
+Starts playing the currently loaded media file.
+
+Exceptions
+
+- runtime_error
+
+```cpp
+void LVP_Play();
+```
+
 ### LVP_Quit
 
 Cleans up allocated resources.

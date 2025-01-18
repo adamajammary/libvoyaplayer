@@ -291,6 +291,22 @@ void LVP_Open(const std::wstring &filePath)
 	SDL_free(filePathUTF8);
 }
 
+void LVP_Pause()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Pause();
+}
+
+void LVP_Play()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Play();
+}
+
 void LVP_Quit()
 {
 	if (!isInitialized)

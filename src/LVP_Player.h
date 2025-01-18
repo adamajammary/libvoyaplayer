@@ -66,6 +66,8 @@ namespace LibVoyaPlayer
 			static bool                          IsPlaying();
 			static bool                          IsStopped();
 			static void                          Open(const std::string& filePath);
+			static void                          Pause();
+			static void                          Play();
 			static void                          Quit();
 			static void                          RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 			static void                          Render(const SDL_Rect& destination = {});
@@ -119,8 +121,6 @@ namespace LibVoyaPlayer
 			static void                          openThreadAudio();
 			static void                          openThreadSub();
 			static void                          openThreadVideo();
-			static void                          pause();
-			static void                          play();
 			static void                          renderVideo();
 			static void                          seekTo(double percent);
 			static void                          setAudioPacketDuration(LibFFmpeg::AVPacket* packet);

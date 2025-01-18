@@ -185,6 +185,18 @@ DLLEXPORT void DLL LVP_Open(const std::string& filePath);
 DLLEXPORT void DLL LVP_Open(const std::wstring& filePath);
 
 /**
+ * @brief Pauses the currently loaded media file.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_Pause();
+
+/**
+ * @brief Starts playing the currently loaded media file.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_Play();
+
+/**
  * @brief Cleans up allocated resources.
  */
 DLLEXPORT void DLL LVP_Quit();

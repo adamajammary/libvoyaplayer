@@ -41,7 +41,7 @@ void MediaPlayer::LVP_Player::AddAudioDevice(const SDL_AudioDeviceEvent& adevice
 	LVP_Player::openAudioDevice();
 
 	if (!isPaused)
-		LVP_Player::play();
+		LVP_Player::Play();
 }
 
 void MediaPlayer::LVP_Player::CallbackError(const std::string& errorMessage)
@@ -89,7 +89,7 @@ void MediaPlayer::LVP_Player::close()
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_STOPPING);
 
-	LVP_Player::pause();
+	LVP_Player::Pause();
 
 	LVP_Player::state.quit = true;
 
@@ -829,7 +829,7 @@ void MediaPlayer::LVP_Player::handleTrack()
 		switch (mediaType) {
 		case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
 			if (!isPaused)
-				LVP_Player::pause();
+				LVP_Player::Pause();
 
 			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
 
@@ -847,7 +847,7 @@ void MediaPlayer::LVP_Player::handleTrack()
 				LVP_Player::seekTo(lastProgress);
 
 			if (!isPaused)
-				LVP_Player::play();
+				LVP_Player::Play();
 
 			break;
 		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
@@ -1021,7 +1021,7 @@ void MediaPlayer::LVP_Player::open()
 
 		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_OPENED);
 
-		LVP_Player::play();
+		LVP_Player::Play();
 
 		LVP_Player::isOpening = false;
 	} catch (const std::exception& e) {
@@ -1300,7 +1300,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 	LVP_Player::videoContext->index = LVP_Player::videoContext->stream->index;
 }
 
-void MediaPlayer::LVP_Player::pause()
+void MediaPlayer::LVP_Player::Pause()
 {
 	if (LVP_Player::state.isPaused || LVP_Player::state.filePath.empty())
 		return;
@@ -1314,7 +1314,7 @@ void MediaPlayer::LVP_Player::pause()
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_PAUSED);
 }
 
-void MediaPlayer::LVP_Player::play()
+void MediaPlayer::LVP_Player::Play()
 {
 	if (LVP_Player::state.isPlaying || LVP_Player::state.filePath.empty())
 		return;
@@ -1521,7 +1521,7 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string& device)
 	bool isPaused = LVP_Player::state.isPaused;
 
 	if (!isPaused)
-		LVP_Player::pause();
+		LVP_Player::Pause();
 
 	LVP_Player::audioDevice.device = std::string(device);
 
@@ -1529,7 +1529,7 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const std::string& device)
 		LVP_Player::openAudioDevice();
 
 	if (!isPaused)
-		LVP_Player::play();
+		LVP_Player::Play();
 
 	return (LVP_Player::audioDevice.id >= MIN_VALID_AUDIO_DEVICE_ID);
 }
@@ -2257,7 +2257,7 @@ void MediaPlayer::LVP_Player::ToggleMute()
 void MediaPlayer::LVP_Player::TogglePause()
 {
 	if (!LVP_Player::state.isPaused)
-		LVP_Player::pause();
+		LVP_Player::Pause();
 	else
-		LVP_Player::play();
+		LVP_Player::Play();
 }
