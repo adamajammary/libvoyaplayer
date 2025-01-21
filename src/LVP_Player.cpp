@@ -594,6 +594,32 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpe
 	return tracks;
 }
 
+LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
+{
+	LVP_MediaMeta mediaMeta =
+	{
+		.meta      = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
+		.mediaType = (LVP_MediaType)LVP_Media::GetMediaType(LVP_Player::formatContext)
+	};
+
+	return mediaMeta;
+}
+
+LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta(const std::string& filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+
+	LVP_MediaMeta mediaMeta =
+	{
+		.meta      = LVP_Media::GetMediaMeta(formatContext),
+		.mediaType = (LVP_MediaType)LVP_Media::GetMediaType(formatContext)
+	};
+
+	FREE_AVFORMAT(formatContext);
+
+	return mediaMeta;
+}
+
 LVP_MediaType MediaPlayer::LVP_Player::GetMediaType()
 {
 	return (LVP_MediaType)LVP_Player::state.mediaType;

@@ -412,6 +412,17 @@ struct LVP_MediaChapter {
 };
 ```
 
+### LVP_MediaMeta
+
+```cpp
+struct LVP_MediaMeta
+{
+  std::map<std::string, std::string> meta; // Media metadata like title, artist, album, genre etc.
+
+  LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN; // Media type, like video (0), audio (1) or subtitle (3).
+};
+```
+
 ### LVP_MediaTrack
 
 ```cpp
@@ -594,6 +605,50 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::wstring& filePath);
 ```
 
 Returns media details of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaMeta
+
+```cpp
+LVP_MediaMeta LVP_GetMediaMeta();
+```
+
+Returns the media metadata of the currently loaded media.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaMeta (string)
+
+```cpp
+LVP_MediaMeta LVP_GetMediaMeta(const std::string& filePath);
+```
+
+Returns the media metadata of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaMeta (wstring)
+
+```cpp
+LVP_MediaMeta LVP_GetMediaMeta(const std::wstring& filePath);
+```
+
+Returns the media metadata of the the provided media file.
 
 Parameters
 

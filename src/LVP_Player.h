@@ -51,6 +51,8 @@ namespace LibVoyaPlayer
 			static int64_t                       GetDuration();
 			static LVP_MediaDetails              GetMediaDetails(bool skipThumbnail);
 			static LVP_MediaDetails              GetMediaDetails(const std::string& filePath, bool skipThumbnail);
+			static LVP_MediaMeta                 GetMediaMeta();
+			static LVP_MediaMeta                 GetMediaMeta(const std::string& filePath);
 			static LVP_MediaType                 GetMediaType();
 			static LVP_MediaType                 GetMediaType(const std::string& filePath);
 			static LibFFmpeg::AVPixelFormat      GetPixelFormatHardware();

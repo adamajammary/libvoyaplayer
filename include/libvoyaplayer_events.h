@@ -88,6 +88,19 @@ struct LVP_MediaChapter
 	int64_t endTime = 0;
 };
 
+struct LVP_MediaMeta
+{
+	/**
+	 * @brief Media metadata like title, artist, album, genre etc.
+	 */
+	std::map<std::string, std::string> meta;
+
+	/**
+	 * @brief Media type, like video (0), audio (1) or subtitle (3).
+	 */
+	LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN;
+};
+
 struct LVP_MediaTrack
 {
 	/**
