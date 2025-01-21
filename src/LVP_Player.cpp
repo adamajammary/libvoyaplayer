@@ -449,7 +449,7 @@ std::string MediaPlayer::LVP_Player::GetFilePath()
 	return (LVP_Player::formatContext != NULL ? std::string(LVP_Player::formatContext->url) : "");
 }
 
-LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
+LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(bool skipThumbnail)
 {
 	if (LVP_Player::state.isStopped)
 		return {};
@@ -460,7 +460,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::formatContext->url),
 		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
 		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
-		.thumbnail      = LVP_Media::GetMediaThumbnail(LVP_Player::formatContext),
+		.thumbnail      = (!skipThumbnail ? LVP_Media::GetMediaThumbnail(LVP_Player::formatContext) : NULL),
 		.chapters       = LVP_Player::GetChapters(),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
@@ -468,7 +468,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails()
 	};
 }
 
-LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string& filePath)
+LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string& filePath, bool skipThumbnail)
 {
 	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
 
@@ -485,7 +485,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string& fil
 		.fileSize       = System::LVP_FileSystem::GetFileSize(formatContext->url),
 		.mediaType      = (LVP_MediaType)mediaType,
 		.meta           = LVP_Media::GetMediaMeta(formatContext),
-		.thumbnail      = LVP_Media::GetMediaThumbnail(formatContext),
+		.thumbnail      = (!skipThumbnail ? LVP_Media::GetMediaThumbnail(formatContext) : NULL),
 		.chapters       = LVP_Player::getChapters(formatContext),
 		.audioTracks    = LVP_Player::getAudioTracks(formatContext),
 		.subtitleTracks = LVP_Player::getSubtitleTracks(formatContext, extSubFiles),

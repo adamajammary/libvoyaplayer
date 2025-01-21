@@ -464,11 +464,11 @@ using LVP_VideoCallback = std::function<void(SDL_Surface* videoFrame, const void
 
 ### LVP_Initialize
 
-Tries to initialize the library and other dependencies.
-
 ```cpp
 void LVP_Initialize(const LVP_CallbackContext& callbackContext);
 ```
+
+Tries to initialize the library and other dependencies.
 
 Exceptions
 
@@ -476,11 +476,11 @@ Exceptions
 
 ### LVP_AddAudioDevice
 
-Tells the player that a new audio device was connected.
-
 ```cpp
 void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
 ```
+
+Tells the player that a new audio device was connected.
 
 Parameters
 
@@ -488,19 +488,19 @@ Parameters
 
 ### LVP_GetAudioDevices
 
-Returns a list of available audio devices.
-
 ```cpp
 std::vector<std::string> LVP_GetAudioDevices();
 ```
 
-### LVP_GetChapters
+Returns a list of available audio devices.
 
-Returns a list of chapters in the currently loaded media.
+### LVP_GetChapters
 
 ```cpp
 std::vector<LVP_MediaChapter> LVP_GetChapters();
 ```
+
+Returns a list of chapters in the currently loaded media.
 
 Exceptions
 
@@ -508,11 +508,11 @@ Exceptions
 
 ### LVP_GetAudioTrack
 
-Returns the current audio track index number.
-
 ```cpp
 int LVP_GetAudioTrack();
 ```
+
+Returns the current audio track index number.
 
 Exceptions
 
@@ -520,11 +520,11 @@ Exceptions
 
 ### LVP_GetAudioTracks
 
-Returns a list of audio tracks in the currently loaded media.
-
 ```cpp
 std::vector<LVP_MediaTrack> LVP_GetAudioTracks();
 ```
+
+Returns a list of audio tracks in the currently loaded media.
 
 Exceptions
 
@@ -532,11 +532,11 @@ Exceptions
 
 ### LVP_GetDuration
 
-Returns the media duration in milliseconds (one thousandth of a second).
-
 ```cpp
 int64_t LVP_GetDuration();
 ```
+
+Returns the media duration in milliseconds (one thousandth of a second).
 
 Exceptions
 
@@ -544,11 +544,11 @@ Exceptions
 
 ### LVP_GetFilePath
 
-Returns the current media file path.
-
 ```cpp
 std::string LVP_GetFilePath();
 ```
+
+Returns the current media file path.
 
 Exceptions
 
@@ -556,11 +556,15 @@ Exceptions
 
 ### LVP_GetMediaDetails
 
+```cpp
+LVP_MediaDetails LVP_GetMediaDetails(bool skipThumbnail = false);
+```
+
 Returns media details of the currently loaded media.
 
-```cpp
-LVP_MediaDetails LVP_GetMediaDetails();
-```
+Parameters
+
+- **skipThumbnail** Does not generate a thumbnail if true.
 
 Exceptions
 
@@ -568,15 +572,16 @@ Exceptions
 
 ### LVP_GetMediaDetails (string)
 
-Returns media details of the the provided media file.
-
 ```cpp
-LVP_MediaDetails LVP_GetMediaDetails(const std::string& filePath);
+LVP_MediaDetails LVP_GetMediaDetails(const std::string& filePath, bool skipThumbnail = false);
 ```
+
+Returns media details of the the provided media file.
 
 Parameters
 
 - **filePath** Full path to the media file.
+- **skipThumbnail** Does not generate a thumbnail if true.
 
 Exceptions
 
@@ -584,11 +589,11 @@ Exceptions
 
 ### LVP_GetMediaDetails (wstring)
 
-Returns media details of the the provided media file.
-
 ```cpp
 LVP_MediaDetails LVP_GetMediaDetails(const std::wstring& filePath);
 ```
+
+Returns media details of the the provided media file.
 
 Parameters
 
@@ -600,11 +605,11 @@ Exceptions
 
 ### LVP_GetMediaType
 
-Returns the media type of the currently loaded media.
-
 ```cpp
 LVP_MediaType LVP_GetMediaType();
 ```
+
+Returns the media type of the currently loaded media.
 
 Exceptions
 
@@ -612,11 +617,11 @@ Exceptions
 
 ### LVP_GetMediaType (string)
 
-Returns the media type of the the provided media file.
-
 ```cpp
 LVP_MediaType LVP_GetMediaType(const std::string& filePath);
 ```
+
+Returns the media type of the the provided media file.
 
 Parameters
 
@@ -628,11 +633,11 @@ Exceptions
 
 ### LVP_GetMediaType (wstring)
 
-Returns the media type of the the provided media file.
-
 ```cpp
 LVP_MediaType LVP_GetMediaType(const std::wstring& filePath);
 ```
+
+Returns the media type of the the provided media file.
 
 Parameters
 
@@ -644,11 +649,11 @@ Exceptions
 
 ### LVP_GetPlaybackSpeed
 
-Returns the current playback speed as a percent between 0.5 and 2.0.
-
 ```cpp
 double LVP_GetPlaybackSpeed();
 ```
+
+Returns the current playback speed as a percent between 0.5 and 2.0.
 
 Exceptions
 
@@ -656,11 +661,11 @@ Exceptions
 
 ### LVP_GetProgress
 
-Returns the media playback progress in milliseconds (one thousandth of a second).
-
 ```cpp
 int64_t LVP_GetProgress();
 ```
+
+Returns the media playback progress in milliseconds (one thousandth of a second).
 
 Exceptions
 
@@ -668,11 +673,11 @@ Exceptions
 
 ### LVP_GetSubtitleTrack
 
-Returns the current subtitle track index number.
-
 ```cpp
 int LVP_GetSubtitleTrack();
 ```
+
+Returns the current subtitle track index number.
 
 Exceptions
 
@@ -680,11 +685,11 @@ Exceptions
 
 ### LVP_GetSubtitleTracks
 
-Returns a list of subtitle tracks in the currently loaded media.
-
 ```cpp
 std::vector<LVP_MediaTrack> LVP_GetSubtitleTracks();
 ```
+
+Returns a list of subtitle tracks in the currently loaded media.
 
 Exceptions
 
@@ -692,11 +697,11 @@ Exceptions
 
 ### LVP_GetVideoTracks
 
-Returns a list of video tracks in the currently loaded media.
-
 ```cpp
 std::vector<LVP_MediaTrack> LVP_GetVideoTracks();
 ```
+
+Returns a list of video tracks in the currently loaded media.
 
 Exceptions
 
@@ -704,11 +709,11 @@ Exceptions
 
 ### LVP_GetVolume
 
-Returns the current audio volume as a percent between 0 and 1.
-
 ```cpp
 double LVP_GetVolume();
 ```
+
+Returns the current audio volume as a percent between 0 and 1.
 
 Exceptions
 
@@ -716,11 +721,11 @@ Exceptions
 
 ### LVP_IsMuted
 
-Returns true if audio volume is muted.
-
 ```cpp
 bool LVP_IsMuted();
 ```
+
+Returns true if audio volume is muted.
 
 Exceptions
 
@@ -728,11 +733,11 @@ Exceptions
 
 ### LVP_IsPaused
 
-Returns true if playback is paused.
-
 ```cpp
 bool LVP_IsPaused();
 ```
+
+Returns true if playback is paused.
 
 Exceptions
 
@@ -740,11 +745,11 @@ Exceptions
 
 ### LVP_IsPlaying
 
-Returns true if playback is playing (not paused and not stopped).
-
 ```cpp
 bool LVP_IsPlaying();
 ```
+
+Returns true if playback is playing (not paused and not stopped).
 
 Exceptions
 
@@ -752,11 +757,11 @@ Exceptions
 
 ### LVP_IsStopped
 
-Returns true if playback is stopped.
-
 ```cpp
 bool LVP_IsStopped();
 ```
+
+Returns true if playback is stopped.
 
 Exceptions
 
@@ -764,11 +769,11 @@ Exceptions
 
 ### LVP_Open
 
-Tries to open and play (asynchronously) the given media file.
-
 ```cpp
 void LVP_Open(const std::string& filePath);
 ```
+
+Tries to open and play (asynchronously) the given media file.
 
 Parameters
 
@@ -780,11 +785,11 @@ Exceptions
 
 ### LVP_Open (wstring)
 
-Tries to open and play (asynchronously) the given media file.
-
 ```cpp
 void LVP_Open(const std::wstring& filePath);
 ```
+
+Tries to open and play (asynchronously) the given media file.
 
 Parameters
 
@@ -796,17 +801,21 @@ Exceptions
 
 ### LVP_Pause
 
+```cpp
+void LVP_Pause();
+```
+
 Pauses the currently loaded media file.
 
 Exceptions
 
 - runtime_error
 
-```cpp
-void LVP_Pause();
-```
-
 ### LVP_Play
+
+```cpp
+void LVP_Play();
+```
 
 Starts playing the currently loaded media file.
 
@@ -814,25 +823,21 @@ Exceptions
 
 - runtime_error
 
-```cpp
-void LVP_Play();
-```
-
 ### LVP_Quit
-
-Cleans up allocated resources.
 
 ```cpp
 void LVP_Quit();
 ```
 
-### LVP_RemoveAudioDevice
+Cleans up allocated resources.
 
-Tells the player that an audio device was disconnected.
+### LVP_RemoveAudioDevice
 
 ```cpp
 void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 ```
+
+Tells the player that an audio device was disconnected.
 
 Parameters
 
@@ -840,14 +845,14 @@ Parameters
 
 ### LVP_Render
 
+```cpp
+void LVP_Render(const SDL_Rect& destination = {});
+```
+
 Generates and renders a video frame.
 
 - If hardware rendering is used, it will copy the texture to the renderer.
 - If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
-
-```cpp
-void LVP_Render(const SDL_Rect& destination = {});
-```
 
 Parameters
 
@@ -855,19 +860,19 @@ Parameters
 
 ### LVP_Resize
 
-Should be called whenever the window resizes to tell the player to recreate the video frame context.
-
 ```cpp
 void LVP_Resize();
 ```
 
-### LVP_SeekBy
+Should be called whenever the window resizes to tell the player to recreate the video frame context.
 
-Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
+### LVP_SeekBy
 
 ```cpp
 void LVP_SeekBy(int seconds);
 ```
+
+Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
 
 Parameters
 
@@ -879,11 +884,11 @@ Exceptions
 
 ### LVP_SeekTo
 
-Seeks (asynchronously) to the given position as a percent between 0 and 1.
-
 ```cpp
 void LVP_SeekTo(double percent);
 ```
+
+Seeks (asynchronously) to the given position as a percent between 0 and 1.
 
 Parameters
 
@@ -895,13 +900,13 @@ Exceptions
 
 ### LVP_SetAudioDevice
 
-Tries to set the given audio device as the current device if valid.
-
-Returns true if the audio device is successfully set.
-
 ```cpp
 bool LVP_SetAudioDevice(const std::string& device);
 ```
+
+Tries to set the given audio device as the current device if valid.
+
+Returns true if the audio device is successfully set.
 
 Parameters
 
@@ -909,11 +914,11 @@ Parameters
 
 ### LVP_SetMuted
 
-Mutes/unmutes the audio volume.
-
 ```cpp
 void LVP_SetMuted(bool muted);
 ```
+
+Mutes/unmutes the audio volume.
 
 Parameters
 
@@ -925,11 +930,11 @@ Exceptions
 
 ### LVP_SetPlaybackSpeed
 
-Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.
-
 ```cpp
 void LVP_SetPlaybackSpeed(double speed);
 ```
+
+Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.
 
 Parameters
 
@@ -941,11 +946,11 @@ Exceptions
 
 ### LVP_SetTrack
 
-Tries to set the given stream (asynchronously) as the current stream if valid.
-
 ```cpp
 void LVP_SetTrack(const LVP_MediaTrack& track);
 ```
+
+Tries to set the given stream (asynchronously) as the current stream if valid.
 
 Parameters
 
@@ -957,11 +962,11 @@ Exceptions
 
 ### LVP_SetVolume
 
-Sets the given audio volume as a percent between 0 and 1.
-
 ```cpp
 void LVP_SetVolume(double percent);
 ```
+
+Sets the given audio volume as a percent between 0 and 1.
 
 Parameters
 
@@ -973,11 +978,11 @@ Exceptions
 
 ### LVP_Stop
 
-Stops (asynchronously) playback of the currently loaded media.
-
 ```cpp
 void LVP_Stop();
 ```
+
+Stops (asynchronously) playback of the currently loaded media.
 
 Exceptions
 
@@ -985,11 +990,11 @@ Exceptions
 
 ### LVP_ToggleMute
 
-Toggles muting audio volume on/off.
-
 ```cpp
 void LVP_ToggleMute();
 ```
+
+Toggles muting audio volume on/off.
 
 Exceptions
 
@@ -997,11 +1002,11 @@ Exceptions
 
 ### LVP_TogglePause
 
-Toggles between pausing and playing.
-
 ```cpp
 void LVP_TogglePause();
 ```
+
+Toggles between pausing and playing.
 
 Exceptions
 

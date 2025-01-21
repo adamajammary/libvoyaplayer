@@ -105,15 +105,15 @@ std::string LVP_GetFilePath()
 	return MediaPlayer::LVP_Player::GetFilePath();
 }
 
-LVP_MediaDetails LVP_GetMediaDetails()
+LVP_MediaDetails LVP_GetMediaDetails(bool skipThumbnail)
 {
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
 
-	return MediaPlayer::LVP_Player::GetMediaDetails();
+	return MediaPlayer::LVP_Player::GetMediaDetails(skipThumbnail);
 }
 
-LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath)
+LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath, bool skipThumbnail)
 {
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
@@ -121,7 +121,7 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath)
 	LVP_MediaDetails mediaDetails = {};
 
 	try {
-		mediaDetails = MediaPlayer::LVP_Player::GetMediaDetails(filePath);
+		mediaDetails = MediaPlayer::LVP_Player::GetMediaDetails(filePath, skipThumbnail);
 	} catch (const std::exception& e) {
 		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
 	}

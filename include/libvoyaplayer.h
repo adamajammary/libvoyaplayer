@@ -70,16 +70,18 @@ DLLEXPORT std::string DLL LVP_GetFilePath();
 
 /**
  * @returns media details of the currently loaded media.
+ * @param skipThumbnail Does not generate a thumbnail if true.
  * @throws runtime_error
  */
-DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails();
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(bool skipThumbnail = false);
 
 /**
  * @returns media details of the provided media file.
  * @param filePath Full path to the media file.
+ * @param skipThumbnail Does not generate a thumbnail if true.
  * @throws runtime_error
  */
-DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath);
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath, bool skipThumbnail = false);
 
 /**
  * @returns media details of the provided media file.
