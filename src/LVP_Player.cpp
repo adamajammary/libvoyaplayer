@@ -41,7 +41,7 @@ void MediaPlayer::LVP_Player::AddAudioDevice(const SDL_AudioDeviceEvent& adevice
 	LVP_Player::openAudioDevice();
 
 	if (!isPaused)
-		LVP_Player::Play();
+		SDL_PauseAudioDevice(LVP_Player::audioDevice.id, 0);
 }
 
 void MediaPlayer::LVP_Player::CallbackError(const std::string& errorMessage)
