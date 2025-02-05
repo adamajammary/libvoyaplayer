@@ -717,11 +717,10 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 	int64_t duration    = (LVP_Player::state.duration * AV_TIME_BASE_I64);
 	bool    seekByBytes = (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0));
-	int     seekFlags   = 0;
-	auto    seekMax     = (seekByBytes ? (int64_t)LVP_Player::state.fileSize : duration);
 	double  seekPercent = LVP_Player::seekToRequest;
 
-	int64_t seekPosition;
+	int64_t seekPosition         = 0;
+	int64_t seekPositionExternal = 0;
 
 	if (LVP_Player::seekByRequest != 0)
 	{
@@ -734,6 +733,9 @@ void MediaPlayer::LVP_Player::handleSeek()
 			seekPosition = (int64_t)(newPosition * AV_TIME_BASE_D);
 		}
 
+		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
+			seekPositionExternal = (int64_t)(newPosition * LibFFmpeg::av_q2d(LVP_Player::subContext->stream->time_base));
+
 		if (LVP_Player::seekByRequest < 0)
 			LVP_Player::seekRequestedBack = true;
 	}
@@ -744,27 +746,31 @@ void MediaPlayer::LVP_Player::handleSeek()
 		else
 			seekPosition = (int64_t)((double)duration * seekPercent);
 
+		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
+			seekPositionExternal = (int64_t)((double)LVP_Player::state.duration * LibFFmpeg::av_q2d(LVP_Player::subContext->stream->time_base) * seekPercent);
+
 		if (seekPercent < (LVP_Player::state.progress / (double)LVP_Player::state.duration))
 			LVP_Player::seekRequestedBack = true;
 	}
+
+	auto seekMax = (seekByBytes ? (int64_t)LVP_Player::state.fileSize : duration);
 
 	if (seekPosition < 0)
 		seekPosition = 0;
 	else if (seekPosition > seekMax)
 		seekPosition = seekMax;
 
+	int seekFlags = (LVP_Player::seekRequestedBack ? AVSEEK_FLAG_BACKWARD : 0);
+
 	if (seekByBytes)
 		seekFlags |= AVSEEK_FLAG_BYTE;
-
-	if (LVP_Player::seekRequestedBack)
-		seekFlags |= AVSEEK_FLAG_BACKWARD;
 
 	auto result = LibFFmpeg::av_seek_frame(LVP_Player::formatContext, -1, seekPosition, seekFlags);
 
 	if (result >= 0)
 	{
 		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			LibFFmpeg::av_seek_frame(LVP_Player::formatContextExternal, -1, seekPosition, (seekFlags & ~AVSEEK_FLAG_BYTE));
+			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, LVP_Player::subContext->stream->index, INT64_MIN, seekPositionExternal, INT64_MAX, 0);
 
 		LVP_SubtitleBitmap::Remove();
 		LVP_SubtitleText::Remove();
@@ -2005,6 +2011,16 @@ int MediaPlayer::LVP_Player::threadSub()
 
 			if (packetDelayEnd <= 0.0)
 				continue;
+		}
+
+		bool isExternal = (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL);
+
+		while (isExternal && ((packetPTS.start - LVP_Player::state.progress) > 1.0) && !LVP_Player::seekRequested && !LVP_Player::state.quit)
+			SDL_Delay(1);
+
+		if (LVP_Player::state.quit) {
+			FREE_AVPACKET(packet);
+			break;
 		}
 
 		// Decode subtitle packet to frame
