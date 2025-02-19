@@ -39,15 +39,17 @@ extern "C"
 }
 #endif
 
-#ifndef LIB_ASS_H
-#define LIB_ASS_H
-namespace LibASS
-{
-	extern "C"
+#if defined _ENABLE_LIBASS
+	#ifndef LIB_ASS_H
+	#define LIB_ASS_H
+	namespace LibASS
 	{
-		#include <ass/ass.h>
+		extern "C"
+		{
+			#include <ass/ass.h>
+		}
 	}
-}
+	#endif
 #endif
 
 #ifndef LIB_FFMPEG_H

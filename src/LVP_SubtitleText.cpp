@@ -1,3 +1,5 @@
+#if defined _ENABLE_LIBASS
+
 #include "LVP_SubtitleText.h"
 
 LibASS::ASS_Library*  MediaPlayer::LVP_SubtitleText::library   = NULL;
@@ -141,3 +143,5 @@ void MediaPlayer::LVP_SubtitleText::render(LibASS::ASS_Image* image, SDL_Surface
 		image = image->next;
 	}
 }
+
+#endif

@@ -189,9 +189,11 @@ void MediaPlayer::LVP_Player::closeStream(LibFFmpeg::AVMediaType streamType)
 void MediaPlayer::LVP_Player::closeSubContext()
 {
 	LVP_SubtitleBitmap::Remove();
-	LVP_SubtitleText::Remove();
 
-	LVP_SubtitleText::Quit();
+	#if defined _ENABLE_LIBASS
+		LVP_SubtitleText::Remove();
+		LVP_SubtitleText::Quit();
+	#endif
 
 	DELETE_POINTER(LVP_Player::subContext);
 }
@@ -773,7 +775,10 @@ void MediaPlayer::LVP_Player::handleSeek()
 			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, LVP_Player::subContext->stream->index, INT64_MIN, seekPositionExternal, INT64_MAX, 0);
 
 		LVP_SubtitleBitmap::Remove();
-		LVP_SubtitleText::Remove();
+
+		#if defined _ENABLE_LIBASS
+			LVP_SubtitleText::Remove();
+		#endif
 
 		LVP_Player::closePackets();
 
@@ -850,7 +855,10 @@ void MediaPlayer::LVP_Player::handleTrack()
 			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
 
 			LVP_SubtitleBitmap::Remove();
-			LVP_SubtitleText::Remove();
+
+			#if defined _ENABLE_LIBASS
+				LVP_SubtitleText::Remove();
+			#endif
 
 			continue;
 		}
@@ -886,7 +894,10 @@ void MediaPlayer::LVP_Player::handleTrack()
 			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
 
 			LVP_SubtitleBitmap::Remove();
-			LVP_SubtitleText::Remove();
+
+			#if defined _ENABLE_LIBASS
+				LVP_SubtitleText::Remove();
+			#endif
 
 			if (trackRequest.track >= SUB_STREAM_EXTERNAL)
 				LVP_Player::openSubExternal(trackRequest.track);
@@ -1269,7 +1280,9 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		LVP_Player::videoContext->codec->height
 	};
 
-	LVP_SubtitleText::Init(LVP_Player::subContext);
+	#if defined _ENABLE_LIBASS
+		LVP_SubtitleText::Init(LVP_Player::subContext);
+	#endif
 }
 
 /**
@@ -1404,7 +1417,9 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 
 		LVP_SubtitleBitmap::Render(LVP_Player::videoContext->surface, LVP_Player::subContext, LVP_Player::state.progress);
 		
-		LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
+		#if defined _ENABLE_LIBASS
+			LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
+		#endif
 	}
 
 	if (LVP_Player::videoContext->isReadyForPresent && (LVP_Player::videoContext->surface != NULL))
@@ -2116,7 +2131,9 @@ int MediaPlayer::LVP_Player::threadSub()
 					printf("[%.3f,%.3f] %s\n", sub->pts.start, sub->pts.end, sub->dialogue.c_str());
 				#endif
 
-				LVP_SubtitleText::ProcessEvent(sub);
+				#if defined _ENABLE_LIBASS
+					LVP_SubtitleText::ProcessEvent(sub);
+				#endif
 
 				DELETE_POINTER(sub);
 				break;

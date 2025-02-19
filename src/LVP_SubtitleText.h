@@ -1,3 +1,5 @@
+#if defined _ENABLE_LIBASS
+
 #ifndef LVP_MAIN_H
 	#include "main.h"
 #endif
@@ -34,5 +36,7 @@ namespace LibVoyaPlayer
 		};
 	}
 }
+
+#endif
 
 #endif
