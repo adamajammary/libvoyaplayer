@@ -272,19 +272,22 @@ if (ENABLE_AV1 AND EXISTS "${EXT_LIB_DIR}/LICENSE-dav1d.txt")
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-dav1d.txt ${DIST_DIR}/)
 endif()
 
-if (EXISTS "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt ${DIST_DIR}/)
-endif()
-
-if (EXISTS "${EXT_LIB_DIR}/LICENSE-fontconfig.txt")
+if (ENABLE_LIBASS AND EXISTS "${EXT_LIB_DIR}/LICENSE-libass.txt")
+    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libass.txt     ${DIST_DIR}/)
+    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libexpat.txt   ${DIST_DIR}/)
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-fontconfig.txt ${DIST_DIR}/)
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-freetype.txt   ${DIST_DIR}/)
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-fribidi.txt    ${DIST_DIR}/)
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-harfbuzz.txt   ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libass.txt     ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libexpat.txt   ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-sdl2.txt       ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-zlib.txt       ${DIST_DIR}/)
+endif()
+
+if (EXISTS "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
+    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt ${DIST_DIR}/)
+endif()
+
+if (EXISTS "${EXT_LIB_DIR}/LICENSE-sdl2.txt")
+    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-sdl2.txt ${DIST_DIR}/)
+    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-zlib.txt ${DIST_DIR}/)
 endif()
 
 # testvoyaplayer
