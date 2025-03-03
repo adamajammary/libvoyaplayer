@@ -29,7 +29,7 @@ namespace LibVoyaPlayer
 			static void RemoveExpired(double progress);
 			static void Render(SDL_Surface* surface, LVP_SubtitleContext* subContext, double progress);
 			static void UpdateDVDColorPalette(void* context);
-			static void UpdatePGSEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase);
+			static void UpdatePGSEndPTS(double pts);
 
 		private:
 			static void create(LVP_SubtitleContext* subContext);

@@ -161,11 +161,12 @@ void MediaPlayer::LVP_SubtitleBitmap::UpdateDVDColorPalette(void* context)
 	dvdSubContext->palette[dvdSubContext->colormap[3]] = 0xFF000000; // BORDER
 }
 
-void MediaPlayer::LVP_SubtitleBitmap::UpdatePGSEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase)
+void MediaPlayer::LVP_SubtitleBitmap::UpdatePGSEndPTS(double pts)
 {
 	// Some sub types, like PGS, come in pairs:
-	// - The first one with data but without duration or end PTS.
-	// - The second one has no data, but contains the end PTS.
+	// 1  - The first one with data but without duration or end PTS.
+	// 2a - The second one has no data, but contains the end PTS.
+	// 2b - Or the second one has data, and previous subs get second start PTS as their end PTS.
 
 	LVP_SubtitleBitmap::subsLock.lock();
 
@@ -174,7 +175,7 @@ void MediaPlayer::LVP_SubtitleBitmap::UpdatePGSEndPTS(LibFFmpeg::AVPacket* packe
 		if (sub->pts.end > 0.0)
 			continue;
 
-		sub->pts.end = LVP_Media::GetSubtitlePGSEndPTS(packet, timeBase);
+		sub->pts.end = pts;
 
 		#if defined _DEBUG
 			printf("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);

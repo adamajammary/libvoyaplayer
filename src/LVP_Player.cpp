@@ -2062,7 +2062,7 @@ int MediaPlayer::LVP_Player::threadSub()
 			break;
 		case LibFFmpeg::AV_CODEC_ID_HDMV_PGS_SUBTITLE:
 			if (subFrame.num_rects == 0)
-				LVP_SubtitleBitmap::UpdatePGSEndPTS(packet, LVP_Player::subContext->stream->time_base);
+				LVP_SubtitleBitmap::UpdatePGSEndPTS(LVP_Media::GetSubtitlePGSEndPTS(packet, LVP_Player::subContext->stream->time_base));
 			break;
 		default:
 			break;
@@ -2084,6 +2084,9 @@ int MediaPlayer::LVP_Player::threadSub()
 		);
 
 		FREE_AVPACKET(packet);
+
+		if (framePTS.end == 0.0)
+			LVP_SubtitleBitmap::UpdatePGSEndPTS(framePTS.start);
 
 		// Sub is behind audio, skip frame to catch up.
 
