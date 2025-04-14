@@ -183,7 +183,6 @@ static void handleUserEvent(const SDL_UserEvent& event)
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    true);
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, true);
         TestWindow::EnableButton(TEST_BUTTON_ID_STOP,         true);
-
         break;
     case LVP_EVENT_MEDIA_PAUSED:
         TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");

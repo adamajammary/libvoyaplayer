@@ -2007,6 +2007,8 @@ int MediaPlayer::LVP_Player::threadSub()
 		if (packet == NULL)
 			continue;
 
+		auto trackIndex = LVP_Player::subContext->index;
+
 		auto packetPTS = LVP_Media::GetPacketPTS(
 			packet,
 			LVP_Player::subContext->stream->time_base,
@@ -2041,6 +2043,12 @@ int MediaPlayer::LVP_Player::threadSub()
 		// Decode subtitle packet to frame
 
 		LVP_Player::packetLock.lock();
+
+		if (LVP_Player::subContext->index != trackIndex) {
+			FREE_AVPACKET(packet);
+			LVP_Player::packetLock.unlock();
+			continue;
+		}
 
 		int  frameDecoded;
 		auto decodeResult = LibFFmpeg::avcodec_decode_subtitle2(LVP_Player::subContext->codec, &subFrame, &frameDecoded, packet);
