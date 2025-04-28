@@ -45,7 +45,7 @@ libvoyaplayer uses modern [C++20](https://en.cppreference.com/w/cpp/compiler_sup
 Compiler | Version
 -------- | -------
 CLANG | 14
-GCC | 11.4
+GCC | 13
 MSVC | 2019
 
 ## How to build
