@@ -306,7 +306,7 @@ if (BUILD_TEST)
 
     target_compile_definitions(testvoyaplayer PRIVATE ${OS} NOMINMAX)
     target_include_directories(testvoyaplayer PRIVATE ${TEST_INCS})
-    target_link_directories(testvoyaplayer PRIVATE ${LIB_DIR})
+    target_link_directories(testvoyaplayer PRIVATE ${LIB_DIR} ${FFMPEG_LIB_DIR})
     target_link_libraries(testvoyaplayer PRIVATE voyaplayer ${TEST_LIBS} ${OS_TEST_LIBS})
 
     if (IOS)
