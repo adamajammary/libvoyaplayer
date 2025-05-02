@@ -260,7 +260,7 @@ endif()
 
 add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${SRC_DIR}/include/*.h ${DIST_DIR}/include/)
 
-add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${SRC_DIR}/LICENSE ${DIST_DIR}/LICENSE.txt)
+add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${SRC_DIR}/LICENSE ${DIST_DIR}/LICENSE-libvoyaplayer.txt)
 
 if (ENABLE_AV1 AND EXISTS "${EXT_LIB_DIR}/LICENSE-dav1d.txt")
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-dav1d.txt ${DIST_DIR}/)
