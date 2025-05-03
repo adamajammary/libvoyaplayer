@@ -18,15 +18,15 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://github.com/libsdl-org/SDL) | [2.30.9](https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
+[SDL2](https://github.com/libsdl-org/SDL) | [2.32.4](https://github.com/libsdl-org/SDL/releases/download/release-2.32.4/SDL2-2.32.4.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
 [libass](https://github.com/libass/libass) | [0.17.3](https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
-[fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.15.0](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.15.0/fontconfig-2.15.0.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
-[libexpat](https://github.com/libexpat/libexpat) | [2.6.3](https://github.com/libexpat/libexpat/releases/download/R_2_6_3/expat-2.6.3.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
+[fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.16.2](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.16.2/fontconfig-2.16.2.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
+[libexpat](https://github.com/libexpat/libexpat) | [2.7.1](https://github.com/libexpat/libexpat/releases/download/R_2_7_1/expat-2.7.1.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
 [FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.13.3](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-13-3/freetype-VER-2-13-3.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
 [FriBidi](https://github.com/fribidi/fribidi) | [1.0.16](https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://github.com/fribidi/fribidi#LGPL-2.1-1-ov-file)
-[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [10.0.1](https://github.com/harfbuzz/harfbuzz/releases/download/10.0.1/harfbuzz-10.0.1.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
-[FFmpeg](https://ffmpeg.org/) | [7.1](https://ffmpeg.org/releases/ffmpeg-7.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
-[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.4.3](https://code.videolan.org/videolan/dav1d/-/archive/1.4.3/dav1d-1.4.3.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
+[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [11.2.0](https://github.com/harfbuzz/harfbuzz/releases/download/11.2.0/harfbuzz-11.2.0.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
+[FFmpeg](https://ffmpeg.org/) | [7.1.1](https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.1](https://code.videolan.org/videolan/dav1d/-/archive/1.5.1/dav1d-1.5.1.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
 [zLib](http://www.zlib.net/) | [1.3.1](https://www.zlib.net/zlib-1.3.1.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
 
 ## Platform-dependent Include Headers
@@ -45,7 +45,7 @@ libvoyaplayer uses modern [C++20](https://en.cppreference.com/w/cpp/compiler_sup
 Compiler | Version
 -------- | -------
 CLANG | 14
-GCC | 11.4
+GCC | 13
 MSVC | 2019
 
 ## How to build
@@ -78,12 +78,13 @@ Make sure the correct Android SDK path is set as either
 ```bash
 cmake .. -G "Unix Makefiles" \
 -D ANDROID_ABI="arm64-v8a" \
+-D ANDROID_HOME="/path/to/ANDROID_SDK" \
 -D ANDROID_NDK="/path/to/ANDROID_NDK" \
 -D ANDROID_PLATFORM="android-29" \
 -D CMAKE_BUILD_TYPE=Release \
 -D CMAKE_SYSTEM_NAME="Android" \
 -D CMAKE_TOOLCHAIN_FILE="/path/to/ANDROID_NDK/build/cmake/android.toolchain.cmake" \
--D EXT_LIB_DIR="/path/to/libs"
+-D LVP_EXT_LIB_DIR="/path/to/libs"
 
 make
 ```
@@ -120,14 +121,14 @@ You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos -
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
 -D CMAKE_BUILD_TYPE=Release \
 -D CMAKE_OSX_ARCHITECTURES="arm64" \
--D CMAKE_OSX_DEPLOYMENT_TARGET="12.5" \
+-D CMAKE_OSX_DEPLOYMENT_TARGET="16.5" \
 -D CMAKE_OSX_SYSROOT="/path/to/IOS_SDK" \
 -D CMAKE_SYSTEM_NAME="iOS" \
 -D CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="YOUR_DEVELOPMENT_TEAM_ID" \
--D EXT_LIB_DIR="/path/to/libs" \
--D IOS_SDK="iphoneos"
+-D IOS_SDK="iphoneos" \
+-D LVP_EXT_LIB_DIR="/path/to/libs"
 
-xcodebuild IPHONEOS_DEPLOYMENT_TARGET="12.5" -configuration "Release" -project voyaplayer.xcodeproj -destination "generic/platform=iOS" -allowProvisioningUpdates
+xcodebuild IPHONEOS_DEPLOYMENT_TARGET="16.5" -configuration "Release" -project voyaplayer.xcodeproj -destination "generic/platform=iOS" -allowProvisioningUpdates
 ```
 
 #### Xcode - Devices
@@ -155,11 +156,11 @@ You can get the macOS SDK path with the following command: `xcrun --sdk macosx -
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
 -D CMAKE_BUILD_TYPE=Release \
 -D CMAKE_OSX_ARCHITECTURES="x86_64" \
--D CMAKE_OSX_DEPLOYMENT_TARGET="12.6" \
+-D CMAKE_OSX_DEPLOYMENT_TARGET="13.4" \
 -D CMAKE_OSX_SYSROOT="/path/to/MACOSX_SDK" \
--D EXT_LIB_DIR="/path/to/libs"
+-D LVP_EXT_LIB_DIR="/path/to/libs"
 
-xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -configuration "Release" -project voyaplayer.xcodeproj
+xcodebuild MACOSX_DEPLOYMENT_TARGET="13.4" -configuration "Release" -project voyaplayer.xcodeproj
 ```
 
 ### Linux
@@ -167,7 +168,7 @@ xcodebuild MACOSX_DEPLOYMENT_TARGET="12.6" -configuration "Release" -project voy
 ```bash
 cmake .. -G "Unix Makefiles" \
 -D CMAKE_BUILD_TYPE=Release \
--D EXT_LIB_DIR="/path/to/libs"
+-D LVP_EXT_LIB_DIR="/path/to/libs"
 
 make
 ```
@@ -177,8 +178,8 @@ make
 ```bash
 cmake .. -G "Visual Studio 17 2022" \
 -D CMAKE_BUILD_TYPE=Release \
--D DIRENT_DIR="/path/to/dirent" \
--D EXT_LIB_DIR="/path/to/libs"
+-D LVP_DIRENT_DIR="/path/to/dirent" \
+-D LVP_EXT_LIB_DIR="/path/to/libs"
 
 devenv.com voyaplayer.sln -build "Release|x64"
 ```
@@ -411,6 +412,17 @@ struct LVP_MediaChapter {
 };
 ```
 
+### LVP_MediaMeta
+
+```cpp
+struct LVP_MediaMeta
+{
+  std::map<std::string, std::string> meta; // Media metadata like title, artist, album, genre etc.
+
+  LVP_MediaType mediaType = LVP_MEDIA_TYPE_UNKNOWN; // Media type, like video (0), audio (1) or subtitle (3).
+};
+```
+
 ### LVP_MediaTrack
 
 ```cpp
@@ -463,31 +475,43 @@ using LVP_VideoCallback = std::function<void(SDL_Surface* videoFrame, const void
 
 ### LVP_Initialize
 
-Tries to initialize the library and other dependencies.
-
 ```cpp
 void LVP_Initialize(const LVP_CallbackContext& callbackContext);
 ```
+
+Tries to initialize the library and other dependencies.
 
 Exceptions
 
 - runtime_error
 
-### LVP_GetAudioDevices
+### LVP_AddAudioDevice
 
-Returns a list of available audio devices.
+```cpp
+void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+```
+
+Tells the player that a new audio device was connected.
+
+Parameters
+
+- **adevice** SDL2 audio device event.
+
+### LVP_GetAudioDevices
 
 ```cpp
 std::vector<std::string> LVP_GetAudioDevices();
 ```
 
-### LVP_GetChapters
+Returns a list of available audio devices.
 
-Returns a list of chapters in the currently loaded media.
+### LVP_GetChapters
 
 ```cpp
 std::vector<LVP_MediaChapter> LVP_GetChapters();
 ```
+
+Returns a list of chapters in the currently loaded media.
 
 Exceptions
 
@@ -495,11 +519,11 @@ Exceptions
 
 ### LVP_GetAudioTrack
 
-Returns the current audio track index number.
-
 ```cpp
 int LVP_GetAudioTrack();
 ```
+
+Returns the current audio track index number.
 
 Exceptions
 
@@ -507,11 +531,11 @@ Exceptions
 
 ### LVP_GetAudioTracks
 
-Returns a list of audio tracks in the currently loaded media.
-
 ```cpp
 std::vector<LVP_MediaTrack> LVP_GetAudioTracks();
 ```
+
+Returns a list of audio tracks in the currently loaded media.
 
 Exceptions
 
@@ -519,11 +543,11 @@ Exceptions
 
 ### LVP_GetDuration
 
-Returns the media duration in milliseconds (one thousandth of a second).
-
 ```cpp
 int64_t LVP_GetDuration();
 ```
+
+Returns the media duration in milliseconds (one thousandth of a second).
 
 Exceptions
 
@@ -531,11 +555,11 @@ Exceptions
 
 ### LVP_GetFilePath
 
-Returns the current media file path.
-
 ```cpp
 std::string LVP_GetFilePath();
 ```
+
+Returns the current media file path.
 
 Exceptions
 
@@ -543,11 +567,15 @@ Exceptions
 
 ### LVP_GetMediaDetails
 
+```cpp
+LVP_MediaDetails LVP_GetMediaDetails(bool skipThumbnail = false);
+```
+
 Returns media details of the currently loaded media.
 
-```cpp
-LVP_MediaDetails LVP_GetMediaDetails();
-```
+Parameters
+
+- **skipThumbnail** Does not generate a thumbnail if true.
 
 Exceptions
 
@@ -555,15 +583,16 @@ Exceptions
 
 ### LVP_GetMediaDetails (string)
 
-Returns media details of the the provided media file.
-
 ```cpp
-LVP_MediaDetails LVP_GetMediaDetails(const std::string& filePath);
+LVP_MediaDetails LVP_GetMediaDetails(const std::string& filePath, bool skipThumbnail = false);
 ```
+
+Returns media details of the the provided media file.
 
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
+- **skipThumbnail** Does not generate a thumbnail if true.
 
 Exceptions
 
@@ -571,15 +600,59 @@ Exceptions
 
 ### LVP_GetMediaDetails (wstring)
 
-Returns media details of the the provided media file.
-
 ```cpp
 LVP_MediaDetails LVP_GetMediaDetails(const std::wstring& filePath);
 ```
 
+Returns media details of the the provided media file.
+
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaMeta
+
+```cpp
+LVP_MediaMeta LVP_GetMediaMeta();
+```
+
+Returns the media metadata of the currently loaded media.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaMeta (string)
+
+```cpp
+LVP_MediaMeta LVP_GetMediaMeta(const std::string& filePath);
+```
+
+Returns the media metadata of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaMeta (wstring)
+
+```cpp
+LVP_MediaMeta LVP_GetMediaMeta(const std::wstring& filePath);
+```
+
+Returns the media metadata of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -587,11 +660,11 @@ Exceptions
 
 ### LVP_GetMediaType
 
-Returns the media type of the currently loaded media.
-
 ```cpp
 LVP_MediaType LVP_GetMediaType();
 ```
+
+Returns the media type of the currently loaded media.
 
 Exceptions
 
@@ -599,15 +672,15 @@ Exceptions
 
 ### LVP_GetMediaType (string)
 
-Returns the media type of the the provided media file.
-
 ```cpp
 LVP_MediaType LVP_GetMediaType(const std::string& filePath);
 ```
 
+Returns the media type of the the provided media file.
+
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -615,15 +688,15 @@ Exceptions
 
 ### LVP_GetMediaType (wstring)
 
-Returns the media type of the the provided media file.
-
 ```cpp
 LVP_MediaType LVP_GetMediaType(const std::wstring& filePath);
 ```
 
+Returns the media type of the the provided media file.
+
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -631,11 +704,11 @@ Exceptions
 
 ### LVP_GetPlaybackSpeed
 
-Returns the current playback speed as a percent between 0.5 and 2.0.
-
 ```cpp
 double LVP_GetPlaybackSpeed();
 ```
+
+Returns the current playback speed as a percent between 0.5 and 2.0.
 
 Exceptions
 
@@ -643,11 +716,11 @@ Exceptions
 
 ### LVP_GetProgress
 
-Returns the media playback progress in milliseconds (one thousandth of a second).
-
 ```cpp
 int64_t LVP_GetProgress();
 ```
+
+Returns the media playback progress in milliseconds (one thousandth of a second).
 
 Exceptions
 
@@ -655,11 +728,11 @@ Exceptions
 
 ### LVP_GetSubtitleTrack
 
-Returns the current subtitle track index number.
-
 ```cpp
 int LVP_GetSubtitleTrack();
 ```
+
+Returns the current subtitle track index number.
 
 Exceptions
 
@@ -667,11 +740,11 @@ Exceptions
 
 ### LVP_GetSubtitleTracks
 
-Returns a list of subtitle tracks in the currently loaded media.
-
 ```cpp
 std::vector<LVP_MediaTrack> LVP_GetSubtitleTracks();
 ```
+
+Returns a list of subtitle tracks in the currently loaded media.
 
 Exceptions
 
@@ -679,11 +752,11 @@ Exceptions
 
 ### LVP_GetVideoTracks
 
-Returns a list of video tracks in the currently loaded media.
-
 ```cpp
 std::vector<LVP_MediaTrack> LVP_GetVideoTracks();
 ```
+
+Returns a list of video tracks in the currently loaded media.
 
 Exceptions
 
@@ -691,11 +764,11 @@ Exceptions
 
 ### LVP_GetVolume
 
-Returns the current audio volume as a percent between 0 and 1.
-
 ```cpp
 double LVP_GetVolume();
 ```
+
+Returns the current audio volume as a percent between 0 and 1.
 
 Exceptions
 
@@ -703,11 +776,11 @@ Exceptions
 
 ### LVP_IsMuted
 
-Returns true if audio volume is muted.
-
 ```cpp
 bool LVP_IsMuted();
 ```
+
+Returns true if audio volume is muted.
 
 Exceptions
 
@@ -715,11 +788,11 @@ Exceptions
 
 ### LVP_IsPaused
 
-Returns true if playback is paused.
-
 ```cpp
 bool LVP_IsPaused();
 ```
+
+Returns true if playback is paused.
 
 Exceptions
 
@@ -727,11 +800,11 @@ Exceptions
 
 ### LVP_IsPlaying
 
-Returns true if playback is playing (not paused and not stopped).
-
 ```cpp
 bool LVP_IsPlaying();
 ```
+
+Returns true if playback is playing (not paused and not stopped).
 
 Exceptions
 
@@ -739,11 +812,11 @@ Exceptions
 
 ### LVP_IsStopped
 
-Returns true if playback is stopped.
-
 ```cpp
 bool LVP_IsStopped();
 ```
+
+Returns true if playback is stopped.
 
 Exceptions
 
@@ -751,15 +824,15 @@ Exceptions
 
 ### LVP_Open
 
-Tries to open and play (asynchronously) the given media file.
-
 ```cpp
 void LVP_Open(const std::string& filePath);
 ```
 
+Tries to open and play (asynchronously) the given media file.
+
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
 
 Exceptions
 
@@ -767,15 +840,39 @@ Exceptions
 
 ### LVP_Open (wstring)
 
-Tries to open and play (asynchronously) the given media file.
-
 ```cpp
 void LVP_Open(const std::wstring& filePath);
 ```
 
+Tries to open and play (asynchronously) the given media file.
+
 Parameters
 
-- **filePath** Full path to the media file
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_Pause
+
+```cpp
+void LVP_Pause();
+```
+
+Pauses the currently loaded media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_Play
+
+```cpp
+void LVP_Play();
+```
+
+Starts playing the currently loaded media file.
 
 Exceptions
 
@@ -783,42 +880,54 @@ Exceptions
 
 ### LVP_Quit
 
-Cleans up allocated resources.
-
 ```cpp
 void LVP_Quit();
 ```
 
+Cleans up allocated resources.
+
+### LVP_RemoveAudioDevice
+
+```cpp
+void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
+```
+
+Tells the player that an audio device was disconnected.
+
+Parameters
+
+- **adevice** SDL2 audio device event.
+
 ### LVP_Render
+
+```cpp
+void LVP_Render(const SDL_Rect& destination = {});
+```
 
 Generates and renders a video frame.
 
 - If hardware rendering is used, it will copy the texture to the renderer.
 - If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
 
-```cpp
-void LVP_Render(const SDL_Rect& destination = {});
-```
-
 Parameters
 
-- **destination** Optional clipping/scaling region used by the hardware renderer
+- **destination** Optional clipping/scaling region used by the hardware renderer.
 
 ### LVP_Resize
-
-Should be called whenever the window resizes to tell the player to recreate the video frame context.
 
 ```cpp
 void LVP_Resize();
 ```
 
-### LVP_SeekBy
+Should be called whenever the window resizes to tell the player to recreate the video frame context.
 
-Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
+### LVP_SeekBy
 
 ```cpp
 void LVP_SeekBy(int seconds);
 ```
+
+Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
 
 Parameters
 
@@ -830,11 +939,11 @@ Exceptions
 
 ### LVP_SeekTo
 
-Seeks (asynchronously) to the given position as a percent between 0 and 1.
-
 ```cpp
 void LVP_SeekTo(double percent);
 ```
+
+Seeks (asynchronously) to the given position as a percent between 0 and 1.
 
 Parameters
 
@@ -846,29 +955,29 @@ Exceptions
 
 ### LVP_SetAudioDevice
 
-Tries to set the given audio device as the current device if valid.
-
-Returns true if the audio device is successfully set.
-
 ```cpp
 bool LVP_SetAudioDevice(const std::string& device);
 ```
 
+Tries to set the given audio device as the current device if valid.
+
+Returns true if the audio device is successfully set.
+
 Parameters
 
-- **device** Name of the audio device
+- **device** Name of the audio device.
 
 ### LVP_SetMuted
-
-Mutes/unmutes the audio volume.
 
 ```cpp
 void LVP_SetMuted(bool muted);
 ```
 
+Mutes/unmutes the audio volume.
+
 Parameters
 
-- **muted** true to mute or false to unmute
+- **muted** true to mute or false to unmute.
 
 Exceptions
 
@@ -876,11 +985,11 @@ Exceptions
 
 ### LVP_SetPlaybackSpeed
 
-Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.
-
 ```cpp
 void LVP_SetPlaybackSpeed(double speed);
 ```
+
+Sets the given playback speed as a relative percent between 0.5 and 2.0, where 1.0 is normal/default.
 
 Parameters
 
@@ -892,15 +1001,15 @@ Exceptions
 
 ### LVP_SetTrack
 
-Tries to set the given stream (asynchronously) as the current stream if valid.
-
 ```cpp
 void LVP_SetTrack(const LVP_MediaTrack& track);
 ```
 
+Tries to set the given stream (asynchronously) as the current stream if valid.
+
 Parameters
 
-- **track** -1 to disable subtitles or >= 0 for a valid media track
+- **track** -1 to disable subtitles or >= 0 for a valid media track.
 
 Exceptions
 
@@ -908,11 +1017,11 @@ Exceptions
 
 ### LVP_SetVolume
 
-Sets the given audio volume as a percent between 0 and 1.
-
 ```cpp
 void LVP_SetVolume(double percent);
 ```
+
+Sets the given audio volume as a percent between 0 and 1.
 
 Parameters
 
@@ -924,11 +1033,11 @@ Exceptions
 
 ### LVP_Stop
 
-Stops (asynchronously) playback of the currently loaded media.
-
 ```cpp
 void LVP_Stop();
 ```
+
+Stops (asynchronously) playback of the currently loaded media.
 
 Exceptions
 
@@ -936,11 +1045,11 @@ Exceptions
 
 ### LVP_ToggleMute
 
-Toggles muting audio volume on/off.
-
 ```cpp
 void LVP_ToggleMute();
 ```
+
+Toggles muting audio volume on/off.
 
 Exceptions
 
@@ -948,11 +1057,11 @@ Exceptions
 
 ### LVP_TogglePause
 
-Toggles between pausing and playing.
-
 ```cpp
 void LVP_TogglePause();
 ```
+
+Toggles between pausing and playing.
 
 Exceptions
 

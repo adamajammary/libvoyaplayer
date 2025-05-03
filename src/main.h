@@ -1,8 +1,8 @@
 #ifndef LVP_MAIN_H
 #define LVP_MAIN_H
 
-#include <algorithm> // min/max(x)
-#include <cstring>   // memcpy(x)
+#include <algorithm> // min/max()
+#include <cstring>   // memcpy(), memset(), strcmp()
 #include <map>
 #include <mutex>
 #include <queue>
@@ -10,25 +10,25 @@
 #include <vector>
 
 #if defined _android
-	#include <dirent.h>   // opendir(x)
-	#include <unistd.h>   // chdir(x)
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <dirent.h>   // opendir()
+	#include <unistd.h>   // chdir()
+	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _ios
-	#include <dirent.h>   // opendir(x)
-	#include <unistd.h>   // chdir(x)
+	#include <dirent.h>   // opendir()
+	#include <unistd.h>   // chdir()
 	#include <os/log.h>   // os_log
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _linux
-	#include <dirent.h>   // opendir(x)
-	#include <sys/stat.h> // stat64, lstat64(x)
+	#include <dirent.h>   // opendir()
+	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _macosx
-	#include <unistd.h>                // chdir(x)
-	#include <Foundation/Foundation.h> // NSLog(x)
-	#include <sys/dir.h>               // opendir(x)
-	#include <sys/stat.h>              // stat64, lstat64(x)
+	#include <unistd.h>                // chdir()
+	#include <Foundation/Foundation.h> // NSLog()
+	#include <sys/dir.h>               // opendir()
+	#include <sys/stat.h>              // stat64, lstat64()
 #elif defined _windows
-	#include <direct.h>   // _chdir(x)
-	#include <dirent.h>   // _wopendir(x)
+	#include <direct.h>   // _chdir()
+	#include <dirent.h>   // _wopendir()
 #endif
 
 #ifndef LIB_SDL2_H
@@ -39,15 +39,17 @@ extern "C"
 }
 #endif
 
-#ifndef LIB_ASS_H
-#define LIB_ASS_H
-namespace LibASS
-{
-	extern "C"
+#if defined _ENABLE_LIBASS
+	#ifndef LIB_ASS_H
+	#define LIB_ASS_H
+	namespace LibASS
 	{
-		#include <ass/ass.h>
+		extern "C"
+		{
+			#include <ass/ass.h>
+		}
 	}
-}
+	#endif
 #endif
 
 #ifndef LIB_FFMPEG_H
@@ -136,7 +138,9 @@ namespace LibVoyaPlayer
 
 	namespace MediaPlayer
 	{
-		#define DELETE_POINTER(p)      if (p != NULL) { delete p; p = NULL; }
+		#define ARE_EQUAL_DOUBLES(a, b) ((a > (b - 0.01)) && (a < (b + 0.01)))
+		#define DELETE_POINTER(p)       if (p != NULL) { delete p; p = NULL; }
+
 		#define FREE_ASS_LIBRARY(l)    if (l != NULL) { LibASS::ass_library_done(l); l = NULL; }
 		#define FREE_ASS_RENDERER(r)   if (r != NULL) { LibASS::ass_renderer_done(r); r = NULL; }
 		#define FREE_ASS_TRACK(t)      if (t != NULL) { LibASS::ass_free_track(t); t = NULL; }
@@ -182,8 +186,9 @@ namespace LibVoyaPlayer
 		const int    MAX_ERRORS    = 100;
 		const double MAX_SUB_DELAY = -0.1;
 
-		const int    MIN_PACKET_QUEUE_SIZE = 25;
-		const double MIN_SUB_TIME_TO_PTS   = 0.03;
+		const int      MIN_PACKET_QUEUE_SIZE     = 25;
+		const double   MIN_SUB_TIME_TO_PTS       = 0.03;
+		const uint32_t MIN_VALID_AUDIO_DEVICE_ID = 2U;
 
 		enum LVP_RGBA
 		{
@@ -196,6 +201,7 @@ namespace LibVoyaPlayer
 		enum LVP_Threads
 		{
 			LVP_THREAD_AUDIO,
+			LVP_THREAD_AUDIO_CALLBACK,
 			LVP_THREAD_PACKETS,
 			LVP_THREAD_SUBTITLE,
 			LVP_THREAD_VIDEO,
@@ -204,10 +210,8 @@ namespace LibVoyaPlayer
 
 		struct LVP_AudioDevice
 		{
-			std::string       device        = "";
-			SDL_AudioDeviceID deviceID      = 0;
-			bool              isDeviceReady = true;
-
+			std::string       device = "";
+			SDL_AudioDeviceID id     = 0;
 		};
 
 		struct LVP_AudioFilter

@@ -12,19 +12,25 @@ namespace LibVoyaPlayer
 		class LVP_AudioSpecs
 		{
 		public:
+			LVP_AudioSpecs(LibFFmpeg::AVFrame* frame, double playbackSpeed);
+			LVP_AudioSpecs(LibFFmpeg::AVFrame* frame);
 			LVP_AudioSpecs();
 
 		public:
 			LibFFmpeg::AVChannelLayout channelLayout;
 			int                        format;
-			bool                       initContext;
 			double                     playbackSpeed;
 			int                        sampleRate;
-			LibFFmpeg::SwrContext*     swrContext;
 
 		public:
-			bool hasChanged(LibFFmpeg::AVFrame* frame, double playbackSpeed) const;
-			void init(LibFFmpeg::AVFrame* frame, double playbackSpeed);
+			bool equals(LibFFmpeg::AVFrame* frame, double playbackSpeed) const;
+
+		public:
+			static LibFFmpeg::AVChannelLayout getChannelLayout(int channels);
+			static std::string                getChannelLayoutName(const LibFFmpeg::AVChannelLayout& layout);
+			static LibFFmpeg::AVSampleFormat  getSampleFormat(SDL_AudioFormat sdlFormat);
+			static SDL_AudioFormat            getSampleFormat(LibFFmpeg::AVSampleFormat avFormat);
+			static int                        getSampleRate(int sampleRate, double playbackSpeed);
 		};
 	}
 }

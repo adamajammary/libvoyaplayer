@@ -55,6 +55,11 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	}
 }
 
+void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice)
+{
+	MediaPlayer::LVP_Player::AddAudioDevice(adevice);
+}
+
 std::vector<std::string> LVP_GetAudioDevices()
 {
 	return MediaPlayer::LVP_Player::GetAudioDevices();
@@ -100,15 +105,15 @@ std::string LVP_GetFilePath()
 	return MediaPlayer::LVP_Player::GetFilePath();
 }
 
-LVP_MediaDetails LVP_GetMediaDetails()
+LVP_MediaDetails LVP_GetMediaDetails(bool skipThumbnail)
 {
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
 
-	return MediaPlayer::LVP_Player::GetMediaDetails();
+	return MediaPlayer::LVP_Player::GetMediaDetails(skipThumbnail);
 }
 
-LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath)
+LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath, bool skipThumbnail)
 {
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
@@ -116,7 +121,7 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath)
 	LVP_MediaDetails mediaDetails = {};
 
 	try {
-		mediaDetails = MediaPlayer::LVP_Player::GetMediaDetails(filePath);
+		mediaDetails = MediaPlayer::LVP_Player::GetMediaDetails(filePath, skipThumbnail);
 	} catch (const std::exception& e) {
 		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
 	}
@@ -141,6 +146,49 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::wstring &filePath)
 	}
 
 	return mediaDetails;
+}
+
+LVP_MediaMeta LVP_GetMediaMeta()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetMediaMeta();
+}
+
+LVP_MediaMeta LVP_GetMediaMeta(const std::string &filePath)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	LVP_MediaMeta mediaMeta = {};
+
+	try {
+		mediaMeta = MediaPlayer::LVP_Player::GetMediaMeta(filePath);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+	}
+
+	return mediaMeta;
+}
+
+LVP_MediaMeta LVP_GetMediaMeta(const std::wstring &filePath)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	LVP_MediaMeta mediaMeta = {};
+
+	try {
+		auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+		mediaMeta = MediaPlayer::LVP_Player::GetMediaMeta(filePathUTF8);
+
+		SDL_free(filePathUTF8);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+	}
+
+	return mediaMeta;
 }
 
 LVP_MediaType LVP_GetMediaType()
@@ -286,6 +334,22 @@ void LVP_Open(const std::wstring &filePath)
 	SDL_free(filePathUTF8);
 }
 
+void LVP_Pause()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Pause();
+}
+
+void LVP_Play()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Play();
+}
+
 void LVP_Quit()
 {
 	if (!isInitialized)
@@ -298,6 +362,11 @@ void LVP_Quit()
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	SDL_AudioQuit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+}
+
+void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice)
+{
+	MediaPlayer::LVP_Player::RemoveAudioDevice(adevice);
 }
 
 void LVP_Render(const SDL_Rect& destination)

@@ -28,6 +28,12 @@
 DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
+ * @brief Tells the player that a new audio device was connected.
+ * @param adevice SDL2 audio device event.
+ */
+DLLEXPORT void DLL LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+
+/**
  * @returns a list of available audio devices.
  */
 DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
@@ -64,16 +70,18 @@ DLLEXPORT std::string DLL LVP_GetFilePath();
 
 /**
  * @returns media details of the currently loaded media.
+ * @param skipThumbnail Does not generate a thumbnail if true.
  * @throws runtime_error
  */
-DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails();
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(bool skipThumbnail = false);
 
 /**
  * @returns media details of the provided media file.
  * @param filePath Full path to the media file.
+ * @param skipThumbnail Does not generate a thumbnail if true.
  * @throws runtime_error
  */
-DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath);
+DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath, bool skipThumbnail = false);
 
 /**
  * @returns media details of the provided media file.
@@ -81,6 +89,26 @@ DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::string& filePath);
  * @throws runtime_error
  */
 DLLEXPORT LVP_MediaDetails DLL LVP_GetMediaDetails(const std::wstring& filePath);
+
+/**
+ * @returns the media metadata of the currently loaded media.
+ * @throws runtime_error
+ */
+DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta();
+
+/**
+ * @returns the media metadata of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws runtime_error
+ */
+DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta(const std::string& filePath);
+
+/**
+ * @returns the media metadata of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws runtime_error
+ */
+DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta(const std::wstring& filePath);
 
 /**
  * @returns the media type of the currently loaded media.
@@ -179,9 +207,27 @@ DLLEXPORT void DLL LVP_Open(const std::string& filePath);
 DLLEXPORT void DLL LVP_Open(const std::wstring& filePath);
 
 /**
+ * @brief Pauses the currently loaded media file.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_Pause();
+
+/**
+ * @brief Starts playing the currently loaded media file.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_Play();
+
+/**
  * @brief Cleans up allocated resources.
  */
 DLLEXPORT void DLL LVP_Quit();
+
+/**
+ * @brief Tells the player that an audio device was disconnected.
+ * @param adevice SDL2 audio device event.
+ */
+DLLEXPORT void DLL LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 
 /**
  * @brief Generates and renders a video frame.

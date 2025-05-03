@@ -2,26 +2,40 @@
 
 MediaPlayer::LVP_AudioContext::LVP_AudioContext()
 {
+	this->buffer            = NULL;
 	this->bufferOffset      = 0;
-	this->bufferRemaining   = 0;
 	this->bufferSize        = 0;
-	this->decodeFrame       = true;
+	this->dataSize          = 0;
 	this->deviceSpecs       = {};
 	this->deviceSpecsWanted = {};
 	this->filter            = {};
-	this->frame             = NULL;
-	this->frameDuration     = 0.0;
-	this->frameEncoded      = NULL;
-	this->isDriverReady     = true;
+	this->filterSpecs       = {};
+	this->frames            = {};
 	this->lastPogress       = 0.0;
-	this->specs             = {};
-	this->writtenToStream   = 0;
+	this->packetDuration    = 0.0;
 }
 
 MediaPlayer::LVP_AudioContext::~LVP_AudioContext()
 {
+	this->free();
+}
+
+void MediaPlayer::LVP_AudioContext::clearFrames()
+{
+	this->framesLock.lock();
+
+	while (!this->frames.empty()) {
+		FREE_AVFRAME(this->frames.front());
+		this->frames.pop();
+	}
+
+	this->framesLock.unlock();
+}
+
+void MediaPlayer::LVP_AudioContext::free()
+{
+	FREE_POINTER(this->buffer);
 	FREE_AVFILTER_GRAPH(this->filter.filterGraph);
-	FREE_AVFRAME(this->frame);
-	FREE_POINTER(this->frameEncoded);
-	FREE_SWR(this->specs.swrContext);
+
+	LVP_AudioContext::clearFrames();
 }

@@ -16,8 +16,7 @@ namespace LibVoyaPlayer
 			~LVP_Media() {}
 
 		public:
-			static std::string                        GetAudioChannelLayout(const LibFFmpeg::AVChannelLayout& layout);
-			static double                             GetAudioPTS(LVP_AudioContext* audioContext);
+			static double                             GetAudioPTS(LVP_AudioContext* audioContext, LibFFmpeg::AVFrame* frame);
 			static std::map<std::string, std::string> GetMediaCodecMeta(LibFFmpeg::AVStream* stream);
 			static int64_t                            GetMediaDuration(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVStream* audioStream);
 			static LibFFmpeg::AVFormatContext*        GetMediaFormatContext(const std::string& filePath, bool parseStreams, System::LVP_TimeOut* timeOut = NULL);

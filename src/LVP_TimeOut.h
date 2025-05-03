@@ -12,12 +12,12 @@ namespace LibVoyaPlayer
 		class LVP_TimeOut
 		{
 		public:
-			LVP_TimeOut(uint32_t timeOut = 5000U);
+			LVP_TimeOut(uint64_t timeOut = 5000ULL);
 
 		private:
 			bool     started;
-			uint32_t startTime;
-			uint32_t timeOut;
+			uint64_t startTime;
+			uint64_t timeOut;
 
 		public:
 			static int InterruptCallback(void* data);
