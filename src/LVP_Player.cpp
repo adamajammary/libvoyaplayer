@@ -1049,15 +1049,15 @@ void MediaPlayer::LVP_Player::open()
 	if (LVP_Player::state.openFilePath.empty() || LVP_Player::isOpening)
 		return;
 
+	LVP_Player::isOpening = true;
+
+	LVP_Player::close();
+
+	LVP_Player::audioContext = new LVP_AudioContext();
+	LVP_Player::subContext   = new LVP_SubtitleContext();
+	LVP_Player::videoContext = new LVP_VideoContext();
+
 	try {
-		LVP_Player::isOpening = true;
-
-		LVP_Player::close();
-
-		LVP_Player::audioContext = new LVP_AudioContext();
-		LVP_Player::subContext   = new LVP_SubtitleContext();
-		LVP_Player::videoContext = new LVP_VideoContext();
-
 		LVP_Player::openFormatContext();
 		LVP_Player::openStreams();
 		LVP_Player::openThreads();
@@ -1065,12 +1065,13 @@ void MediaPlayer::LVP_Player::open()
 		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_OPENED);
 
 		LVP_Player::Play();
-
-		LVP_Player::isOpening = false;
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to open media file:\n%s", e.what()));
+		LVP_Player::CallbackError(System::LVP_Text::Format("Failed to open media file:\n%s", e.what()));
 		LVP_Player::close();
 	}
+
+	LVP_Player::state.openFilePath = "";
+	LVP_Player::isOpening          = false;
 }
 
 void MediaPlayer::LVP_Player::openAudioDevice()
