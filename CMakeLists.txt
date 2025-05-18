@@ -279,7 +279,7 @@ if (ENABLE_LIBASS AND EXISTS "${EXT_LIB_DIR}/LICENSE-libass.txt")
 endif()
 
 if (EXISTS "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
-    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-ffmpeg.txt")
+    list(APPEND LICENSES "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
 endif()
 
 if (EXISTS "${EXT_LIB_DIR}/LICENSE-sdl2.txt")
@@ -288,8 +288,8 @@ if (EXISTS "${EXT_LIB_DIR}/LICENSE-sdl2.txt")
     list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-zlib.txt")
 endif()
 
-add_custom_command(TARGET sdl2gui POST_BUILD COMMAND cp -f ${LICENSES}        ${DIST_DIR}/)
-add_custom_command(TARGET sdl2gui POST_BUILD COMMAND cp -f ${SRC_DIR}/LICENSE ${DIST_DIR}/LICENSE-libvoyaplayer.txt)
+add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${LICENSES}        ${DIST_DIR}/)
+add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${SRC_DIR}/LICENSE ${DIST_DIR}/LICENSE-libvoyaplayer.txt)
 
 list(APPEND LICENSES "${DIST_DIR}/LICENSE-libvoyaplayer.txt")
 
