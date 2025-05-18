@@ -239,6 +239,8 @@ target_include_directories(voyaplayer PRIVATE ${INCS})
 target_link_directories(voyaplayer    PRIVATE ${LIB_DIR} ${FFMPEG_LIB_DIR})
 target_link_libraries(voyaplayer      PRIVATE ${LIBS})
 
+# dist dir
+
 if (WIN32)
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND if exist \"${DIST_DIR}\" rmdir /s /q \"${DIST_DIR}\")
 
@@ -258,31 +260,38 @@ else()
     add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${CFG_DIR}${LIB_PREP}voyaplayer.${DLL_EXT} ${DIST_DIR}/lib/)
 endif()
 
-add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${SRC_DIR}/include/*.h ${DIST_DIR}/include/)
+# includes
 
-add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${SRC_DIR}/LICENSE ${DIST_DIR}/LICENSE-libvoyaplayer.txt)
+add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${INC_H} ${DIST_DIR}/include/)
+
+# licenses
 
 if (ENABLE_AV1 AND EXISTS "${EXT_LIB_DIR}/LICENSE-dav1d.txt")
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-dav1d.txt ${DIST_DIR}/)
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-dav1d.txt")
 endif()
 
 if (ENABLE_LIBASS AND EXISTS "${EXT_LIB_DIR}/LICENSE-libass.txt")
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libass.txt     ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-libexpat.txt   ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-fontconfig.txt ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-fribidi.txt    ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-harfbuzz.txt   ${DIST_DIR}/)
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-libass.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-libexpat.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-fontconfig.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-fribidi.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-harfbuzz.txt")
 endif()
 
 if (EXISTS "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt ${DIST_DIR}/)
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-ffmpeg.txt")
 endif()
 
 if (EXISTS "${EXT_LIB_DIR}/LICENSE-sdl2.txt")
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-sdl2.txt     ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-freetype.txt ${DIST_DIR}/)
-    add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${EXT_LIB_DIR}/LICENSE-zlib.txt     ${DIST_DIR}/)
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-sdl2.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-freetype.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-zlib.txt")
 endif()
+
+add_custom_command(TARGET sdl2gui POST_BUILD COMMAND cp -f ${LICENSES}        ${DIST_DIR}/)
+add_custom_command(TARGET sdl2gui POST_BUILD COMMAND cp -f ${SRC_DIR}/LICENSE ${DIST_DIR}/LICENSE-libvoyaplayer.txt)
+
+list(APPEND LICENSES "${DIST_DIR}/LICENSE-libvoyaplayer.txt")
 
 # testvoyaplayer
 
@@ -345,22 +354,10 @@ if (BUILD_TEST)
         endif()
 
         if (ENABLE_LIBASS)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ASS} ${OUT_DIR}/libs/${ANDROID_ABI}/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_EXP} ${OUT_DIR}/libs/${ANDROID_ABI}/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_FB}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_FC}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_HB}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
+            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ASS} ${LIB_EXP} ${LIB_FB} ${LIB_FC} ${LIB_HB} ${OUT_DIR}/libs/${ANDROID_ABI}/)
         endif()
 
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVC}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVD}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVFI} ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVFO} ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVU}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SDL}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWR}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWS}  ${OUT_DIR}/libs/${ANDROID_ABI}/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ZLIB} ${OUT_DIR}/libs/${ANDROID_ABI}/)
+        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVC} ${LIB_AVD} ${LIB_AVFI} ${LIB_AVFO} ${LIB_AVU} ${LIB_SDL} ${LIB_SWR} ${LIB_SWS} ${LIB_ZLIB} ${OUT_DIR}/libs/${ANDROID_ABI}/)
 
         add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND chmod a+x ${CMAKE_BINARY_DIR}/android/gradlew)
         add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND ${CMAKE_BINARY_DIR}/android/gradlew --stop)
@@ -388,22 +385,10 @@ if (BUILD_TEST)
         endif()
 
         if (ENABLE_LIBASS)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ASS} ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_EXP} ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_FB}  ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_FC}  ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_HB}  ${DIST_DIR}/bin/)
+            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ASS} ${LIB_EXP} ${LIB_FB} ${LIB_FC} ${LIB_HB} ${DIST_DIR}/bin/)
         endif()
 
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVC}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVD}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVFI} ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVFO} ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVU}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SDL}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWR}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWS}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ZLIB} ${DIST_DIR}/bin/)
+        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVC} ${LIB_AVD} ${LIB_AVFI} ${LIB_AVFO} ${LIB_AVU} ${LIB_SDL} ${LIB_SWR} ${LIB_SWS} ${LIB_ZLIB} ${DIST_DIR}/bin/)
 
         add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${DIST_DIR}/bin/*.dll ${OUT_DIR}/)
     else()
@@ -420,22 +405,10 @@ if (BUILD_TEST)
         endif()
 
         if (ENABLE_LIBASS)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ASS} ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_EXP} ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_FB}  ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_FC}  ${DIST_DIR}/bin/)
-            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_HB}  ${DIST_DIR}/bin/)
+            add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ASS} ${LIB_EXP} ${LIB_FB} ${LIB_FC} ${LIB_HB} ${DIST_DIR}/bin/)
         endif()
 
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVC}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVD}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVFI} ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVFO} ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVU}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWR}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SWS}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_SDL}  ${DIST_DIR}/bin/)
-        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_ZLIB} ${DIST_DIR}/bin/)
+        add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${LIB_AVC} ${LIB_AVD} ${LIB_AVFI} ${LIB_AVFO} ${LIB_AVU} ${LIB_SDL} ${LIB_SWR} ${LIB_SWS} ${LIB_ZLIB} ${DIST_DIR}/bin/)
 
         add_custom_command(TARGET testvoyaplayer POST_BUILD COMMAND cp -f ${DIST_DIR}/bin/*.${DLL_EXT} ${OUT_DIR}/)
     endif()
@@ -490,10 +463,14 @@ endif()
 
 # install
 
+foreach(LICENSE ${LICENSES})
+    cmake_path(NORMAL_PATH LICENSE OUTPUT_VARIABLE LICENSE_NORMALIZED)
+    install(FILES ${LICENSE_NORMALIZED} DESTINATION ${CMAKE_INSTALL_PREFIX})
+endforeach()
+
 install(DIRECTORY ${DIST_DIR}/bin/     DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/testvoyaplayer)
-install(DIRECTORY ${DIST_DIR}/lib/     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(DIRECTORY ${DIST_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/libvoyaplayer)
-install(DIRECTORY ${DIST_DIR}/         DESTINATION ${CMAKE_INSTALL_PREFIX} FILES_MATCHING PATTERN "*.txt")
+install(DIRECTORY ${DIST_DIR}/lib/     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 if (BUILD_TEST AND NOT ANDROID AND NOT WIN32)
     install(DIRECTORY ${DIST_DIR}/bin/ DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/testvoyaplayer PATTERN testvoyaplayer PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
