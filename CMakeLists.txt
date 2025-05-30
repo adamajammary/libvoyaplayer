@@ -473,6 +473,9 @@ foreach(LICENSE ${LICENSES})
     install(FILES ${LICENSE_NORMALIZED} DESTINATION ${CMAKE_INSTALL_PREFIX})
 endforeach()
 
+file(REMOVE_RECURSE ${CMAKE_INSTALL_PREFIX}/bin/testvoyaplayer)
+file(REMOVE         ${CMAKE_INSTALL_PREFIX}/include/libvoyaplayer)
+
 install(DIRECTORY ${DIST_DIR}/bin/     DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/testvoyaplayer)
 install(DIRECTORY ${DIST_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/libvoyaplayer)
 install(DIRECTORY ${DIST_DIR}/lib/     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
