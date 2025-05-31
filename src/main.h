@@ -3,6 +3,7 @@
 
 #include <algorithm> // min/max()
 #include <cstring>   // memcpy(), memset(), strcmp()
+#include <filesystem>
 #include <map>
 #include <mutex>
 #include <queue>
@@ -10,25 +11,17 @@
 #include <vector>
 
 #if defined _android
-	#include <dirent.h>   // opendir()
-	#include <unistd.h>   // chdir()
 	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _ios
-	#include <dirent.h>   // opendir()
-	#include <unistd.h>   // chdir()
 	#include <os/log.h>   // os_log
 	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _linux
-	#include <dirent.h>   // opendir()
 	#include <sys/stat.h> // stat64, lstat64()
 #elif defined _macosx
-	#include <unistd.h>                // chdir()
 	#include <Foundation/Foundation.h> // NSLog()
-	#include <sys/dir.h>               // opendir()
 	#include <sys/stat.h>              // stat64, lstat64()
 #elif defined _windows
-	#include <direct.h>   // _chdir()
-	#include <dirent.h>   // _wopendir()
+    #include <windows.h> // DllMain()
 #endif
 
 #ifndef LIB_SDL2_H
@@ -96,12 +89,6 @@ namespace LibVoyaPlayer
 		#define fseek       fseeko64
 		#define LOG(x, ...) fprintf(stderr, x, ##__VA_ARGS__);
 	#elif defined _windows
-		#define chdir       _chdir
-		#define dirent      _wdirent
-		#define DIR         _WDIR
-		#define closedir    _wclosedir
-		#define opendir     _wopendir
-		#define readdir     _wreaddir
 		#define fstat       _wstat64
 		#define stat_t      struct _stat64
 		#define fseek       _fseeki64
@@ -116,14 +103,6 @@ namespace LibVoyaPlayer
 
 	namespace System
 	{
-		const int MAX_FILE_PATH = 260;
-
-		#if defined _windows
-			const char PATH_SEPARATOR = '\\';
-		#else
-			const char PATH_SEPARATOR = '/';
-		#endif
-			
 		const LVP_Strings SUB_FILE_EXTENSIONS =
 		{
 			"ass", "idx", "js", "jss", "mpl2", "pjs", "rt", "sami", "smi", "srt", "ssa", "stl", "sub", "txt", "vtt"

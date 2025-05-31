@@ -1125,12 +1125,12 @@ void MediaPlayer::LVP_Player::openFormatContext()
 		throw std::runtime_error(System::LVP_Text::Format("Invalid media type: %d", (int)mediaType).c_str());
 	}
 
-	auto fileExtension = System::LVP_FileSystem::GetFileExtension(LVP_Player::state.openFilePath);
-	auto fileSize      = System::LVP_FileSystem::GetFileSize(LVP_Player::state.openFilePath);
+	auto file     = System::LVP_FileSystem::GetFile(LVP_Player::state.openFilePath);
+	auto fileSize = System::LVP_FileSystem::GetFileSize(LVP_Player::state.openFilePath);
 
-	if ((fileExtension == "m2ts") && System::LVP_FileSystem::IsBlurayAACS(LVP_Player::state.openFilePath, fileSize))
+	if ((file.ext == "m2ts") && System::LVP_FileSystem::IsBlurayAACS(LVP_Player::state.openFilePath, fileSize))
 		isValidMedia = false;
-	else if ((fileExtension == "vob") && System::LVP_FileSystem::IsDVDCSS(LVP_Player::state.openFilePath, fileSize))
+	else if ((file.ext == "vob") && System::LVP_FileSystem::IsDVDCSS(LVP_Player::state.openFilePath, fileSize))
 		isValidMedia = false;
 
 	if (!isValidMedia) {

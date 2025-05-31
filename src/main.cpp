@@ -463,12 +463,12 @@ void LVP_TogglePause()
 }
 
 #if defined _windows
-BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
+static BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 {
     return TRUE;
 }
 #else
-int entry()
+static int entry()
 {
 	return 0;
 }

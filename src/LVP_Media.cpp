@@ -134,7 +134,9 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
-	if (System::LVP_FileSystem::IsSystemFile(filePath))
+	auto fileObject = System::LVP_FileSystem::GetFile(filePath);
+
+	if (System::LVP_FileSystem::IsSystemFile(fileObject))
 		throw std::runtime_error(System::LVP_Text::Format("Invalid media file: %s", filePath.c_str()).c_str());
 
 	auto fileParts     = LVP_Strings();
@@ -151,7 +153,9 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		for (uint32_t i = 1; i < fileParts.size() - 4; i++)
 			file.append(fileParts[i] + "|");
 
-		if (chdir(fileParts[0].c_str()) != 0)
+		std::filesystem::current_path(fileParts[0]);
+
+		if (std::filesystem::current_path().generic_string() != fileParts[0])
 			throw std::invalid_argument(System::LVP_Text::Format("Failed to change directory: %s", fileParts[0].c_str()));
 	}
 
@@ -183,7 +187,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	}
 
 	// Try to fix MP3 files with invalid header and codec type
-	if (System::LVP_FileSystem::GetFileExtension(file) == "mp3")
+	if (fileObject.ext == "mp3")
 	{
 		for (uint32_t i = 0; i < formatContext->nb_streams; i++)
 		{

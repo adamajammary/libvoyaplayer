@@ -35,7 +35,6 @@ Platform | Header | Package
 -------- | ------ | -------
 Android | android/asset_manager_jni.h | [Android NDK](https://developer.android.com/ndk/downloads)
 Android | sys/stat.h | [Android NDK](https://developer.android.com/ndk/downloads)
-Windows | dirent.h | [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h)
 
 ## Compilers and C++20
 
@@ -50,7 +49,6 @@ MSVC | 2019
 ## How to build
 
 1. Build the [third-party libraries](#3rd-party-libraries) and place the them in a common directory.
-   - You will also need [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) if you are building on **Windows**.
    - You will also need [patchelf](https://github.com/NixOS/patchelf) if you are building on **Linux**.
 1. Make sure you have [cmake](https://cmake.org/download/) installed.
 1. Open a command prompt or terminal.
@@ -177,7 +175,6 @@ make
 ```bash
 cmake .. -G "Visual Studio 17 2022" \
 -D CMAKE_BUILD_TYPE=Release \
--D LVP_DIRENT_DIR="/path/to/dirent" \
 -D LVP_EXT_LIB_DIR="/path/to/libs"
 
 devenv.com voyaplayer.sln -build "Release|x64"

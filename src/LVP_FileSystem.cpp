@@ -1,79 +1,67 @@
 #include "LVP_FileSystem.h"
 
-LVP_Strings System::LVP_FileSystem::getDirectoryContent(const std::string& directoryPath, bool returnFiles, bool checkSystemFiles)
+LVP_Strings System::LVP_FileSystem::getDirectoryFiles(const std::string& directoryPath)
 {
-	LVP_Strings directoyContent;
+	LVP_Strings files;
 
-	if (directoryPath.size() >= MAX_FILE_PATH)
-		return directoyContent;
+	auto directory = std::filesystem::recursive_directory_iterator(directoryPath);
 
-	#if defined _windows
-		auto directoryPathUTF16 = (wchar_t*)LVP_Text::ToUTF16(directoryPath.c_str());
-		DIR* directory          = opendir(directoryPathUTF16);
+	for (const auto& dirEntry : directory)
+	{
+		if (!dirEntry.is_regular_file())
+			continue;
 
-		SDL_free(directoryPathUTF16);
-	#else
-		DIR* directory = opendir(directoryPath.c_str());
-	#endif
+		auto filePathUTF8 = SDL_iconv_wchar_utf8(dirEntry.path().generic_wstring().c_str());
+		auto filePath     = std::string(filePathUTF8);
 
-	if (directory == NULL)
-		return directoyContent;
+		SDL_free(filePathUTF8);
 
-	dirent* file;
-	int     fileType = (returnFiles ? DT_REG : DT_DIR);
-
-	while ((file = readdir(directory)) != NULL) {
-		#if defined _windows
-			auto fileNameUTF8 = SDL_iconv_wchar_utf8(file->d_name);
-			auto fileName     = std::string(fileNameUTF8);
-
-			SDL_free(fileNameUTF8);
-		#else
-			auto fileName = std::string(file->d_name);
-		#endif
-
-		if ((file->d_type == fileType) && (!checkSystemFiles || !LVP_FileSystem::IsSystemFile(fileName)))
-			directoyContent.push_back(fileName);
+		if (!LVP_FileSystem::IsSystemFile(LVP_FileSystem::GetFile(filePath)))
+			files.push_back(filePath);
 	}
 
-	closedir(directory);
-
-	return directoyContent;
+	return files;
 }
 
-LVP_Strings System::LVP_FileSystem::getDirectoryFiles(const std::string& directoryPath, bool checkSystemFiles)
+System::LVP_File System::LVP_FileSystem::GetFile(const std::string& filePath)
 {
-	return LVP_FileSystem::getDirectoryContent(directoryPath, true, checkSystemFiles);
-}
-
-std::string System::LVP_FileSystem::GetFileExtension(const std::string& filePath)
-{
-	if ((filePath.rfind(".") != std::string::npos) && (LVP_Text::GetLastCharacter(filePath) != '.'))
-		return LVP_Text::ToLower(filePath.substr(filePath.rfind(".") + 1));
-
-	return "";
-}
-
-std::string System::LVP_FileSystem::getFileName(const std::string& filePath, bool removeExtension)
-{
-	auto fileDetails = LVP_Strings();
-	auto fileName    = std::string(filePath);
+	LVP_File file = { .filePath = filePath };
 
 	// BLURAY/DVD: "concat:streamPath|stream1|...|streamN|duration|title|audioTrackCount|subTrackCount|"
-	if (LVP_FileSystem::IsConcat(filePath)) {
-		fileDetails = LVP_Text::Split(filePath, "|");
+	if (LVP_FileSystem::IsConcat(filePath))
+	{
+		auto fileDetails = LVP_Text::Split(filePath.substr(7), "|");
+
+		if (!fileDetails.empty())
+			file.path = fileDetails[0]; // streamPath
 
 		if (fileDetails.size() > 2)
-			fileName = fileDetails[fileDetails.size() - 3];
-	// FILES
-	} else if (filePath.rfind(PATH_SEPARATOR) != std::string::npos) {
-		fileName = filePath.substr(filePath.rfind(PATH_SEPARATOR) + 1);
+			file.name = fileDetails[fileDetails.size() - 3]; // title
+
+		return file;
 	}
 
-	if (removeExtension)
-		fileName = fileName.substr(0, fileName.rfind('.'));
+	auto lastSeparator = file.filePath.rfind('/');
 
-	return fileName;
+    if (lastSeparator == std::string::npos)
+        lastSeparator = file.filePath.rfind('\\');
+
+    if (lastSeparator == std::string::npos)
+        return file;
+
+	file.pathSep = file.filePath[lastSeparator];
+	file.path    = file.filePath.substr(0, lastSeparator);
+    file.file    = file.filePath.substr(lastSeparator + 1);
+
+    auto extension = file.file.rfind('.');
+
+    if (extension == std::string::npos)
+        return file;
+
+    file.name = file.file.substr(0, extension);
+    file.ext  = LVP_Text::ToLower(file.file.substr(extension + 1));
+
+    return file;
 }
 
 size_t System::LVP_FileSystem::GetFileSize(const std::string& filePath)
@@ -88,39 +76,41 @@ size_t System::LVP_FileSystem::GetFileSize(const std::string& filePath)
 
 		for (uint32_t i = 1; i < parts.size() - 4; i++)
 			fileSize += LVP_FileSystem::GetFileSize(parts[0] + parts[i]);
+
+		return fileSize;
 	}
-	else
-	{
-		stat_t fileStruct;
 
-		#if defined _windows
-			auto filePath16 = (wchar_t*)LVP_Text::ToUTF16(filePath.c_str());
-			int  result     = fstat(filePath16, &fileStruct);
+	stat_t fileStruct;
 
-			SDL_free(filePath16);
-		#else
-			int result = fstat(filePath.c_str(), &fileStruct);
-		#endif
+	#if defined _windows
+		auto filePath16 = (wchar_t*)LVP_Text::ToUTF16(filePath.c_str());
+		int  result     = fstat(filePath16, &fileStruct);
 
-		if (result == 0)
-			fileSize = (size_t)fileStruct.st_size;
-	}
+		SDL_free(filePath16);
+	#else
+		int result = fstat(filePath.c_str(), &fileStruct);
+	#endif
+
+	if (result == 0)
+		fileSize = (size_t)fileStruct.st_size;
 
 	return fileSize;
 }
 
 LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& videoFilePath)
 {
-	auto directory        = videoFilePath.substr(0, videoFilePath.rfind(PATH_SEPARATOR));
-	auto filesInDirectory = LVP_FileSystem::getDirectoryFiles(directory);
-	auto videoFileName    = LVP_Text::ToLower(LVP_FileSystem::getFileName(videoFilePath, true));
-
 	LVP_Strings subtitleFiles;
+
+	auto videoFile        = LVP_FileSystem::GetFile(videoFilePath);
+	auto videoFileName    = LVP_Text::ToLower(videoFile.name);
+	auto filesInDirectory = LVP_FileSystem::getDirectoryFiles(videoFile.path);
+
 	std::string idxFile = "";
 
-	for (const auto& file : filesInDirectory)
+	for (const auto& filePath : filesInDirectory)
 	{
-		auto fileName = LVP_Text::ToLower(LVP_FileSystem::getFileName(file, true));
+		auto file     = LVP_FileSystem::GetFile(filePath);
+		auto fileName = LVP_Text::ToLower(file.name);
 
 		if (!LVP_FileSystem::isSubtitleFile(file) || !fileName.starts_with(videoFileName))
 			continue;
@@ -132,11 +122,10 @@ LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& 
 
 		try
 		{
-			auto subtitleFile = LVP_Text::Format("%s%c%s", directory.c_str(), PATH_SEPARATOR, file.c_str());
-			auto mediaType    = MediaPlayer::LVP_Player::GetMediaType(subtitleFile);
+			auto mediaType = MediaPlayer::LVP_Player::GetMediaType(filePath);
 
 			if (mediaType == LVP_MEDIA_TYPE_SUBTITLE)
-				subtitleFiles.push_back(subtitleFile);
+				subtitleFiles.push_back(filePath);
 		}
 		catch (const std::exception& e)
 		{
@@ -147,16 +136,11 @@ LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& 
 			continue;
 		}
 
-		if (LVP_FileSystem::GetFileExtension(file) == "idx")
+		if (file.ext == "idx")
 			idxFile = fileName;
 	}
 
 	return subtitleFiles;
-}
-
-bool System::LVP_FileSystem::hasFileExtension(const std::string& filePath)
-{
-	return (!LVP_FileSystem::GetFileExtension(filePath).empty());
 }
 
 bool System::LVP_FileSystem::IsBlurayAACS(const std::string& filePath, size_t fileSize)
@@ -233,28 +217,12 @@ bool System::LVP_FileSystem::IsDVDCSS(const std::string& filePath, size_t fileSi
 	return (sector < nrSectors);
 }
 
-bool System::LVP_FileSystem::isSubtitleFile(const std::string& filePath)
+bool System::LVP_FileSystem::isSubtitleFile(const LVP_File& file)
 {
-	if (!LVP_FileSystem::hasFileExtension(filePath) || (filePath.size() >= MAX_FILE_PATH))
-		return false;
-
-	auto extension = LVP_FileSystem::GetFileExtension(filePath);
-
-	if (LVP_Text::VectorContains(SUB_FILE_EXTENSIONS, extension))
-		return true;
-
-	return false;
+	return LVP_Text::VectorContains(SUB_FILE_EXTENSIONS, file.ext);
 }
 
-bool System::LVP_FileSystem::IsSystemFile(const std::string& fileName)
+bool System::LVP_FileSystem::IsSystemFile(const LVP_File& file)
 {
-	if (fileName.empty())
-		return true;
-
-	auto extension = LVP_FileSystem::GetFileExtension(fileName);
-
-	if (LVP_Text::VectorContains(SYSTEM_FILE_EXTENSIONS, extension))
-		return true;
-
-	return false;
+	return LVP_Text::VectorContains(SYSTEM_FILE_EXTENSIONS, file.ext);
 }
