@@ -72,12 +72,12 @@ void TestText::Init(const char* basePath)
     auto ftError = LibFT::FT_Init_FreeType(&TestText::library);
 
     if (!TestText::library || (ftError != LibFT::FT_Err_Ok))
-        throw std::runtime_error(TextFormat("Failed to initialize FreeType2: %d", ftError));
+        throw std::runtime_error(std::format("Failed to initialize FreeType2: {}", ftError));
 
     #if defined _android
         const auto fontPath = "/system/fonts/Roboto-Regular.ttf";
     #elif defined _ios
-        auto arial    = TextFormat("%s%s", basePath, "Arial.ttf");
+        auto arial    = std::format("{}{}", basePath, "Arial.ttf");
         auto fontPath = arial.c_str();
     #elif defined _linux
         auto fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
@@ -90,7 +90,7 @@ void TestText::Init(const char* basePath)
     ftError = LibFT::FT_New_Face(TestText::library, fontPath, 0, &TestText::font);
 
     if (!TestText::font || (ftError != LibFT::FT_Err_Ok))
-        throw std::runtime_error(TextFormat("Failed to open font '%s': %d", fontPath, ftError));
+        throw std::runtime_error(std::format("Failed to open font '{}': {}", fontPath, ftError));
 
 }
 

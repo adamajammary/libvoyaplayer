@@ -4,6 +4,7 @@
 #include <algorithm> // min/max()
 #include <cstring>   // memcpy(), memset(), strcmp()
 #include <filesystem>
+#include <format>
 #include <map>
 #include <mutex>
 #include <queue>

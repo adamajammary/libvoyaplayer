@@ -12,7 +12,7 @@ static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environme
     auto jniClass = environment->FindClass(classPath.c_str());
 
     if (!jniClass)
-        throw std::runtime_error(TextFormat("Failed to find Android JNI class: '%s'", classPath.c_str()));
+        throw std::runtime_error(std::format("Failed to find Android JNI class: '{}'", classPath));
 
     return jniClass;
 }
@@ -69,13 +69,13 @@ static void initBasePath()
 	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE, AASSET_MODE_STREAMING);
 
 	if (!videoAsset)
-		throw std::runtime_error(TextFormat("Failed to open asset: %s", VIDEO_FILE));
+		throw std::runtime_error(std::format("Failed to open asset: {}", VIDEO_FILE));
 
-	auto destinationPath = TextFormat("%s%s", BASE_PATH, VIDEO_FILE);
+	auto destinationPath = std::format("{}{}", BASE_PATH, VIDEO_FILE);
 	auto destinationFile = SDL_RWFromFile(destinationPath.c_str(), "w");
 
 	if (!destinationFile)
-		throw std::runtime_error(TextFormat("Failed to write file '%s': %s", destinationPath.c_str(), SDL_GetError()));
+		throw std::runtime_error(std::format("Failed to write file '{}': {}", destinationPath, SDL_GetError()));
 
 	char destinationBuffer[BUFSIZ] = {};
 	int  fileReadSize = 0;
@@ -98,7 +98,7 @@ static void initBasePath()
 
 static void openVideo()
 {
-    LVP_Open(TextFormat("%s%s", BASE_PATH, VIDEO_FILE));
+    LVP_Open(std::format("{}{}", BASE_PATH, VIDEO_FILE));
 }
 
 static void handleKeyDownEvent(const SDL_KeyboardEvent& event)

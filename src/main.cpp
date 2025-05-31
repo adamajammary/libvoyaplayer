@@ -26,7 +26,7 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 			(SDL_AudioInit(NULL) < 0) ||
 			(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0))
 		{
-			throw std::runtime_error(System::LVP_Text::Format("Failed to initialize SDL2: %s", SDL_GetError()));
+			throw std::runtime_error(std::format("Failed to initialize SDL2: {}", SDL_GetError()));
 		}
 
 		#if defined _DEBUG
@@ -49,7 +49,7 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	catch (const std::exception &e)
 	{
 		if (callbackContext.errorCB != nullptr)
-			callbackContext.errorCB(System::LVP_Text::Format("Failed to initialize libvoyaplayer:\n%s", e.what()), callbackContext.data);
+			callbackContext.errorCB(std::format("Failed to initialize libvoyaplayer:\n{}", e.what()), callbackContext.data);
 		else
 			throw e;
 	}
@@ -123,7 +123,7 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::string &filePath, bool skipThumb
 	try {
 		mediaDetails = MediaPlayer::LVP_Player::GetMediaDetails(filePath, skipThumbnail);
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
 	}
 
 	return mediaDetails;
@@ -142,7 +142,7 @@ LVP_MediaDetails LVP_GetMediaDetails(const std::wstring &filePath)
 
 		SDL_free(filePathUTF8);
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
 	}
 
 	return mediaDetails;
@@ -166,7 +166,7 @@ LVP_MediaMeta LVP_GetMediaMeta(const std::string &filePath)
 	try {
 		mediaMeta = MediaPlayer::LVP_Player::GetMediaMeta(filePath);
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
 	}
 
 	return mediaMeta;
@@ -185,7 +185,7 @@ LVP_MediaMeta LVP_GetMediaMeta(const std::wstring &filePath)
 
 		SDL_free(filePathUTF8);
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
 	}
 
 	return mediaMeta;
@@ -209,7 +209,7 @@ LVP_MediaType LVP_GetMediaType(const std::string &filePath)
 	try {
 		mediaType = MediaPlayer::LVP_Player::GetMediaType(filePath);
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
 	}
 
 	return mediaType;
@@ -228,7 +228,7 @@ LVP_MediaType LVP_GetMediaType(const std::wstring &filePath)
 
 		SDL_free(filePathUTF8);
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to parse media file:\n%s", e.what()));
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
 	}
 
 	return mediaType;

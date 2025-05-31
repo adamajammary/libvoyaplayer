@@ -1,6 +1,8 @@
 #ifndef TEST_MAIN_H
 #define TEST_MAIN_H
 
+#include <format>
+
 #if defined _android
     #include <android/asset_manager_jni.h> // AAsset*, JNI*, j*
     #include <sys/stat.h>                  // mkdir(x)
@@ -9,9 +11,6 @@
 #endif
 
 #include <libvoyaplayer.h>
-
-#include <cstring>
-#include <unordered_map>
 
 namespace LibFT
 {
@@ -31,27 +30,18 @@ struct TestAppIcon {
     static const int      Width  = 64;
 };
 
-template<typename... Args>
-static std::string TextFormat(const char* formatString, const Args&... args)
-{
-    if (!formatString)
-        return "";
-
-    char buffer[1024] = {};
-    std::snprintf(buffer, 1024, formatString, args...);
-
-    return std::string(buffer);
-}
-
 static std::string TimeFormat(int64_t milliSeconds)
 {
     auto totSecs = (milliSeconds / 1000);
+
     auto hours   = (totSecs / 3600);
     auto remSecs = (totSecs % 3600);
     auto minutes = (remSecs / 60);
     auto seconds = (remSecs % 60);
 
-    return TextFormat("%02d:%02d:%02d", hours, minutes, seconds);
+    auto time = std::format("{:02}:{:02}:{:02}", hours, minutes, seconds);
+
+    return time;
 }
 
 #include "TestButton.h"

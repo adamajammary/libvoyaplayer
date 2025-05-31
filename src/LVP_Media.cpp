@@ -137,7 +137,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	auto fileObject = System::LVP_FileSystem::GetFile(filePath);
 
 	if (System::LVP_FileSystem::IsSystemFile(fileObject))
-		throw std::runtime_error(System::LVP_Text::Format("Invalid media file: %s", filePath.c_str()).c_str());
+		throw std::runtime_error(std::format("Invalid media file: {}", filePath));
 
 	auto fileParts     = LVP_Strings();
 	auto file          = std::string(filePath);
@@ -156,7 +156,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		std::filesystem::current_path(fileParts[0]);
 
 		if (std::filesystem::current_path().generic_string() != fileParts[0])
-			throw std::invalid_argument(System::LVP_Text::Format("Failed to change directory: %s", fileParts[0].c_str()));
+			throw std::invalid_argument(std::format("Failed to change directory: {}", fileParts[0]));
 	}
 
 	if (timeOut != NULL) {
@@ -171,14 +171,14 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	if ((result < 0) || (formatContext == NULL)) {
 		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("[%d] Failed to open input: %s", result, file.c_str()).c_str());
+		throw std::runtime_error(std::format("[{}] Failed to open input: {}", result, file));
 	}
 
 	result = formatContext->probe_score;
 
 	if (result < AVPROBE_SCORE_RETRY) {
 		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("[%d] Invalid probe score: %s", result, file.c_str()).c_str());
+		throw std::runtime_error(std::format("[{}] Invalid probe score: {}", result, file));
 	}
 
 	if (LVP_Media::isDRM(formatContext->metadata)) {
@@ -222,7 +222,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	if ((result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL)) < 0) {
 		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("[%d] Failed to find stream info: %s", result, file.c_str()).c_str());
+		throw std::runtime_error(std::format("[{}] Failed to find stream info: {}", result, file));
 	}
 
 	#if defined _DEBUG

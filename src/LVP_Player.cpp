@@ -1066,7 +1066,7 @@ void MediaPlayer::LVP_Player::open()
 
 		LVP_Player::Play();
 	} catch (const std::exception& e) {
-		LVP_Player::CallbackError(System::LVP_Text::Format("Failed to open media file:\n%s", e.what()));
+		LVP_Player::CallbackError(std::format("Failed to open media file:\n{}", e.what()));
 		LVP_Player::close();
 	}
 
@@ -1122,7 +1122,7 @@ void MediaPlayer::LVP_Player::openFormatContext()
 
 	if (!isValidMedia) {
 		FREE_AVFORMAT(LVP_Player::formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("Invalid media type: %d", (int)mediaType).c_str());
+		throw std::runtime_error(std::format("Invalid media type: {}", (int)mediaType));
 	}
 
 	auto file     = System::LVP_FileSystem::GetFile(LVP_Player::state.openFilePath);
@@ -1232,7 +1232,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		channelCount = LVP_AudioSpecs::getChannelLayout(2).nb_channels;
 
 	if ((sampleRate <= 0) || (channelCount <= 0))
-		throw std::runtime_error(System::LVP_Text::Format("Invalid audio: %d channels, %d bps", channelCount, sampleRate).c_str());
+		throw std::runtime_error(std::format("Invalid audio: {} channels, {} bps", channelCount, sampleRate));
 
 	auto sampleCount  = LVP_Player::audioContext->codec->frame_size;
 	auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->codec->sample_fmt);
@@ -1311,7 +1311,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 		LVP_Player::videoContext->renderer = LVP_Player::callbackContext.hardwareRenderer;
 
 	if (LVP_Player::videoContext->renderer == NULL)
-		throw std::runtime_error(System::LVP_Text::Format("Failed to create a renderer: %s", SDL_GetError()).c_str());
+		throw std::runtime_error(std::format("Failed to create a renderer: {}", SDL_GetError()));
 
 	// TEXTURE
 

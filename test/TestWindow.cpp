@@ -64,7 +64,7 @@ SDL_Renderer* TestWindow::GetRenderer()
 void TestWindow::Init(int width, int height, const char* basePath)
 {
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
-        throw std::runtime_error(TextFormat("Failed to initialize SDL: %s", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
 
 	TestText::Init(basePath);
 
@@ -73,7 +73,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
     TestWindow::window = SDL_CreateWindow(TestWindow::title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, WINDOW_FLAGS);
 
     if (!TestWindow::window)
-        throw std::runtime_error(TextFormat("Failed to create a window: %s", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to create a window: {}", SDL_GetError()));
 
 	SDL_SetWindowMinimumSize(TestWindow::window, 640, 480);
 
@@ -83,7 +83,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
         TestWindow::renderer = SDL_CreateRenderer(TestWindow::window, -1, SDL_RENDERER_SOFTWARE);
 
     if (!TestWindow::renderer)
-        throw std::runtime_error(TextFormat("Failed to create a renderer: %s", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to create a renderer: {}", SDL_GetError()));
 
 	#if defined _linux || defined _macosx || defined _windows
 	TestWindow::initIcon(basePath);
@@ -126,7 +126,7 @@ void TestWindow::initButtons()
 #if defined _linux || defined _macosx || defined _windows
 void TestWindow::initIcon(const char* basePath)
 {
-	auto icon   = TextFormat("%s%s", basePath, "icon.ppm");
+	auto icon   = std::format("{}icon.ppm", basePath);
 	auto file   = std::fopen(icon.c_str(), "rb");
 	auto pixels = (uint8_t*)std::malloc(TestAppIcon::Size);
 
@@ -248,13 +248,13 @@ void TestWindow::UpdateProgress()
 	auto duration = TimeFormat(LVP_GetDuration());
 	auto progress = TimeFormat(LVP_GetProgress());
 
-	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, TextFormat("%s / %s %.1fx", progress.c_str(), duration.c_str(), LVP_GetPlaybackSpeed()));
+	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, std::format("{} / {} {:.1f}x", progress, duration, LVP_GetPlaybackSpeed()));
 }
 
 void TestWindow::UpdateTitle(const std::string& title)
 {
 	if (!title.empty())
-		SDL_SetWindowTitle(TestWindow::window, TextFormat("%s - %s", TestWindow::title.c_str(), title.c_str()).c_str());
+		SDL_SetWindowTitle(TestWindow::window, std::format("{} - {}", TestWindow::title, title).c_str());
 	else
 		SDL_SetWindowTitle(TestWindow::window, TestWindow::title.c_str());
 }
