@@ -5,9 +5,9 @@ android {
 
   defaultConfig {
     applicationId "com.libvoyaplayer.test"
-    compileSdk 33
+    compileSdk 34
     minSdkVersion 29
-    targetSdkVersion 33
+    targetSdkVersion 34
     versionCode 1
     versionName "1.0.0"
   }
