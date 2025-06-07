@@ -446,12 +446,12 @@ if (BUILD_TEST)
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_AVFI}            @executable_path/${EXT_LIB_AVFI} ${DIST_DIR}/bin/libvoyaplayer.dylib)
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_AVFO}            @executable_path/${EXT_LIB_AVFO} ${DIST_DIR}/bin/libvoyaplayer.dylib)
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_AVU}             @executable_path/${EXT_LIB_AVU}  ${DIST_DIR}/bin/libvoyaplayer.dylib)
-        add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change @rpath/${EXT_LIB_SDL}  @executable_path/${EXT_LIB_SDL}  ${DIST_DIR}/bin/libvoyaplayer.dylib)
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_SWR}             @executable_path/${EXT_LIB_SWR}  ${DIST_DIR}/bin/libvoyaplayer.dylib)
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change ${LIB_SWS}             @executable_path/${EXT_LIB_SWS}  ${DIST_DIR}/bin/libvoyaplayer.dylib)
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change @rpath/${EXT_LIB_ZLIB} @executable_path/${EXT_LIB_ZLIB} ${DIST_DIR}/bin/libvoyaplayer.dylib)
 
         add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change @rpath/libvoyaplayer.dylib @executable_path/libvoyaplayer.dylib ${DIST_DIR}/bin/testvoyaplayer)
+        add_custom_command(TARGET testvoyaplayer_rpath COMMAND install_name_tool -change @rpath/${EXT_LIB_SDL}      @executable_path/${EXT_LIB_SDL}      ${DIST_DIR}/bin/testvoyaplayer)
     endif()
 endif()
 
