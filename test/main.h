@@ -34,12 +34,11 @@ static std::string TimeFormat(int64_t milliSeconds)
 {
     auto totSecs = (milliSeconds / 1000);
 
-    auto hours   = (totSecs / 3600);
     auto remSecs = (totSecs % 3600);
     auto minutes = (remSecs / 60);
     auto seconds = (remSecs % 60);
 
-    auto time = std::format("{:02}:{:02}:{:02}", hours, minutes, seconds);
+    auto time = std::format("{:02}:{:02}", minutes, seconds);
 
     return time;
 }

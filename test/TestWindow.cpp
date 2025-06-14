@@ -22,7 +22,7 @@ TestButton* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
 	#endif
 
 	for (const auto& button : TestWindow::buttons) {
-		if (button->enabled && SDL_PointInRect(&position, &button->background))
+		if (button->enabled && SDL_PointInRect(&position, &button->highlightArea))
 			return button;
 	}
 
@@ -97,27 +97,27 @@ void TestWindow::initButtons()
 	auto dpiScale = TestWindow::GetDPIScale();
 	auto fontSize = (int)(14.0f * dpiScale);
 
-	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PLAY_PAUSE] = open;
 	TestWindow::buttons.push_back(open);
 
-	auto stop = new TestButton(fontSize, TEST_BUTTON_ID_STOP, "STOP", false);
+	auto stop = new TestButton(fontSize, TEST_BUTTON_ID_STOP, TestButtonLabel::Stop, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_STOP] = stop;
 	TestWindow::buttons.push_back(stop);
 
-	auto seekBack = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_BACK, "<< SEEK", false);
+	auto seekBack = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_BACK, TestButtonLabel::SeekBack, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_BACK] = seekBack;
 	TestWindow::buttons.push_back(seekBack);
 
-	auto seekForward = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
+	auto seekForward = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_FORWARD, TestButtonLabel::SeekForward, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_FORWARD] = seekForward;
 	TestWindow::buttons.push_back(seekForward);
 
-	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00 1.0x", false);
+	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, TestButtonLabel::Progress, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PROGRESS] = progress;
 	TestWindow::buttons.push_back(progress);
@@ -211,12 +211,12 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 
 	for (const auto& button : TestWindow::buttons)
 	{
-		#if defined _linux || defined _macosx || defined _windows
-		SDL_Rect highlightArea = { (button->background.x - padding5), lineY, (button->background.w + padding10), lineHeight };
+		button->highlightArea = { (button->background.x - padding5), lineY, (button->background.w + padding10), lineHeight };
 
-		if (button->enabled && SDL_PointInRect(&mousePosition, &highlightArea)) {
+		#if defined _linux || defined _macosx || defined _windows
+		if (button->enabled && SDL_PointInRect(&mousePosition, &button->highlightArea)) {
 			SDL_SetRenderDrawColor(TestWindow::renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
-			SDL_RenderFillRect(TestWindow::renderer, &highlightArea);
+			SDL_RenderFillRect(TestWindow::renderer, &button->highlightArea);
 		}
 		#endif
 

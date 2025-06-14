@@ -178,23 +178,23 @@ static void handleUserEvent(const SDL_UserEvent& event)
     case LVP_EVENT_MEDIA_OPENED:
         TestWindow::UpdateTitle("Caminandes 3: Llamigos (2016)");
 
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
 
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    true);
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, true);
         TestWindow::EnableButton(TEST_BUTTON_ID_STOP,         true);
         break;
     case LVP_EVENT_MEDIA_PAUSED:
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Play);
         break;
     case LVP_EVENT_MEDIA_PLAYING:
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
         break;
     case LVP_EVENT_MEDIA_STOPPED:
         TestWindow::UpdateTitle();
 
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00 1.0x");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Play);
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   TestButtonLabel::Progress);
 
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    false);
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, false);
@@ -286,7 +286,7 @@ static void render()
     auto window         = TestWindow::GetDimensions();
     auto windowDPIScale = TestWindow::GetDPIScale();
 
-    const auto CONTROLS_HEIGHT = (int)(40.0F * windowDPIScale);
+    const auto CONTROLS_HEIGHT = (int)(50.0F * windowDPIScale);
 
     SDL_Rect player   = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
     SDL_Rect controls = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
