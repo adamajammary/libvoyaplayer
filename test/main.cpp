@@ -282,14 +282,29 @@ static void quit()
 
 static void render()
 {
-    auto renderer       = TestWindow::GetRenderer();
-    auto window         = TestWindow::GetDimensions();
-    auto windowDPIScale = TestWindow::GetDPIScale();
+    auto renderer = TestWindow::GetRenderer();
+    auto window   = TestWindow::GetDimensions();
+    auto dpiScale = TestWindow::GetDPIScale();
 
-    const auto CONTROLS_HEIGHT = (int)(50.0F * windowDPIScale);
+    const auto controlsHeight = (int)(50.0F * dpiScale.y);
 
-    SDL_Rect player   = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
-    SDL_Rect controls = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
+    SDL_Rect player   = { 0, 0, window.w, (window.h - controlsHeight) };
+    SDL_Rect controls = { 0, (window.h - controlsHeight), window.w, controlsHeight };
+
+    #if defined _ios
+		UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
+
+		auto top    = (int)(window.safeAreaInsets.top    * dpiScale.y);
+		auto bottom = (int)(window.safeAreaInsets.bottom * dpiScale.y);
+		auto left   = (int)(window.safeAreaInsets.left   * dpiScale.x);
+		auto right  = (int)(window.safeAreaInsets.right  * dpiScale.x);
+
+        auto horizontal = (left + right);
+        auto vertical   = (top  + bottom);
+
+        player   = { left, top, (player.w   - horizontal), (player.h   - vertical) };
+        controls = { left, top, (controls.w - horizontal), (controls.h - vertical) };
+    #endif
 
     SDL_SetRenderTarget(renderer, nullptr);
 
@@ -302,7 +317,7 @@ static void render()
 
     TestPlayer::Render(renderer, player);
 
-    TestWindow::RenderControls(controls, windowDPIScale);
+    TestWindow::RenderControls(controls, dpiScale.y);
 
     SDL_RenderPresent(renderer);
 }

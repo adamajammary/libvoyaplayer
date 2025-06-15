@@ -6,6 +6,8 @@
 #if defined _android
     #include <android/asset_manager_jni.h> // AAsset*, JNI*, j*
     #include <sys/stat.h>                  // mkdir(x)
+#elif defined _ios
+    #include <UIKit/UIKit.h> // UIApplication, UIWindow*
 #elif defined _windows
     #include <windows.h> // WinMain(x)
 #endif
@@ -38,7 +40,7 @@ static std::string TimeFormat(int64_t milliSeconds)
     auto minutes = (remSecs / 60);
     auto seconds = (remSecs % 60);
 
-    auto time = std::format("{:02}:{:02}", minutes, seconds);
+    auto time = std::format("{}:{:02}", minutes, seconds);
 
     return time;
 }

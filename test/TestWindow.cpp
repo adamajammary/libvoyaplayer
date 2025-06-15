@@ -39,21 +39,29 @@ SDL_Rect TestWindow::GetDimensions()
     return dimensions;
 }
 
-float TestWindow::GetDPIScale()
+SDL_FPoint TestWindow::GetDPIScale()
 {
+	SDL_FPoint dpiScale = { 1.0f, 1.0f };
+
 	#if defined _android
 		float dpi;
 		SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(TestWindow::window), &dpi, nullptr, nullptr);
 
-		return (dpi / 160.0f);
+		dpiScale.x = (dpi / 160.0f);
+		dpiScale.y = dpiScale.x;
 	#else
 		auto sizeInPixels = TestWindow::GetDimensions();
 
 		SDL_Rect size = {};
 		SDL_GetWindowSize(TestWindow::window, &size.w, &size.h);
 
-		return ((float)sizeInPixels.w / (float)size.w);
+		dpiScale = {
+			((float)sizeInPixels.w / (float)size.w),
+			((float)sizeInPixels.h / (float)size.h)
+		};
 	#endif
+
+	return dpiScale;
 }
 
 SDL_Renderer* TestWindow::GetRenderer()
@@ -68,9 +76,12 @@ void TestWindow::Init(int width, int height, const char* basePath)
 
 	TestText::Init(basePath);
 
-	const auto WINDOW_FLAGS = (SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
-
-    TestWindow::window = SDL_CreateWindow(TestWindow::title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, WINDOW_FLAGS);
+    TestWindow::window = SDL_CreateWindow(
+		TestWindow::title.c_str(),
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		width, height,
+		(SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE)
+	);
 
     if (!TestWindow::window)
         throw std::runtime_error(std::format("Failed to create a window: {}", SDL_GetError()));
@@ -95,7 +106,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
 void TestWindow::initButtons()
 {
 	auto dpiScale = TestWindow::GetDPIScale();
-	auto fontSize = (int)(14.0f * dpiScale);
+	auto fontSize = (int)(14.0f * dpiScale.y);
 
 	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
 
