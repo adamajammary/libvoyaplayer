@@ -288,9 +288,6 @@ static void render()
 
     const auto controlsHeight = (int)(50.0F * dpiScale.y);
 
-    SDL_Rect player   = { 0, 0, windowSize.w, (windowSize.h - controlsHeight) };
-    SDL_Rect controls = { 0, (windowSize.h - controlsHeight), windowSize.w, controlsHeight };
-
     #if defined _ios
 		UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
 
@@ -299,12 +296,12 @@ static void render()
 		auto left   = (int)(window.safeAreaInsets.left   * dpiScale.x);
 		auto right  = (int)(window.safeAreaInsets.right  * dpiScale.x);
 
-        auto horizontal = (left + right);
-        auto vertical   = (top  + bottom);
-
-        player   = { left, top, (player.w   - horizontal), (player.h   - vertical) };
-        controls = { left, top, (controls.w - horizontal), (controls.h - vertical) };
+        SDL_Rect player = { left, top, (windowSize.w - left - right), (windowSize.h - controlsHeight - top - bottom) };
+    #else
+        SDL_Rect player = { 0, 0, windowSize.w, (windowSize.h - controlsHeight) };
     #endif
+
+    SDL_Rect controls = { player.x, (player.y + player.h), player.w, controlsHeight };
 
     SDL_SetRenderTarget(renderer, nullptr);
 
