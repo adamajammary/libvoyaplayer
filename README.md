@@ -35,6 +35,7 @@ Platform | Header | Package
 -------- | ------ | -------
 Android | android/asset_manager_jni.h | [Android NDK](https://developer.android.com/ndk/downloads)
 Android | sys/stat.h | [Android NDK](https://developer.android.com/ndk/downloads)
+iOS | UIKit/UIKit.h | UIKit Framework
 
 ## Compilers and C++20
 
