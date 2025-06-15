@@ -282,14 +282,14 @@ static void quit()
 
 static void render()
 {
-    auto renderer = TestWindow::GetRenderer();
-    auto window   = TestWindow::GetDimensions();
-    auto dpiScale = TestWindow::GetDPIScale();
+    auto renderer   = TestWindow::GetRenderer();
+    auto windowSize = TestWindow::GetDimensions();
+    auto dpiScale   = TestWindow::GetDPIScale();
 
     const auto controlsHeight = (int)(50.0F * dpiScale.y);
 
-    SDL_Rect player   = { 0, 0, window.w, (window.h - controlsHeight) };
-    SDL_Rect controls = { 0, (window.h - controlsHeight), window.w, controlsHeight };
+    SDL_Rect player   = { 0, 0, windowSize.w, (windowSize.h - controlsHeight) };
+    SDL_Rect controls = { 0, (windowSize.h - controlsHeight), windowSize.w, controlsHeight };
 
     #if defined _ios
 		UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
