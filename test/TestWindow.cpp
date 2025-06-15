@@ -16,7 +16,7 @@ TestButton* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
 {
 	#if defined _ios || defined _macosx
 		auto      scale    = TestWindow::GetDPIScale();
-		SDL_Point position = { (int)((float)event.x * scale), (int)((float)event.y * scale) };
+		SDL_Point position = { (int)((float)event.x * scale.x), (int)((float)event.y * scale.y) };
 	#else
 		SDL_Point position = { event.x, event.y };
 	#endif
