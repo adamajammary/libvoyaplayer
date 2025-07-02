@@ -1234,7 +1234,14 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	if ((sampleRate <= 0) || (channelCount <= 0))
 		throw std::runtime_error(std::format("Invalid audio: {} channels, {} bps", channelCount, sampleRate));
 
-	auto sampleCount  = LVP_Player::audioContext->codec->frame_size;
+	// https://stackoverflow.com/questions/11085007/ios-background-audio-stops-when-screen-is-locked
+
+	#if !defined _ios
+		auto sampleCount = 4096;
+	#else
+		auto sampleCount = LVP_Player::audioContext->codec->frame_size;
+	#endif
+
 	auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->codec->sample_fmt);
 
 	LVP_Player::audioContext->deviceSpecsWanted = {
