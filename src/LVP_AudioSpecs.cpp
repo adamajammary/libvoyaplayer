@@ -61,9 +61,9 @@ std::string MediaPlayer::LVP_AudioSpecs::getChannelLayoutName(const LibFFmpeg::A
 
 	auto layoutName = std::string(buffer);
 
-	if (layoutName.starts_with("2 channel"))
+	if (layoutName.starts_with("2 ch"))
 		return "stereo";
-	else if (layoutName.starts_with("1 channel"))
+	else if (layoutName.starts_with("1 ch"))
 		return "mono";
 
 	return layoutName;
