@@ -1236,8 +1236,10 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 
 	// https://stackoverflow.com/questions/11085007/ios-background-audio-stops-when-screen-is-locked
 
-	#if !defined _ios
-		auto sampleCount = 4096;
+	const int DEFAULT_SAMPLE_COUNT = 4096;
+
+	#if defined _ios && !defined LVP_ENABLE_SUBTITLE_CODEC_LIBASS && !defined LVP_ENABLE_VIDEO_CODEC_AV1
+		auto sampleCount = DEFAULT_SAMPLE_COUNT;
 	#else
 		auto sampleCount = LVP_Player::audioContext->codec->frame_size;
 	#endif
@@ -1249,7 +1251,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		.format   = (SDL_AudioFormat)(sampleFormat > 0 ? sampleFormat : AUDIO_S16SYS),
 		.channels = (uint8_t)channelCount,
 		.silence  = 0,
-		.samples  = (uint16_t)(sampleCount > 0 ? sampleCount : 4096),
+		.samples  = (uint16_t)(sampleCount > 0 ? sampleCount : DEFAULT_SAMPLE_COUNT),
 		.padding  = 0,
 		.size     = 0,
 		.callback = LVP_Player::threadAudioCallback,
