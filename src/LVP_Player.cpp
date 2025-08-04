@@ -1238,7 +1238,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 
 	const int DEFAULT_SAMPLE_COUNT = 4096;
 
-	#if defined _ios && !defined LVP_ENABLE_SUBTITLE_CODEC_LIBASS && !defined LVP_ENABLE_VIDEO_CODEC_AV1
+	#if defined _ios && !LVP_ENABLE_SUBTITLE_CODEC_LIBASS && !LVP_ENABLE_VIDEO_CODEC_AV1
 		auto sampleCount = DEFAULT_SAMPLE_COUNT;
 	#else
 		auto sampleCount = LVP_Player::audioContext->codec->frame_size;
