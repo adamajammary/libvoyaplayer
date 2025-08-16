@@ -24,13 +24,12 @@ MediaPlayer::LVP_PlayerState::LVP_PlayerState()
 
 void MediaPlayer::LVP_PlayerState::reset()
 {
-	this->duration      = 0;
-	this->filePath      = "";
-	this->fileSize      = 0;
-	this->isPaused      = false;
-	this->isPlaying     = false;
-	this->mediaType     = LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
-	this->playbackSpeed = 1.0;
-	this->progress      = 0.0;
-	this->trackCount    = 0;
+	this->duration   = 0;
+	this->filePath   = "";
+	this->fileSize   = 0;
+	this->isPaused   = false;
+	this->isPlaying  = false;
+	this->mediaType  = LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
+	this->progress   = 0.0;
+	this->trackCount = 0;
 }
