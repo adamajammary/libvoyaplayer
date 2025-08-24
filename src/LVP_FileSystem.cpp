@@ -101,6 +101,10 @@ LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& 
 {
 	LVP_Strings subtitleFiles;
 
+	#if defined _android || defined _ios
+		return subtitleFiles;
+	#endif
+
 	auto videoFile        = LVP_FileSystem::GetFile(videoFilePath);
 	auto videoFileName    = LVP_Text::ToLower(videoFile.name);
 	auto filesInDirectory = LVP_FileSystem::getDirectoryFiles(videoFile.path);
