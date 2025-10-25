@@ -655,6 +655,50 @@ Exceptions
 
 - runtime_error
 
+### LVP_GetMediaThumbnail
+
+```cpp
+SDL_Surface* LVP_GetMediaThumbnail();
+```
+
+Returns the media thumbnail of the currently loaded media.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaThumbnail (string)
+
+```cpp
+SDL_Surface* LVP_GetMediaThumbnail(const std::string& filePath);
+```
+
+Returns the media thumbnail of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaThumbnail (wstring)
+
+```cpp
+SDL_Surface* LVP_GetMediaThumbnail(const std::wstring& filePath);
+```
+
+Returns the media thumbnail of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
 ### LVP_GetMediaType
 
 ```cpp

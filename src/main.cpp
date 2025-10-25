@@ -191,6 +191,50 @@ LVP_MediaMeta LVP_GetMediaMeta(const std::wstring &filePath)
 	return mediaMeta;
 }
 
+SDL_Surface* LVP_GetMediaThumbnail()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetMediaThumbnail();
+}
+
+SDL_Surface* LVP_GetMediaThumbnail(const std::string &filePath)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	SDL_Surface* thumbnail = nullptr;
+
+	try {
+		thumbnail = MediaPlayer::LVP_Player::GetMediaThumbnail(filePath);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
+	}
+
+	return thumbnail;
+}
+
+SDL_Surface* LVP_GetMediaThumbnail(const std::wstring &filePath)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	SDL_Surface* thumbnail = nullptr;
+
+	try {
+		auto filePathUTF8 = SDL_iconv_wchar_utf8(filePath.c_str());
+
+		thumbnail = MediaPlayer::LVP_Player::GetMediaThumbnail(filePathUTF8);
+
+		SDL_free(filePathUTF8);
+	} catch (const std::exception& e) {
+		MediaPlayer::LVP_Player::CallbackError(std::format("Failed to parse media file:\n{}", e.what()));
+	}
+
+	return thumbnail;
+}
+
 LVP_MediaType LVP_GetMediaType()
 {
 	if (!isInitialized)

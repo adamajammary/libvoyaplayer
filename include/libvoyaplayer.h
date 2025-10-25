@@ -111,6 +111,26 @@ DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta(const std::string& filePath);
 DLLEXPORT LVP_MediaMeta DLL LVP_GetMediaMeta(const std::wstring& filePath);
 
 /**
+ * @returns the media thumbnail of the currently loaded media.
+ * @throws runtime_error
+ */
+DLLEXPORT SDL_Surface* DLL LVP_GetMediaThumbnail();
+
+/**
+ * @returns the media thumbnail of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws runtime_error
+ */
+DLLEXPORT SDL_Surface* DLL LVP_GetMediaThumbnail(const std::string& filePath);
+
+/**
+ * @returns the media thumbnail of the provided media file.
+ * @param filePath Full path to the media file.
+ * @throws runtime_error
+ */
+DLLEXPORT SDL_Surface* DLL LVP_GetMediaThumbnail(const std::wstring& filePath);
+
+/**
  * @returns the media type of the currently loaded media.
  * @throws runtime_error
  */

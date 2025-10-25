@@ -528,6 +528,28 @@ LibFFmpeg::AVPacket* MediaPlayer::LVP_Player::getMediaPacket(LVP_MediaContext* c
 	return packet;
 }
 
+SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail()
+{
+	if (LVP_Player::state.isStopped)
+		return nullptr;
+
+	return LVP_Media::GetMediaThumbnail(LVP_Player::formatContext);
+}
+
+SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail(const std::string& filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+
+	if (formatContext == NULL)
+		return nullptr;
+
+	auto thumbnail = LVP_Media::GetMediaThumbnail(formatContext);
+
+	FREE_AVFORMAT(formatContext);
+
+	return thumbnail;
+}
+
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
 {
 	// INTERNAL MEDIA TRACKS
