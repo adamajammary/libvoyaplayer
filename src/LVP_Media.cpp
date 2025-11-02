@@ -97,9 +97,8 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	if (formatContext == NULL)
 		return 0;
 
-	// Perform an extra scan if duration was not calculated in the initial scan
-	if ((formatContext->duration <= 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
-		return 0;
+	if (formatContext->duration <= 0)
+		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	if (formatContext->duration > 0)
 		return (size_t)((double)formatContext->duration / AV_TIME_BASE_D);
@@ -212,22 +211,8 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 			formatContext->duration = duration;
 	}
 
-	if (!parseStreams)
-		return formatContext;
-
-	if (formatContext->nb_streams == 0) {
-		formatContext->max_analyze_duration = (int64_t)(15 * AV_TIME_BASE);
-		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
-	}
-
-	if ((result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL)) < 0) {
-		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(std::format("[{}] Failed to find stream info: {}", result, file));
-	}
-
-	#if defined _DEBUG
-		LibFFmpeg::av_dump_format(formatContext, -1, file.c_str(), 0);
-	#endif
+	if (parseStreams)
+		LVP_Media::parseStreams(formatContext, file);
 
 	return formatContext;
 }
@@ -262,9 +247,8 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	if (formatContext == NULL)
 		return NULL;
 
-	// Perform an extra scan if duration was not calculated in the initial scan
-	if ((formatContext->duration <= 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
-		return NULL;
+	if ((formatContext->duration <= 0) || (formatContext->nb_streams == 0))
+		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	auto videoStream = LVP_Media::getMediaTrackThumbnail(formatContext);
 
@@ -433,9 +417,8 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 	if (formatContext == NULL)
 		return 0;
 
-	// Perform an extra scan if no streams were found in the initial scan
-	if ((formatContext->nb_streams == 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
-		return 0;
+	if (formatContext->nb_streams == 0)
+		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	size_t streamCount = 0;
 
@@ -607,6 +590,25 @@ bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* st
 		return false;
 
 	return (strstr(mimeType->value, "font") || strstr(mimeType->value, "ttf") || strstr(mimeType->value, "otf"));
+}
+
+void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatContext, const std::string filePath)
+{
+	if (formatContext->nb_streams == 0) {
+		formatContext->max_analyze_duration = (int64_t)(15 * AV_TIME_BASE);
+		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
+	}
+
+	int result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL);
+
+	if (result < 0) {
+		FREE_AVFORMAT(formatContext);
+		throw std::runtime_error(std::format("[{}] Failed to find stream info: {}", result, filePath));
+	}
+
+	#if defined _DEBUG
+		LibFFmpeg::av_dump_format(formatContext, -1, filePath.c_str(), 0);
+	#endif
 }
 
 void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext)
