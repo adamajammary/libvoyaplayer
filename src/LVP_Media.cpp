@@ -262,6 +262,10 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	if (formatContext == NULL)
 		return NULL;
 
+	// Perform an extra scan if duration was not calculated in the initial scan
+	if ((formatContext->duration <= 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
+		return NULL;
+
 	auto videoStream = LVP_Media::getMediaTrackThumbnail(formatContext);
 
 	if (videoStream == NULL)
