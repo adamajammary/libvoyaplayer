@@ -5,7 +5,6 @@
 
 #if defined _android
     #include <android/asset_manager_jni.h> // AAsset*, JNI*, j*
-    #include <sys/stat.h>                  // mkdir(x)
 #elif defined _ios
     #include <UIKit/UIKit.h> // UIApplication, UIWindow*
 #elif defined _windows
