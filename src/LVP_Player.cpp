@@ -1468,10 +1468,10 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 
 	if (!LVP_Player::videoContext->isSoftwareRenderer && (LVP_Player::videoContext->texture != NULL))
 	{
-		auto      scaledDest = LVP_Player::getScaledVideoDestination(destination);
-		SDL_Rect* destRect   = (!SDL_RectEmpty(&scaledDest) ? &scaledDest : NULL);
+		auto scaledDest = LVP_Player::getScaledVideoDestination(destination);
 
-		SDL_RenderCopy(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, destRect);
+		if (!SDL_RectEmpty(&scaledDest))
+			SDL_RenderCopy(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, &scaledDest);
 	}
 }
 
