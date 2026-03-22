@@ -22,7 +22,7 @@ public:
     static void          EnableButton(TestButtonId id, bool enabled = true);
     static TestButton*   GetClickedButton(const SDL_MouseButtonEvent& event);
     static SDL_Rect      GetDimensions();
-    static float         GetDPIScale();
+    static SDL_FPoint    GetDPIScale();
     static SDL_Renderer* GetRenderer();
     static void          Init(int width, int height, const char* basePath);
     static void          Quit();

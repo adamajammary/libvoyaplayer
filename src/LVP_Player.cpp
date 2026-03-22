@@ -528,6 +528,28 @@ LibFFmpeg::AVPacket* MediaPlayer::LVP_Player::getMediaPacket(LVP_MediaContext* c
 	return packet;
 }
 
+SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail()
+{
+	if (LVP_Player::state.isStopped)
+		return nullptr;
+
+	return LVP_Media::GetMediaThumbnail(LVP_Player::formatContext);
+}
+
+SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail(const std::string& filePath)
+{
+	auto formatContext = LVP_Media::GetMediaFormatContext(filePath, false);
+
+	if (formatContext == NULL)
+		return nullptr;
+
+	auto thumbnail = LVP_Media::GetMediaThumbnail(formatContext);
+
+	FREE_AVFORMAT(formatContext);
+
+	return thumbnail;
+}
+
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
 {
 	// INTERNAL MEDIA TRACKS
@@ -1049,15 +1071,15 @@ void MediaPlayer::LVP_Player::open()
 	if (LVP_Player::state.openFilePath.empty() || LVP_Player::isOpening)
 		return;
 
+	LVP_Player::isOpening = true;
+
+	LVP_Player::close();
+
+	LVP_Player::audioContext = new LVP_AudioContext();
+	LVP_Player::subContext   = new LVP_SubtitleContext();
+	LVP_Player::videoContext = new LVP_VideoContext();
+
 	try {
-		LVP_Player::isOpening = true;
-
-		LVP_Player::close();
-
-		LVP_Player::audioContext = new LVP_AudioContext();
-		LVP_Player::subContext   = new LVP_SubtitleContext();
-		LVP_Player::videoContext = new LVP_VideoContext();
-
 		LVP_Player::openFormatContext();
 		LVP_Player::openStreams();
 		LVP_Player::openThreads();
@@ -1065,12 +1087,13 @@ void MediaPlayer::LVP_Player::open()
 		LVP_Player::callbackEvents(LVP_EVENT_MEDIA_OPENED);
 
 		LVP_Player::Play();
-
-		LVP_Player::isOpening = false;
 	} catch (const std::exception& e) {
-		MediaPlayer::LVP_Player::CallbackError(System::LVP_Text::Format("Failed to open media file:\n%s", e.what()));
+		LVP_Player::CallbackError(std::format("Failed to open media file:\n{}", e.what()));
 		LVP_Player::close();
 	}
+
+	LVP_Player::state.openFilePath = "";
+	LVP_Player::isOpening          = false;
 }
 
 void MediaPlayer::LVP_Player::openAudioDevice()
@@ -1121,15 +1144,15 @@ void MediaPlayer::LVP_Player::openFormatContext()
 
 	if (!isValidMedia) {
 		FREE_AVFORMAT(LVP_Player::formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("Invalid media type: %d", (int)mediaType).c_str());
+		throw std::runtime_error(std::format("Invalid media type: {}", (int)mediaType));
 	}
 
-	auto fileExtension = System::LVP_FileSystem::GetFileExtension(LVP_Player::state.openFilePath);
-	auto fileSize      = System::LVP_FileSystem::GetFileSize(LVP_Player::state.openFilePath);
+	auto file     = System::LVP_FileSystem::GetFile(LVP_Player::state.openFilePath);
+	auto fileSize = System::LVP_FileSystem::GetFileSize(LVP_Player::state.openFilePath);
 
-	if ((fileExtension == "m2ts") && System::LVP_FileSystem::IsBlurayAACS(LVP_Player::state.openFilePath, fileSize))
+	if ((file.ext == "m2ts") && System::LVP_FileSystem::IsBlurayAACS(LVP_Player::state.openFilePath, fileSize))
 		isValidMedia = false;
-	else if ((fileExtension == "vob") && System::LVP_FileSystem::IsDVDCSS(LVP_Player::state.openFilePath, fileSize))
+	else if ((file.ext == "vob") && System::LVP_FileSystem::IsDVDCSS(LVP_Player::state.openFilePath, fileSize))
 		isValidMedia = false;
 
 	if (!isValidMedia) {
@@ -1231,9 +1254,18 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		channelCount = LVP_AudioSpecs::getChannelLayout(2).nb_channels;
 
 	if ((sampleRate <= 0) || (channelCount <= 0))
-		throw std::runtime_error(System::LVP_Text::Format("Invalid audio: %d channels, %d bps", channelCount, sampleRate).c_str());
+		throw std::runtime_error(std::format("Invalid audio: {} channels, {} bps", channelCount, sampleRate));
 
-	auto sampleCount  = LVP_Player::audioContext->codec->frame_size;
+	// https://stackoverflow.com/questions/11085007/ios-background-audio-stops-when-screen-is-locked
+
+	const int DEFAULT_SAMPLE_COUNT = 4096;
+
+	#if defined _ios && !LVP_ENABLE_SUBTITLE_CODEC_LIBASS && !LVP_ENABLE_VIDEO_CODEC_AV1
+		auto sampleCount = DEFAULT_SAMPLE_COUNT;
+	#else
+		auto sampleCount = LVP_Player::audioContext->codec->frame_size;
+	#endif
+
 	auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->codec->sample_fmt);
 
 	LVP_Player::audioContext->deviceSpecsWanted = {
@@ -1241,7 +1273,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		.format   = (SDL_AudioFormat)(sampleFormat > 0 ? sampleFormat : AUDIO_S16SYS),
 		.channels = (uint8_t)channelCount,
 		.silence  = 0,
-		.samples  = (uint16_t)(sampleCount > 0 ? sampleCount : 4096),
+		.samples  = (uint16_t)(sampleCount > 0 ? sampleCount : DEFAULT_SAMPLE_COUNT),
 		.padding  = 0,
 		.size     = 0,
 		.callback = LVP_Player::threadAudioCallback,
@@ -1310,7 +1342,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 		LVP_Player::videoContext->renderer = LVP_Player::callbackContext.hardwareRenderer;
 
 	if (LVP_Player::videoContext->renderer == NULL)
-		throw std::runtime_error(System::LVP_Text::Format("Failed to create a renderer: %s", SDL_GetError()).c_str());
+		throw std::runtime_error(std::format("Failed to create a renderer: {}", SDL_GetError()));
 
 	// TEXTURE
 
@@ -1436,10 +1468,10 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 
 	if (!LVP_Player::videoContext->isSoftwareRenderer && (LVP_Player::videoContext->texture != NULL))
 	{
-		auto      scaledDest = LVP_Player::getScaledVideoDestination(destination);
-		SDL_Rect* destRect   = (!SDL_RectEmpty(&scaledDest) ? &scaledDest : NULL);
+		auto scaledDest = LVP_Player::getScaledVideoDestination(destination);
 
-		SDL_RenderCopy(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, destRect);
+		if (!SDL_RectEmpty(&scaledDest))
+			SDL_RenderCopy(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, &scaledDest);
 	}
 }
 

@@ -12,7 +12,7 @@ static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environme
     auto jniClass = environment->FindClass(classPath.c_str());
 
     if (!jniClass)
-        throw std::runtime_error(TextFormat("Failed to find Android JNI class: '%s'", classPath.c_str()));
+        throw std::runtime_error(std::format("Failed to find Android JNI class: '{}'", classPath));
 
     return jniClass;
 }
@@ -69,13 +69,13 @@ static void initBasePath()
 	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE, AASSET_MODE_STREAMING);
 
 	if (!videoAsset)
-		throw std::runtime_error(TextFormat("Failed to open asset: %s", VIDEO_FILE));
+		throw std::runtime_error(std::format("Failed to open asset: {}", VIDEO_FILE));
 
-	auto destinationPath = TextFormat("%s%s", BASE_PATH, VIDEO_FILE);
+	auto destinationPath = std::format("{}{}", BASE_PATH, VIDEO_FILE);
 	auto destinationFile = SDL_RWFromFile(destinationPath.c_str(), "w");
 
 	if (!destinationFile)
-		throw std::runtime_error(TextFormat("Failed to write file '%s': %s", destinationPath.c_str(), SDL_GetError()));
+		throw std::runtime_error(std::format("Failed to write file '{}': {}", destinationPath, SDL_GetError()));
 
 	char destinationBuffer[BUFSIZ] = {};
 	int  fileReadSize = 0;
@@ -98,7 +98,7 @@ static void initBasePath()
 
 static void openVideo()
 {
-    LVP_Open(TextFormat("%s%s", BASE_PATH, VIDEO_FILE));
+    LVP_Open(std::format("{}{}", BASE_PATH, VIDEO_FILE));
 }
 
 static void handleKeyDownEvent(const SDL_KeyboardEvent& event)
@@ -178,23 +178,23 @@ static void handleUserEvent(const SDL_UserEvent& event)
     case LVP_EVENT_MEDIA_OPENED:
         TestWindow::UpdateTitle("Caminandes 3: Llamigos (2016)");
 
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
 
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    true);
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, true);
         TestWindow::EnableButton(TEST_BUTTON_ID_STOP,         true);
         break;
     case LVP_EVENT_MEDIA_PAUSED:
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Play);
         break;
     case LVP_EVENT_MEDIA_PLAYING:
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
         break;
     case LVP_EVENT_MEDIA_STOPPED:
         TestWindow::UpdateTitle();
 
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, "PLAY");
-        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   "00:00:00 / 00:00:00 1.0x");
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Play);
+        TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS,   TestButtonLabel::Progress);
 
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_BACK,    false);
         TestWindow::EnableButton(TEST_BUTTON_ID_SEEK_FORWARD, false);
@@ -282,14 +282,26 @@ static void quit()
 
 static void render()
 {
-    auto renderer       = TestWindow::GetRenderer();
-    auto window         = TestWindow::GetDimensions();
-    auto windowDPIScale = TestWindow::GetDPIScale();
+    auto renderer   = TestWindow::GetRenderer();
+    auto windowSize = TestWindow::GetDimensions();
+    auto dpiScale   = TestWindow::GetDPIScale();
 
-    const auto CONTROLS_HEIGHT = (int)(40.0F * windowDPIScale);
+    const auto controlsHeight = (int)(50.0F * dpiScale.y);
 
-    SDL_Rect player   = { 0, 0, window.w, (window.h - CONTROLS_HEIGHT) };
-    SDL_Rect controls = { 0, (window.h - CONTROLS_HEIGHT), window.w, CONTROLS_HEIGHT };
+    #if defined _ios
+		UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
+
+		auto top    = (int)(window.safeAreaInsets.top    * dpiScale.y);
+		auto bottom = (int)(window.safeAreaInsets.bottom * dpiScale.y);
+		auto left   = (int)(window.safeAreaInsets.left   * dpiScale.x);
+		auto right  = (int)(window.safeAreaInsets.right  * dpiScale.x);
+
+        SDL_Rect player = { left, top, (windowSize.w - left - right), (windowSize.h - controlsHeight - top - bottom) };
+    #else
+        SDL_Rect player = { 0, 0, windowSize.w, (windowSize.h - controlsHeight) };
+    #endif
+
+    SDL_Rect controls = { player.x, (player.y + player.h), player.w, controlsHeight };
 
     SDL_SetRenderTarget(renderer, nullptr);
 
@@ -302,7 +314,7 @@ static void render()
 
     TestPlayer::Render(renderer, player);
 
-    TestWindow::RenderControls(controls, windowDPIScale);
+    TestWindow::RenderControls(controls, dpiScale.y);
 
     SDL_RenderPresent(renderer);
 }
@@ -352,9 +364,6 @@ int SDL_main(int argc, char* argv[])
 }
 
 #if !defined _windows
-#if defined __cplusplus
-extern "C"
-#endif
 int main(int argc, char* argv[])
 {
 #if defined _ios

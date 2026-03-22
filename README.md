@@ -18,16 +18,16 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://github.com/libsdl-org/SDL) | [2.32.4](https://github.com/libsdl-org/SDL/releases/download/release-2.32.4/SDL2-2.32.4.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
-[libass](https://github.com/libass/libass) | [0.17.3](https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
-[fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.16.2](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.16.2/fontconfig-2.16.2.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
-[libexpat](https://github.com/libexpat/libexpat) | [2.7.1](https://github.com/libexpat/libexpat/releases/download/R_2_7_1/expat-2.7.1.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
-[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.13.3](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-13-3/freetype-VER-2-13-3.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
+[SDL2](https://github.com/libsdl-org/SDL) | [2.32.10](https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
+[libass](https://github.com/libass/libass) | [0.17.4](https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
+[fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.17.1](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.17.1/fontconfig-2.17.1.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
+[libexpat](https://github.com/libexpat/libexpat) | [2.7.4](https://github.com/libexpat/libexpat/releases/download/R_2_7_4/expat-2.7.4.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
+[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.2](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-2/freetype-VER-2-14-2.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
 [FriBidi](https://github.com/fribidi/fribidi) | [1.0.16](https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://github.com/fribidi/fribidi#LGPL-2.1-1-ov-file)
-[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [11.2.0](https://github.com/harfbuzz/harfbuzz/releases/download/11.2.0/harfbuzz-11.2.0.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
-[FFmpeg](https://ffmpeg.org/) | [7.1.1](https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
-[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.1](https://code.videolan.org/videolan/dav1d/-/archive/1.5.1/dav1d-1.5.1.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
-[zLib](http://www.zlib.net/) | [1.3.1](https://www.zlib.net/zlib-1.3.1.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
+[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [13.1.1](https://github.com/harfbuzz/harfbuzz/releases/download/13.1.1/harfbuzz-13.1.1.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
+[FFmpeg](https://ffmpeg.org/) | [8.0.1](https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.3](https://code.videolan.org/videolan/dav1d/-/archive/1.5.3/dav1d-1.5.3.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
+[zLib](http://www.zlib.net/) | [1.3.2](https://www.zlib.net/zlib-1.3.2.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
 
 ## Platform-dependent Include Headers
 
@@ -35,8 +35,13 @@ Platform | Header | Package
 -------- | ------ | -------
 Android | android/asset_manager_jni.h | [Android NDK](https://developer.android.com/ndk/downloads)
 Android | sys/stat.h | [Android NDK](https://developer.android.com/ndk/downloads)
-Windows | dirent.h | [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h)
-Windows | windows.h | WinMain
+iOS | os/log.h | [os_log](https://developer.apple.com/documentation/os/os_log)
+iOS | sys/stat.h | [stat64](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/stat64.2.html)
+iOS | UIKit/UIKit.h | [UIKit Framework](https://developer.apple.com/documentation/uikit?language=objc)
+Linux | sys/stat.h | [stat64](https://linux.die.net/man/2/stat64)
+macOS | Foundation/Foundation.h | [Foundation Framework](https://developer.apple.com/documentation/foundation?language=objc)
+macOS | sys/stat.h | [stat64](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/stat64.2.html)
+Windows | windows.h | [DllMain](https://learn.microsoft.com/en-us/windows/win32/dlls/dllmain) [WinMain](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-winmain)
 
 ## Compilers and C++20
 
@@ -51,7 +56,6 @@ MSVC | 2019
 ## How to build
 
 1. Build the [third-party libraries](#3rd-party-libraries) and place the them in a common directory.
-   - You will also need [dirent.h](https://github.com/tronkko/dirent/raw/master/include/dirent.h) if you are building on **Windows**.
    - You will also need [patchelf](https://github.com/NixOS/patchelf) if you are building on **Linux**.
 1. Make sure you have [cmake](https://cmake.org/download/) installed.
 1. Open a command prompt or terminal.
@@ -178,7 +182,6 @@ make
 ```bash
 cmake .. -G "Visual Studio 17 2022" \
 -D CMAKE_BUILD_TYPE=Release \
--D LVP_DIRENT_DIR="/path/to/dirent" \
 -D LVP_EXT_LIB_DIR="/path/to/libs"
 
 devenv.com voyaplayer.sln -build "Release|x64"
@@ -649,6 +652,50 @@ LVP_MediaMeta LVP_GetMediaMeta(const std::wstring& filePath);
 ```
 
 Returns the media metadata of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaThumbnail
+
+```cpp
+SDL_Surface* LVP_GetMediaThumbnail();
+```
+
+Returns the media thumbnail of the currently loaded media.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaThumbnail (string)
+
+```cpp
+SDL_Surface* LVP_GetMediaThumbnail(const std::string& filePath);
+```
+
+Returns the media thumbnail of the the provided media file.
+
+Parameters
+
+- **filePath** Full path to the media file.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetMediaThumbnail (wstring)
+
+```cpp
+SDL_Surface* LVP_GetMediaThumbnail(const std::wstring& filePath);
+```
+
+Returns the media thumbnail of the the provided media file.
 
 Parameters
 

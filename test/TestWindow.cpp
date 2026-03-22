@@ -16,13 +16,13 @@ TestButton* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
 {
 	#if defined _ios || defined _macosx
 		auto      scale    = TestWindow::GetDPIScale();
-		SDL_Point position = { (int)((float)event.x * scale), (int)((float)event.y * scale) };
+		SDL_Point position = { (int)((float)event.x * scale.x), (int)((float)event.y * scale.y) };
 	#else
 		SDL_Point position = { event.x, event.y };
 	#endif
 
 	for (const auto& button : TestWindow::buttons) {
-		if (button->enabled && SDL_PointInRect(&position, &button->background))
+		if (button->enabled && SDL_PointInRect(&position, &button->highlightArea))
 			return button;
 	}
 
@@ -39,21 +39,29 @@ SDL_Rect TestWindow::GetDimensions()
     return dimensions;
 }
 
-float TestWindow::GetDPIScale()
+SDL_FPoint TestWindow::GetDPIScale()
 {
+	SDL_FPoint dpiScale = { 1.0f, 1.0f };
+
 	#if defined _android
 		float dpi;
 		SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(TestWindow::window), &dpi, nullptr, nullptr);
 
-		return (dpi / 160.0f);
+		dpiScale.x = (dpi / 160.0f);
+		dpiScale.y = dpiScale.x;
 	#else
 		auto sizeInPixels = TestWindow::GetDimensions();
 
 		SDL_Rect size = {};
 		SDL_GetWindowSize(TestWindow::window, &size.w, &size.h);
 
-		return ((float)sizeInPixels.w / (float)size.w);
+		dpiScale = {
+			((float)sizeInPixels.w / (float)size.w),
+			((float)sizeInPixels.h / (float)size.h)
+		};
 	#endif
+
+	return dpiScale;
 }
 
 SDL_Renderer* TestWindow::GetRenderer()
@@ -64,16 +72,19 @@ SDL_Renderer* TestWindow::GetRenderer()
 void TestWindow::Init(int width, int height, const char* basePath)
 {
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
-        throw std::runtime_error(TextFormat("Failed to initialize SDL: %s", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
 
 	TestText::Init(basePath);
 
-	const auto WINDOW_FLAGS = (SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
-
-    TestWindow::window = SDL_CreateWindow(TestWindow::title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, WINDOW_FLAGS);
+    TestWindow::window = SDL_CreateWindow(
+		TestWindow::title.c_str(),
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		width, height,
+		(SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE)
+	);
 
     if (!TestWindow::window)
-        throw std::runtime_error(TextFormat("Failed to create a window: %s", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to create a window: {}", SDL_GetError()));
 
 	SDL_SetWindowMinimumSize(TestWindow::window, 640, 480);
 
@@ -83,7 +94,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
         TestWindow::renderer = SDL_CreateRenderer(TestWindow::window, -1, SDL_RENDERER_SOFTWARE);
 
     if (!TestWindow::renderer)
-        throw std::runtime_error(TextFormat("Failed to create a renderer: %s", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to create a renderer: {}", SDL_GetError()));
 
 	#if defined _linux || defined _macosx || defined _windows
 	TestWindow::initIcon(basePath);
@@ -95,29 +106,29 @@ void TestWindow::Init(int width, int height, const char* basePath)
 void TestWindow::initButtons()
 {
 	auto dpiScale = TestWindow::GetDPIScale();
-	auto fontSize = (int)(14.0f * dpiScale);
+	auto fontSize = (int)(14.0f * dpiScale.y);
 
-	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, "PAUSE");
+	auto open = new TestButton(fontSize, TEST_BUTTON_ID_PLAY_PAUSE, TestButtonLabel::Pause);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PLAY_PAUSE] = open;
 	TestWindow::buttons.push_back(open);
 
-	auto stop = new TestButton(fontSize, TEST_BUTTON_ID_STOP, "STOP", false);
+	auto stop = new TestButton(fontSize, TEST_BUTTON_ID_STOP, TestButtonLabel::Stop, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_STOP] = stop;
 	TestWindow::buttons.push_back(stop);
 
-	auto seekBack = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_BACK, "<< SEEK", false);
+	auto seekBack = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_BACK, TestButtonLabel::SeekBack, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_BACK] = seekBack;
 	TestWindow::buttons.push_back(seekBack);
 
-	auto seekForward = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_FORWARD, "SEEK >>", false);
+	auto seekForward = new TestButton(fontSize, TEST_BUTTON_ID_SEEK_FORWARD, TestButtonLabel::SeekForward, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_SEEK_FORWARD] = seekForward;
 	TestWindow::buttons.push_back(seekForward);
 
-	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, "00:00:00 / 00:00:00 1.0x", false);
+	auto progress = new TestButton(fontSize, TEST_BUTTON_ID_PROGRESS, TestButtonLabel::Progress, false);
 
 	TestWindow::buttonIds[TEST_BUTTON_ID_PROGRESS] = progress;
 	TestWindow::buttons.push_back(progress);
@@ -126,7 +137,7 @@ void TestWindow::initButtons()
 #if defined _linux || defined _macosx || defined _windows
 void TestWindow::initIcon(const char* basePath)
 {
-	auto icon   = TextFormat("%s%s", basePath, "icon.ppm");
+	auto icon   = std::format("{}icon.ppm", basePath);
 	auto file   = std::fopen(icon.c_str(), "rb");
 	auto pixels = (uint8_t*)std::malloc(TestAppIcon::Size);
 
@@ -211,12 +222,12 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 
 	for (const auto& button : TestWindow::buttons)
 	{
-		#if defined _linux || defined _macosx || defined _windows
-		SDL_Rect highlightArea = { (button->background.x - padding5), lineY, (button->background.w + padding10), lineHeight };
+		button->highlightArea = { (button->background.x - padding5), lineY, (button->background.w + padding10), lineHeight };
 
-		if (button->enabled && SDL_PointInRect(&mousePosition, &highlightArea)) {
+		#if defined _linux || defined _macosx || defined _windows
+		if (button->enabled && SDL_PointInRect(&mousePosition, &button->highlightArea)) {
 			SDL_SetRenderDrawColor(TestWindow::renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
-			SDL_RenderFillRect(TestWindow::renderer, &highlightArea);
+			SDL_RenderFillRect(TestWindow::renderer, &button->highlightArea);
 		}
 		#endif
 
@@ -248,13 +259,13 @@ void TestWindow::UpdateProgress()
 	auto duration = TimeFormat(LVP_GetDuration());
 	auto progress = TimeFormat(LVP_GetProgress());
 
-	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, TextFormat("%s / %s %.1fx", progress.c_str(), duration.c_str(), LVP_GetPlaybackSpeed()));
+	TestWindow::UpdateButton(TEST_BUTTON_ID_PROGRESS, std::format("{} / {} {:.1f}x", progress, duration, LVP_GetPlaybackSpeed()));
 }
 
 void TestWindow::UpdateTitle(const std::string& title)
 {
 	if (!title.empty())
-		SDL_SetWindowTitle(TestWindow::window, TextFormat("%s - %s", TestWindow::title.c_str(), title.c_str()).c_str());
+		SDL_SetWindowTitle(TestWindow::window, std::format("{} - {}", TestWindow::title, title).c_str());
 	else
 		SDL_SetWindowTitle(TestWindow::window, TestWindow::title.c_str());
 }

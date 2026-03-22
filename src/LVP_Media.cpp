@@ -97,9 +97,8 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	if (formatContext == NULL)
 		return 0;
 
-	// Perform an extra scan if duration was not calculated in the initial scan
-	if ((formatContext->duration <= 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
-		return 0;
+	if (formatContext->duration <= 0)
+		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	if (formatContext->duration > 0)
 		return (size_t)((double)formatContext->duration / AV_TIME_BASE_D);
@@ -134,8 +133,10 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
-	if (System::LVP_FileSystem::IsSystemFile(filePath))
-		throw std::runtime_error(System::LVP_Text::Format("Invalid media file: %s", filePath.c_str()).c_str());
+	auto fileObject = System::LVP_FileSystem::GetFile(filePath);
+
+	if (System::LVP_FileSystem::IsSystemFile(fileObject))
+		throw std::runtime_error(std::format("Invalid media file: {}", filePath));
 
 	auto fileParts     = LVP_Strings();
 	auto file          = std::string(filePath);
@@ -151,8 +152,10 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		for (uint32_t i = 1; i < fileParts.size() - 4; i++)
 			file.append(fileParts[i] + "|");
 
-		if (chdir(fileParts[0].c_str()) != 0)
-			throw std::invalid_argument(System::LVP_Text::Format("Failed to change directory: %s", fileParts[0].c_str()));
+		std::filesystem::current_path(fileParts[0]);
+
+		if (std::filesystem::current_path().generic_string() != fileParts[0])
+			throw std::invalid_argument(std::format("Failed to change directory: {}", fileParts[0]));
 	}
 
 	if (timeOut != NULL) {
@@ -167,14 +170,14 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	if ((result < 0) || (formatContext == NULL)) {
 		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("[%d] Failed to open input: %s", result, file.c_str()).c_str());
+		throw std::runtime_error(std::format("[{}] Failed to open input: {}", result, file));
 	}
 
 	result = formatContext->probe_score;
 
 	if (result < AVPROBE_SCORE_RETRY) {
 		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("[%d] Invalid probe score: %s", result, file.c_str()).c_str());
+		throw std::runtime_error(std::format("[{}] Invalid probe score: {}", result, file));
 	}
 
 	if (LVP_Media::isDRM(formatContext->metadata)) {
@@ -183,7 +186,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	}
 
 	// Try to fix MP3 files with invalid header and codec type
-	if (System::LVP_FileSystem::GetFileExtension(file) == "mp3")
+	if (fileObject.ext == "mp3")
 	{
 		for (uint32_t i = 0; i < formatContext->nb_streams; i++)
 		{
@@ -208,22 +211,8 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 			formatContext->duration = duration;
 	}
 
-	if (!parseStreams)
-		return formatContext;
-
-	if (formatContext->nb_streams == 0) {
-		formatContext->max_analyze_duration = (int64_t)(15 * AV_TIME_BASE);
-		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
-	}
-
-	if ((result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL)) < 0) {
-		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(System::LVP_Text::Format("[%d] Failed to find stream info: %s", result, file.c_str()).c_str());
-	}
-
-	#if defined _DEBUG
-		LibFFmpeg::av_dump_format(formatContext, -1, file.c_str(), 0);
-	#endif
+	if (parseStreams)
+		LVP_Media::parseStreams(formatContext, file);
 
 	return formatContext;
 }
@@ -257,6 +246,9 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 {
 	if (formatContext == NULL)
 		return NULL;
+
+	if ((formatContext->duration <= 0) || (formatContext->nb_streams == 0))
+		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	auto videoStream = LVP_Media::getMediaTrackThumbnail(formatContext);
 
@@ -425,9 +417,8 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 	if (formatContext == NULL)
 		return 0;
 
-	// Perform an extra scan if no streams were found in the initial scan
-	if ((formatContext->nb_streams == 0) && (LibFFmpeg::avformat_find_stream_info(formatContext, NULL) < 0))
-		return 0;
+	if (formatContext->nb_streams == 0)
+		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	size_t streamCount = 0;
 
@@ -599,6 +590,25 @@ bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* st
 		return false;
 
 	return (strstr(mimeType->value, "font") || strstr(mimeType->value, "ttf") || strstr(mimeType->value, "otf"));
+}
+
+void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatContext, const std::string filePath)
+{
+	if (formatContext->nb_streams == 0) {
+		formatContext->max_analyze_duration = (int64_t)(15 * AV_TIME_BASE);
+		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
+	}
+
+	int result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL);
+
+	if (result < 0) {
+		FREE_AVFORMAT(formatContext);
+		throw std::runtime_error(std::format("[{}] Failed to find stream info: {}", result, filePath));
+	}
+
+	#if defined _DEBUG
+		LibFFmpeg::av_dump_format(formatContext, -1, filePath.c_str(), 0);
+	#endif
 }
 
 void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext)

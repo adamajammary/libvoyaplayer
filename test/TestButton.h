@@ -15,6 +15,16 @@ enum TestButtonId
     TEST_BUTTON_ID_STOP
 };
 
+struct TestButtonLabel
+{
+    static inline const std::string Play        = "PLAY";
+    static inline const std::string Pause       = "PAUSE";
+    static inline const std::string Progress    = "0:00 / 0:00 1.0x";
+    static inline const std::string SeekBack    = "<< SEEK";
+    static inline const std::string SeekForward = "SEEK >>";
+    static inline const std::string Stop        = "STOP";
+};
+
 class TestButton
 {
 public:
@@ -25,6 +35,7 @@ public:
     SDL_Rect     background;
     bool         enabled;
     int          fontSize;
+    SDL_Rect     highlightArea;
     TestButtonId id;
     std::string  label;
     SDL_Point    size;

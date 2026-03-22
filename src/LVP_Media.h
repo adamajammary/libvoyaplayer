@@ -42,6 +42,7 @@ namespace LibVoyaPlayer
 			static LibFFmpeg::AVStream*               getMediaTrackThumbnail(LibFFmpeg::AVFormatContext* formatContext);
 			static std::map<std::string, std::string> getMeta(LibFFmpeg::AVDictionary* metadata);
 			static bool                               isDRM(LibFFmpeg::AVDictionary* metaData);
+			static void                               parseStreams(LibFFmpeg::AVFormatContext* formatContext, const std::string filePath);
 		};
 	}
 }

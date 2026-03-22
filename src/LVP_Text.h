@@ -23,30 +23,6 @@ namespace LibVoyaPlayer
 			static uint16_t*   ToUTF16(const std::string& text);
 			static std::string Trim(const std::string& text);
 
-			template<typename... Args>
-			static std::string Format(const char* formatString, const Args&... args)
-			{
-				if (!formatString)
-					return "";
-
-				char buffer[DEFAULT_CHAR_BUFFER_SIZE] = {};
-				auto result = std::snprintf(buffer, DEFAULT_CHAR_BUFFER_SIZE, formatString, args...);
-
-				if (result < DEFAULT_CHAR_BUFFER_SIZE)
-					return std::string(buffer);
-
-				auto bufferSize    = (size_t)(result + 1);
-				auto dynamicBuffer = (char*)std::malloc(bufferSize);
-
-				std::snprintf(dynamicBuffer, bufferSize, formatString, args...);
-
-				auto resultString = std::string(dynamicBuffer != NULL ? dynamicBuffer : "");
-
-				FREE_POINTER(dynamicBuffer);
-
-				return resultString;
-			}
-
 			template <class T>
 			static bool VectorContains(const std::vector<T>& vector, const T& value)
 			{
