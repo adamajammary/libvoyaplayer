@@ -442,7 +442,7 @@ if (BUILD_TEST)
         add_custom_command(TARGET testvoyaplayer_rpath POST_BUILD COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/${EXT_LIB_SWS})
         add_custom_command(TARGET testvoyaplayer_rpath POST_BUILD COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/${EXT_LIB_ZLIB})
 
-        add_custom_command(TARGET testvoyaplayer_rpath POST_BUILD COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/libvoyaplayer.dylib)
+        add_custom_command(TARGET testvoyaplayer_rpath POST_BUILD COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/libvoyaplayer.so)
         add_custom_command(TARGET testvoyaplayer_rpath POST_BUILD COMMAND patchelf --set-rpath '\$$ORIGIN' ${DIST_DIR}/bin/testvoyaplayer)
     elseif (OS STREQUAL "_macosx")
         add_custom_target(testvoyaplayer_rpath ALL DEPENDS testvoyaplayer)
