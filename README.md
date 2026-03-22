@@ -41,7 +41,7 @@ iOS | UIKit/UIKit.h | [UIKit Framework](https://developer.apple.com/documentatio
 Linux | sys/stat.h | [stat64](https://linux.die.net/man/2/stat64)
 macOS | Foundation/Foundation.h | [Foundation Framework](https://developer.apple.com/documentation/foundation?language=objc)
 macOS | sys/stat.h | [stat64](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/stat64.2.html)
-Windows | windows.h | [DllMain](https://learn.microsoft.com/en-us/windows/win32/dlls/dllmain), [WinMain](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-winmain)
+Windows | windows.h | [DllMain](https://learn.microsoft.com/en-us/windows/win32/dlls/dllmain) [WinMain](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-winmain)
 
 ## Compilers and C++20
 
