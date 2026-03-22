@@ -21,13 +21,13 @@ Library | Version | License
 [SDL2](https://github.com/libsdl-org/SDL) | [2.32.10](https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
 [libass](https://github.com/libass/libass) | [0.17.4](https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
 [fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.17.1](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.17.1/fontconfig-2.17.1.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
-[libexpat](https://github.com/libexpat/libexpat) | [2.7.3](https://github.com/libexpat/libexpat/releases/download/R_2_7_3/expat-2.7.3.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
-[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.1](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-1/freetype-VER-2-14-1.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
+[libexpat](https://github.com/libexpat/libexpat) | [2.7.4](https://github.com/libexpat/libexpat/releases/download/R_2_7_4/expat-2.7.4.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
+[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.2](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-2/freetype-VER-2-14-2.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
 [FriBidi](https://github.com/fribidi/fribidi) | [1.0.16](https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://github.com/fribidi/fribidi#LGPL-2.1-1-ov-file)
-[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [12.3.0](https://github.com/harfbuzz/harfbuzz/releases/download/12.3.0/harfbuzz-12.3.0.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
+[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [13.1.1](https://github.com/harfbuzz/harfbuzz/releases/download/13.1.1/harfbuzz-13.1.1.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
 [FFmpeg](https://ffmpeg.org/) | [8.0.1](https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
 [dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.3](https://code.videolan.org/videolan/dav1d/-/archive/1.5.3/dav1d-1.5.3.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
-[zLib](http://www.zlib.net/) | [1.3.1](https://www.zlib.net/zlib-1.3.1.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
+[zLib](http://www.zlib.net/) | [1.3.2](https://www.zlib.net/zlib-1.3.2.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
 
 ## Platform-dependent Include Headers
 
