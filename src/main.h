@@ -152,7 +152,7 @@ namespace LibVoyaPlayer
 		#define IS_SUB_BITMAP(t) (t == LibFFmpeg::SUBTITLE_BITMAP)
 		#define IS_VIDEO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
 
-		const int    DEFAULT_SCALE_FILTER = LibFFmpeg::SWS_LANCZOS;
+		const int    DEFAULT_SCALE_FILTER = LibFFmpeg::SWS_POINT;
 		const int    DELAY_TIME_DEFAULT   = 15;
 		const int    MEGA_BYTE            = 1024000;
 		const double ONE_SECOND_MS_D      = 1000.0;

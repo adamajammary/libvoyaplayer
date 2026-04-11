@@ -1480,9 +1480,6 @@ void MediaPlayer::LVP_Player::renderVideo()
 	if ((LVP_Player::videoContext->index < 0) || (LVP_Player::videoContext->codec == NULL))
 		return;
 
-	auto videoWidth  = LVP_Player::videoContext->codec->width;
-	auto videoHeight = LVP_Player::videoContext->codec->height;
-
 	if (LVP_Player::videoContext->frame == NULL)
 		return;
 
@@ -1493,8 +1490,8 @@ void MediaPlayer::LVP_Player::renderVideo()
 		auto result = LibFFmpeg::av_image_alloc(
 			LVP_Player::videoContext->frameEncoded->data,
 			LVP_Player::videoContext->frameEncoded->linesize,
-			videoWidth,
-			videoHeight,
+			LVP_Player::videoContext->codec->width,
+			LVP_Player::videoContext->codec->height,
 			LibFFmpeg::AV_PIX_FMT_RGBA,
 			1
 		);
@@ -1514,11 +1511,11 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 	LVP_Player::videoContext->scaleContext = LibFFmpeg::sws_getCachedContext(
 		LVP_Player::videoContext->scaleContext,
-		videoWidth,
-		videoHeight,
+		LVP_Player::videoContext->codec->width,
+		LVP_Player::videoContext->codec->height,
 		pixelFormat,
-		videoWidth,
-		videoHeight,
+		LVP_Player::videoContext->codec->width,
+		LVP_Player::videoContext->codec->height,
 		LibFFmpeg::AV_PIX_FMT_RGBA,
 		DEFAULT_SCALE_FILTER,
 		NULL,

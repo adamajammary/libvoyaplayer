@@ -199,7 +199,7 @@ try {
 
   while (!QUIT) {
     render();
-    SDL_Delay(16);
+    SDL_Delay(33); // 30 fps = 1000 ms / 30 = 33.33 ms
   }
 
   quit();
