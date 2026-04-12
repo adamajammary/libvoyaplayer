@@ -228,17 +228,27 @@ int MediaPlayer::LVP_Player::decodeAudioFrame()
 		1
 	);
 
+	// Allocate initial buffer
 	if (LVP_Player::audioContext->buffer == NULL)
+	{
 		LVP_Player::audioContext->buffer = (uint8_t*)std::malloc(bufferSize);
+	}
+	// Increase size of buffer if needed
 	else if (bufferSize > LVP_Player::audioContext->bufferSize)
-		LVP_Player::audioContext->buffer = (uint8_t*)std::realloc(LVP_Player::audioContext->buffer, bufferSize);
+	{
+		auto newBuffer = (uint8_t*)std::realloc(LVP_Player::audioContext->buffer, bufferSize);
+
+		if (newBuffer != NULL)
+			LVP_Player::audioContext->buffer = newBuffer;
+		else
+			FREE_POINTER(LVP_Player::audioContext->buffer);
+	}
 
 	LVP_Player::audioContext->bufferSize = bufferSize;
 
 	if (LVP_Player::audioContext->buffer == NULL)
 	{
 		FREE_AVFRAME(frame);
-
 		LVP_Player::stop("Failed to create an audio buffer.");
 		
 		return AVERROR(ENOMEM);
@@ -1477,10 +1487,7 @@ void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
 
 void MediaPlayer::LVP_Player::renderVideo()
 {
-	if ((LVP_Player::videoContext->index < 0) || (LVP_Player::videoContext->codec == NULL))
-		return;
-
-	if (LVP_Player::videoContext->frame == NULL)
+	if ((LVP_Player::videoContext->index < 0) || (LVP_Player::videoContext->codec == NULL) || (LVP_Player::videoContext->frame == NULL))
 		return;
 
 	if (LVP_Player::videoContext->frameEncoded == NULL)
@@ -1500,13 +1507,16 @@ void MediaPlayer::LVP_Player::renderVideo()
 			FREE_AVFRAME(LVP_Player::videoContext->frameEncoded);
 	}
 
+	if (LVP_Player::videoContext->frameEncoded == NULL)
+		return;
+
 	LVP_Player::packetLock.lock();
 
 	auto pixelFormat = (LibFFmpeg::AVPixelFormat)LVP_Player::videoContext->frame->format;
 
 	LVP_Player::packetLock.unlock();
 
-	if ((LVP_Player::videoContext->frameEncoded == NULL) || (pixelFormat == LibFFmpeg::AV_PIX_FMT_NONE))
+	if (pixelFormat == LibFFmpeg::AV_PIX_FMT_NONE)
 		return;
 
 	LVP_Player::videoContext->scaleContext = LibFFmpeg::sws_getCachedContext(
