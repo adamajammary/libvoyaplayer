@@ -242,6 +242,11 @@ namespace LibVoyaPlayer
 			LVP_Strings                 external      = {};
 			LibFFmpeg::AVFormatContext* formatContext = NULL;
 			LVP_Size                    videoSize     = {};
+
+			bool isEqualToVideoSize()
+			{
+				return ((this->codec->width == videoSize.width) && (this->codec->height == videoSize.height));
+			}
 		};
 	}
 }

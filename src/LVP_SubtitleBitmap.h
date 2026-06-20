@@ -27,13 +27,15 @@ namespace LibVoyaPlayer
 			static void ProcessEvent(LVP_Subtitle* subtitle, const LibFFmpeg::AVSubtitleRect& frameRect);
 			static void Remove();
 			static void RemoveExpired(double progress);
-			static void Render(SDL_Surface* surface, LVP_SubtitleContext* subContext, double progress);
+			static void Render(SDL_Surface* videoSurface, LVP_SubtitleContext* subContext, double progress);
 			static void UpdateDVDColorPalette(void* context);
 			static void UpdatePGSEndPTS(double pts);
 
 		private:
-			static void create(LVP_SubtitleContext* subContext);
-			static void render(SDL_Surface* surface, double progress);
+			static void         create(LVP_SubtitleContext* subContext);
+			static void         render(SDL_Surface* videoSurface, double progress);
+			static void         render(LVP_Subtitle* subtitle, SDL_Surface* videoSurface);
+			static SDL_Surface* scale(LVP_SubtitleContext* subContext, LVP_Subtitle* subtitle);
 		};
 	}
 }

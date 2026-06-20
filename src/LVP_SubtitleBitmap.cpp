@@ -20,10 +20,21 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 
 		subtitle->surface = SDL_CreateRGBSurfaceWithFormat(0, subtitle->bitmap.w, subtitle->bitmap.h, 32, SDL_PIXELFORMAT_RGBA32);
 
-		auto size   = (subtitle->bitmap.w * subtitle->bitmap.h);
-		auto pixels = (uint8_t*)subtitle->surface->pixels;
+		LibFFmpeg::sws_convertPalette8ToPacked32(
+			subtitle->bitmap.data[0],
+			(uint8_t*)subtitle->surface->pixels,
+			(subtitle->bitmap.w * subtitle->bitmap.h),
+			subtitle->bitmap.data[1]
+		);
 
-		LibFFmpeg::sws_convertPalette8ToPacked32(subtitle->bitmap.data[0], pixels, size, subtitle->bitmap.data[1]);
+		if (!subContext->isEqualToVideoSize())
+		{
+			auto scaledSurface = LVP_SubtitleBitmap::scale(subContext, subtitle);
+
+			SDL_FreeSurface(subtitle->surface);
+
+			subtitle->surface = scaledSurface;
+		}
 
 		LVP_SubtitleBitmap::subsLock.lock();
 
@@ -86,64 +97,87 @@ void MediaPlayer::LVP_SubtitleBitmap::RemoveExpired(double progress)
 	LVP_SubtitleBitmap::subsLock.unlock();
 }
 
-void MediaPlayer::LVP_SubtitleBitmap::Render(SDL_Surface* surface, LVP_SubtitleContext* subContext, double progress)
+void MediaPlayer::LVP_SubtitleBitmap::Render(SDL_Surface* videoSurface, LVP_SubtitleContext* subContext, double progress)
 {
 	LVP_SubtitleBitmap::create(subContext);
 
-	LVP_SubtitleBitmap::render(surface, progress);
+	LVP_SubtitleBitmap::render(videoSurface, progress);
 }
 
-void MediaPlayer::LVP_SubtitleBitmap::render(SDL_Surface* surface, double progress)
+void MediaPlayer::LVP_SubtitleBitmap::render(SDL_Surface* videoSurface, double progress)
 {
 	LVP_SubtitleBitmap::subsLock.lock();
 
-	for (auto subtitle : LVP_SubtitleBitmap::subs)
-	{
-		if (!subtitle->isReadyPTS(progress))
-			continue;
-
-		auto srcColors = subtitle->surface->format->BytesPerPixel;
-		auto srcPitch  = subtitle->surface->pitch;
-		auto srcPixels = (uint8_t*)subtitle->surface->pixels;
-
-		auto destColors = surface->format->BytesPerPixel;
-		auto destPitch  = surface->pitch;
-		auto destPixels = (uint8_t*)surface->pixels;
-
-		SDL_Point destPosition = {
-			(subtitle->bitmap.x * destColors),
-			subtitle->bitmap.y
-		};
-
-		for (int y1 = 0, y2 = destPosition.y; (y1 < subtitle->surface->h) && (y2 < surface->h); y1++, y2++)
-		{
-			auto srcRow  = (y1 * srcPitch);
-			auto destRow = (y2 * destPitch);
-
-			for (int x1 = 0, x2 = destPosition.x; (x1 < srcPitch) && (x2 < destPitch); x1 += srcColors, x2 += destColors)
-			{
-				auto srcColorAlpha = (srcPixels[srcRow + x1 + LVP_RGBA_A] * 0xFF);;
-
-				if (srcColorAlpha == 0)
-					continue;
-
-				auto srcColorRed   = (srcPixels[srcRow + x1 + LVP_RGBA_R] * srcColorAlpha);
-				auto srcColorGreen = (srcPixels[srcRow + x1 + LVP_RGBA_G] * srcColorAlpha);
-				auto srcColorBlue  = (srcPixels[srcRow + x1 + LVP_RGBA_B] * srcColorAlpha);
-
-				auto destColorAlpha = (MAX_255x255 - srcColorAlpha);
-				auto destColorRed   = (destPixels[destRow + x2 + LVP_RGBA_R] * destColorAlpha);
-				auto destColorGreen = (destPixels[destRow + x2 + LVP_RGBA_G] * destColorAlpha);
-				auto destColorBlue  = (destPixels[destRow + x2 + LVP_RGBA_B] * destColorAlpha);
-
-				destPixels[destRow + x2 + LVP_RGBA_R] = ((srcColorRed   + destColorRed)   / MAX_255x255);
-				destPixels[destRow + x2 + LVP_RGBA_G] = ((srcColorGreen + destColorGreen) / MAX_255x255);
-				destPixels[destRow + x2 + LVP_RGBA_B] = ((srcColorBlue  + destColorBlue)  / MAX_255x255);
-			}
-		}
+	for (auto subtitle : LVP_SubtitleBitmap::subs) {
+		if (subtitle->isReadyPTS(progress))
+			LVP_SubtitleBitmap::render(subtitle, videoSurface);
 	}
 
 	LVP_SubtitleBitmap::subsLock.unlock();
+}
+
+void MediaPlayer::LVP_SubtitleBitmap::render(LVP_Subtitle* subtitle, SDL_Surface* videoSurface)
+{
+	auto srcColors = subtitle->surface->format->BytesPerPixel;
+	auto srcPitch  = subtitle->surface->pitch;
+	auto srcPixels = (uint8_t*)subtitle->surface->pixels;
+
+	auto destColors = videoSurface->format->BytesPerPixel;
+	auto destPitch  = videoSurface->pitch;
+	auto destPixels = (uint8_t*)videoSurface->pixels;
+
+	SDL_Point destPosition = {
+		(subtitle->bitmap.x * destColors),
+		subtitle->bitmap.y
+	};
+
+	for (int y1 = 0, y2 = destPosition.y; (y1 < subtitle->surface->h) && (y2 < videoSurface->h); y1++, y2++)
+	{
+		auto srcRow  = (y1 * srcPitch);
+		auto destRow = (y2 * destPitch);
+
+		for (int x1 = 0, x2 = destPosition.x; (x1 < srcPitch) && (x2 < destPitch); x1 += srcColors, x2 += destColors)
+		{
+			auto srcColorAlpha = (srcPixels[srcRow + x1 + LVP_RGBA_A] * 0xFF);;
+
+			if (srcColorAlpha == 0)
+				continue;
+
+			auto srcColorRed   = (srcPixels[srcRow + x1 + LVP_RGBA_R] * srcColorAlpha);
+			auto srcColorGreen = (srcPixels[srcRow + x1 + LVP_RGBA_G] * srcColorAlpha);
+			auto srcColorBlue  = (srcPixels[srcRow + x1 + LVP_RGBA_B] * srcColorAlpha);
+
+			auto destColorAlpha = (MAX_255x255 - srcColorAlpha);
+			auto destColorRed   = (destPixels[destRow + x2 + LVP_RGBA_R] * destColorAlpha);
+			auto destColorGreen = (destPixels[destRow + x2 + LVP_RGBA_G] * destColorAlpha);
+			auto destColorBlue  = (destPixels[destRow + x2 + LVP_RGBA_B] * destColorAlpha);
+
+			destPixels[destRow + x2 + LVP_RGBA_R] = ((srcColorRed   + destColorRed)   / MAX_255x255);
+			destPixels[destRow + x2 + LVP_RGBA_G] = ((srcColorGreen + destColorGreen) / MAX_255x255);
+			destPixels[destRow + x2 + LVP_RGBA_B] = ((srcColorBlue  + destColorBlue)  / MAX_255x255);
+		}
+	}
+}
+
+SDL_Surface* MediaPlayer::LVP_SubtitleBitmap::scale(LVP_SubtitleContext* subContext, LVP_Subtitle* subtitle)
+{
+	if ((subContext == NULL) || (subtitle == NULL) || (subtitle->surface == NULL))
+		return NULL;
+
+	auto scaleX = ((float)subContext->videoSize.width  / (float)subContext->codec->width);
+	auto scaleY = ((float)subContext->videoSize.height / (float)subContext->codec->height);
+
+	subtitle->bitmap.x = (int)((float)subtitle->bitmap.x * scaleX);
+	subtitle->bitmap.y = (int)((float)subtitle->bitmap.y * scaleY);
+
+	subtitle->bitmap.w = (int)((float)subtitle->bitmap.w * scaleX);
+	subtitle->bitmap.h = (int)((float)subtitle->bitmap.h * scaleY);
+
+	auto surface = SDL_CreateRGBSurfaceWithFormat(0, subtitle->bitmap.w, subtitle->bitmap.h, 32, SDL_PIXELFORMAT_RGBA32);
+
+	SDL_UpperBlitScaled(subtitle->surface, NULL, surface, NULL);
+
+	return surface;
 }
 
 void MediaPlayer::LVP_SubtitleBitmap::UpdateDVDColorPalette(void* context)
