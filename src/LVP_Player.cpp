@@ -397,10 +397,7 @@ LibFFmpeg::AVFrame* MediaPlayer::LVP_Player::getAudioFrame()
 
 int MediaPlayer::LVP_Player::GetAudioTrack()
 {
-	if (LVP_Player::audioContext == NULL)
-		return -1;
-
-	return LVP_Player::audioContext->index;
+	return (LVP_Player::audioContext ? LVP_Player::audioContext->index : -1);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks()
@@ -708,12 +705,14 @@ SDL_Rect MediaPlayer::LVP_Player::getScaledVideoDestination(const SDL_Rect& dest
 
 int MediaPlayer::LVP_Player::GetSubtitleTrack()
 {
-	return (LVP_Player::subContext != NULL ? LVP_Player::subContext->index : -1);
+	return (LVP_Player::subContext ? LVP_Player::subContext->index : -1);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks()
 {
-	return LVP_Player::getSubtitleTracks(LVP_Player::formatContext, LVP_Player::subContext->external);
+	auto extSubFiles = (LVP_Player::subContext ? LVP_Player::subContext->external : LVP_Strings());
+
+	return LVP_Player::getSubtitleTracks(LVP_Player::formatContext, extSubFiles);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
