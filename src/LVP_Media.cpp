@@ -97,7 +97,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	if (formatContext == NULL)
 		return 0;
 
-	if (formatContext->duration <= 0)
+	if (formatContext->duration < 0)
 		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	if (formatContext->duration > 0)
@@ -109,9 +109,12 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	if (audioStream->duration > 0)
 		return (size_t)((double)audioStream->duration * LibFFmpeg::av_q2d(audioStream->time_base));
 
+	if (audioStream->codecpar == NULL)
+		return 0;
+
 	auto fileSize = System::LVP_FileSystem::GetFileSize(formatContext->url);
 
-	if ((audioStream->codecpar == NULL) || (fileSize == 0))
+	if (fileSize == 0)
 		return 0;
 
 	auto avRescaleA = (int64_t)(fileSize * 8ll);
@@ -173,11 +176,11 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		throw std::runtime_error(std::format("[{}] Failed to open input: {}", result, file));
 	}
 
-	result = formatContext->probe_score;
+	auto probeScore = formatContext->probe_score;
 
-	if (result < AVPROBE_SCORE_RETRY) {
+	if (probeScore < AVPROBE_SCORE_RETRY) {
 		FREE_AVFORMAT(formatContext);
-		throw std::runtime_error(std::format("[{}] Invalid probe score: {}", result, file));
+		throw std::runtime_error(std::format("[{}] Invalid probe score: {}", probeScore, file));
 	}
 
 	if (LVP_Media::isDRM(formatContext->metadata)) {
@@ -210,6 +213,9 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 		if (duration > 0)
 			formatContext->duration = duration;
 	}
+
+	if (formatContext->duration == 0)
+		formatContext->duration = INT64_MIN;
 
 	if (parseStreams)
 		LVP_Media::parseStreams(formatContext, file);
@@ -247,7 +253,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	if (formatContext == NULL)
 		return NULL;
 
-	if ((formatContext->duration <= 0) || (formatContext->nb_streams == 0))
+	if ((formatContext->duration < 0) || (formatContext->nb_streams == 0))
 		LVP_Media::parseStreams(formatContext, formatContext->url);
 
 	auto videoStream = LVP_Media::getMediaTrackThumbnail(formatContext);
@@ -594,6 +600,9 @@ bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* st
 
 void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatContext, const std::string filePath)
 {
+	if (formatContext->duration >= 0)
+		return;
+	
 	if (formatContext->nb_streams == 0) {
 		formatContext->max_analyze_duration = (int64_t)(15 * AV_TIME_BASE);
 		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
@@ -609,6 +618,9 @@ void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatCont
 	#if defined _DEBUG
 		LibFFmpeg::av_dump_format(formatContext, -1, filePath.c_str(), 0);
 	#endif
+
+	if (formatContext->duration < 0)
+		formatContext->duration = 0;
 }
 
 void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext)
