@@ -74,8 +74,8 @@ namespace LibVoyaPlayer
 			static void                          Play();
 			static void                          Quit();
 			static void                          RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
-			static void                          Render(const SDL_Rect& destination = {});
 			static void                          Resize();
+			static void                          Run(const SDL_Rect& destination = {});
 			static void                          SeekBy(int seconds);
 			static void                          SeekTo(double percent);
 			static bool                          SetAudioDevice(const std::string& device = "");

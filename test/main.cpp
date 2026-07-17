@@ -280,7 +280,7 @@ static void quit()
     TestWindow::Quit();
 }
 
-static void render()
+static void run()
 {
     auto renderer   = TestWindow::GetRenderer();
     auto windowSize = TestWindow::GetDimensions();
@@ -342,7 +342,7 @@ int SDL_main(int argc, char* argv[])
             if (QUIT)
                 break;
 
-            render();
+            run();
 
             auto sleepTime = getSleepTime(frameStart);
 

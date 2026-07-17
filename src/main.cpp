@@ -413,20 +413,20 @@ void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice)
 	MediaPlayer::LVP_Player::RemoveAudioDevice(adevice);
 }
 
-void LVP_Render(const SDL_Rect& destination)
-{
-	if (!isInitialized)
-		throw std::runtime_error(ERROR_NO_INIT);
-
-	MediaPlayer::LVP_Player::Render(destination);
-}
-
 void LVP_Resize()
 {
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::Resize();
+}
+
+void LVP_Run(const SDL_Rect& destination)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Run(destination);
 }
 
 void LVP_SeekBy(int seconds)

@@ -1431,59 +1431,6 @@ void MediaPlayer::LVP_Player::RemoveAudioDevice(const SDL_AudioDeviceEvent& adev
 	LVP_Player::openAudioDevice();
 }
 
-void MediaPlayer::LVP_Player::Render(const SDL_Rect& destination)
-{
-	if (LVP_Player::state.completed || LVP_Player::state.quit)
-		LVP_Player::close();
-
-	if (LVP_Player::isStopping)
-		return;
-
-	if (!LVP_Player::state.openFilePath.empty())
-		LVP_Player::open();
-
-	if (LVP_Player::state.isStopped)
-		return;
-
-	LVP_Player::handleTrack();
-	LVP_Player::handleSeek();
-
-	if (LVP_Player::videoContext->isReadyForRender)
-	{
-		LVP_Player::videoContext->isReadyForRender = false;
-
-		LVP_Player::renderVideo();
-
-		LVP_SubtitleBitmap::RemoveExpired(LVP_Player::state.progress);
-
-		LVP_SubtitleBitmap::Render(LVP_Player::videoContext->surface, LVP_Player::subContext, LVP_Player::state.progress);
-		
-		#if defined _ENABLE_LIBASS
-			LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
-		#endif
-	}
-
-	if (LVP_Player::videoContext->isReadyForPresent && (LVP_Player::videoContext->surface != NULL))
-	{
-		LVP_Player::videoContext->isReadyForPresent = false;
-
-		auto surface = LVP_Player::videoContext->surface;
-
-		if (!LVP_Player::videoContext->isSoftwareRenderer)
-			SDL_UpdateTexture(LVP_Player::videoContext->texture, NULL, surface->pixels, surface->pitch);
-		else
-			LVP_Player::callbackVideoIsAvailable(surface);
-	}
-
-	if (!LVP_Player::videoContext->isSoftwareRenderer && (LVP_Player::videoContext->texture != NULL))
-	{
-		auto scaledDest = LVP_Player::getScaledVideoDestination(destination);
-
-		if (!SDL_RectEmpty(&scaledDest))
-			SDL_RenderCopy(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, &scaledDest);
-	}
-}
-
 void MediaPlayer::LVP_Player::renderVideo()
 {
 	if ((LVP_Player::videoContext->index < 0) || (LVP_Player::videoContext->codec == NULL) || (LVP_Player::videoContext->frame == NULL))
@@ -1560,6 +1507,59 @@ void MediaPlayer::LVP_Player::Resize()
 
 	LVP_Player::videoContext->isReadyForRender  = true;
 	LVP_Player::videoContext->isReadyForPresent = true;
+}
+
+void MediaPlayer::LVP_Player::Run(const SDL_Rect& destination)
+{
+	if (LVP_Player::state.completed || LVP_Player::state.quit)
+		LVP_Player::close();
+
+	if (LVP_Player::isStopping)
+		return;
+
+	if (!LVP_Player::state.openFilePath.empty())
+		LVP_Player::open();
+
+	if (LVP_Player::state.isStopped)
+		return;
+
+	LVP_Player::handleTrack();
+	LVP_Player::handleSeek();
+
+	if (LVP_Player::videoContext->isReadyForRender)
+	{
+		LVP_Player::videoContext->isReadyForRender = false;
+
+		LVP_Player::renderVideo();
+
+		LVP_SubtitleBitmap::RemoveExpired(LVP_Player::state.progress);
+
+		LVP_SubtitleBitmap::Render(LVP_Player::videoContext->surface, LVP_Player::subContext, LVP_Player::state.progress);
+		
+		#if defined _ENABLE_LIBASS
+			LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
+		#endif
+	}
+
+	if (LVP_Player::videoContext->isReadyForPresent && (LVP_Player::videoContext->surface != NULL))
+	{
+		LVP_Player::videoContext->isReadyForPresent = false;
+
+		auto surface = LVP_Player::videoContext->surface;
+
+		if (!LVP_Player::videoContext->isSoftwareRenderer)
+			SDL_UpdateTexture(LVP_Player::videoContext->texture, NULL, surface->pixels, surface->pitch);
+		else
+			LVP_Player::callbackVideoIsAvailable(surface);
+	}
+
+	if (!LVP_Player::videoContext->isSoftwareRenderer && (LVP_Player::videoContext->texture != NULL))
+	{
+		auto scaledDest = LVP_Player::getScaledVideoDestination(destination);
+
+		if (!SDL_RectEmpty(&scaledDest))
+			SDL_RenderCopy(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, &scaledDest);
+	}
 }
 
 void MediaPlayer::LVP_Player::SeekBy(int seconds)

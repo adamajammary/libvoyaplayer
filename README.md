@@ -198,7 +198,7 @@ try {
   init();
 
   while (!QUIT) {
-    render();
+    run();
     SDL_Delay(33); // 30 fps = 1000 ms / 30 = 33.33 ms
   }
 
@@ -246,6 +246,8 @@ void handleError(const std::string& errorMessage, const void* data)
 
 ## Handle Events
 
+Playback events (play, pause, stop, seek, track change etc.) and video rendering are handled asynchronously, so make sure to call [LVP_Run](#lvp_run) every frame.
+
 The library will send player/media events as [LVP_EventType](#lvp_eventtype) to your event handler callback, which must follow the function signature defined by [LVP_EventsCallback](#lvp_eventscallback).
 
 ```cpp
@@ -268,12 +270,12 @@ void handleEvent(LVP_EventType type, const void* data)
 
 For optimal performance, you should render video frames using hardware rendering.
 
-To use hardware rendering, just call [LVP_Render](#lvp_render) with a destination, which will use the `.hardwareRenderer` you passed to [LVP_CallbackContext](#lvp_callbackcontext) during [initialization](#initialize).
+To use hardware rendering, just call [LVP_Run](#lvp_run) with a destination, which will use the `.hardwareRenderer` you passed to [LVP_CallbackContext](#lvp_callbackcontext) during [initialization](#initialize).
 
 ```cpp
-void render(const SDL_Rect& destination)
+void run(const SDL_Rect& destination)
 {
-  LVP_Render(destination);
+  LVP_Run(destination);
 }
 ```
 
@@ -291,7 +293,7 @@ If you don't use SDL2 for rendering, you need to copy the pixels to a bitmap/ima
 - The `.w` and `.h` properties will contain the dimensions of the video frame
 - The `.pitch` property will contain the byte size of a row of RGB pixels
 
-> Remember to call [LVP_Render](#lvp_render) without a destination.
+> Remember to call [LVP_Run](#lvp_run) without a destination.
 
 ```cpp
 SDL_Texture* texture          = nullptr;
@@ -312,7 +314,7 @@ void handleVideoIsAvailable(SDL_Surface* videoSurface, const void* data)
   videoLock.unlock();
 }
 
-void render(SDL_Renderer* renderer, const SDL_Rect& destination)
+void run(SDL_Renderer* renderer, const SDL_Rect& destination)
 {
   videoLock.lock();
 
@@ -336,7 +338,7 @@ void render(SDL_Renderer* renderer, const SDL_Rect& destination)
 
   videoLock.unlock();
 
-  LVP_Render();
+  LVP_Run();
 }
 ```
 
@@ -945,21 +947,6 @@ Parameters
 
 - **adevice** SDL2 audio device event.
 
-### LVP_Render
-
-```cpp
-void LVP_Render(const SDL_Rect& destination = {});
-```
-
-Generates and renders a video frame.
-
-- If hardware rendering is used, it will copy the texture to the renderer.
-- If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
-
-Parameters
-
-- **destination** Optional clipping/scaling region used by the hardware renderer.
-
 ### LVP_Resize
 
 ```cpp
@@ -967,6 +954,21 @@ void LVP_Resize();
 ```
 
 Should be called whenever the window resizes to tell the player to recreate the video frame context.
+
+### LVP_Run
+
+```cpp
+void LVP_Run(const SDL_Rect& destination = {});
+```
+
+Handles playback events (play, pause, stop, seek, track change etc.) and creating/rendering video frames if needed.
+
+- If hardware rendering is used, it will copy the texture to the renderer.
+- If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
+
+Parameters
+
+- **destination** Optional clipping/scaling region used by the hardware renderer.
 
 ### LVP_SeekBy
 

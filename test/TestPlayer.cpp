@@ -113,7 +113,7 @@ void TestPlayer::Quit()
 
 void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect& destination)
 {
-	LVP_Render(destination);
+	LVP_Run(destination);
 
 	if (!renderer || !TestPlayer::videoFrame)
 		return;

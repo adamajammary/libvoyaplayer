@@ -250,17 +250,17 @@ DLLEXPORT void DLL LVP_Quit();
 DLLEXPORT void DLL LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 
 /**
- * @brief Generates and renders a video frame.
+ * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
+ */
+DLLEXPORT void DLL LVP_Resize();
+
+/**
+ * @brief Handles playback events (play, pause, stop, seek, track change etc.) and creating/rendering video frames if needed.
  *        If hardware rendering is used, it will copy the texture to the renderer.
  *        If software rendering is used, it will generate a LVP_VideoCallback with an SDL_Surface.
  * @param destination Optional clipping/scaling region used by the hardware renderer.
  */
-DLLEXPORT void DLL LVP_Render(const SDL_Rect& destination = {});
-
-/**
- * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
- */
-DLLEXPORT void DLL LVP_Resize();
+DLLEXPORT void DLL LVP_Run(const SDL_Rect& destination = {});
 
 /**
  * @brief Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
