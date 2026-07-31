@@ -1203,7 +1203,10 @@ void MediaPlayer::LVP_Player::openStreams()
 		// SUBTITLE TRACK
 		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, LVP_Player::subContext);
 
-		LVP_Player::subContext->external = System::LVP_FileSystem::GetSubtitleFilesForVideo(LVP_Player::state.filePath);
+		auto protocols = std::string(LVP_Player::formatContext->protocol_whitelist);
+
+		if (protocols.starts_with("file"))
+			LVP_Player::subContext->external = System::LVP_FileSystem::GetSubtitleFilesForVideo(LVP_Player::state.filePath);
 
 		if ((LVP_Player::subContext->stream == NULL) && !LVP_Player::subContext->external.empty())
 			LVP_Player::openSubExternal();
