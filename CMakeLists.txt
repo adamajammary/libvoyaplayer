@@ -229,6 +229,7 @@ add_custom_command(TARGET voyaplayer POST_BUILD COMMAND cp -f ${INC_H} ${DIST_DI
 
 if (ENABLE_VIDEO_AV1_AND_SUBS_ASS AND EXISTS "${EXT_LIB_DIR}/LICENSE-dav1d.txt")
     list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-dav1d.txt")
+
     list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-libass.txt")
     list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-fontconfig.txt")
     list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-fribidi.txt")
@@ -239,9 +240,12 @@ if (EXISTS "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
     list(APPEND LICENSES "${EXT_FFMPEG_DIR}/LICENSE-ffmpeg.txt")
 endif()
 
+if (EXISTS "${EXT_LIB_DIR}/LICENSE-freetype.txt")
+    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-freetype.txt")
+endif()
+
 if (EXISTS "${EXT_LIB_DIR}/LICENSE-sdl.txt")
     list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-sdl.txt")
-    list(APPEND LICENSES "${EXT_LIB_DIR}/LICENSE-freetype.txt")
 endif()
 
 list(LENGTH LICENSES NR_OF_LICENSES)
