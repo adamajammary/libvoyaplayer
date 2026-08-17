@@ -16,12 +16,12 @@ namespace LibVoyaPlayer
 			~LVP_AudioContext();
 
 		public:
+			SDL_AudioStream*                audioStream;
 			uint8_t*                        buffer;
 			int                             bufferOffset;
 			int                             bufferSize;
 			int                             dataSize;
 			SDL_AudioSpec                   deviceSpecs;
-			SDL_AudioSpec                   deviceSpecsWanted;
 			LVP_AudioFilter                 filter;
 			LVP_AudioSpecs                  filterSpecs;
 			std::queue<LibFFmpeg::AVFrame*> frames;

@@ -19,15 +19,8 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 			SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "AVAudioSessionCategoryPlayback");
 		#endif
 
-		SDL_SetHint(SDL_HINT_AUDIO_RESAMPLING_MODE, "3");
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,  "2");
-
-		if ((SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) ||
-			(SDL_AudioInit(NULL) < 0) ||
-			(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0))
-		{
-			throw std::runtime_error(std::format("Failed to initialize SDL2: {}", SDL_GetError()));
-		}
+		if (!SDL_InitSubSystem(SDL_INIT_AUDIO) || !SDL_InitSubSystem(SDL_INIT_VIDEO))
+			throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
 
 		#if defined _DEBUG
 			LibFFmpeg::av_log_set_level(AV_LOG_VERBOSE);
@@ -60,7 +53,7 @@ void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice)
 	MediaPlayer::LVP_Player::AddAudioDevice(adevice);
 }
 
-std::vector<std::string> LVP_GetAudioDevices()
+std::vector<LVP_AudioDevice> LVP_GetAudioDevices()
 {
 	return MediaPlayer::LVP_Player::GetAudioDevices();
 }
@@ -404,7 +397,6 @@ void LVP_Quit()
 	MediaPlayer::LVP_Player::Quit();
 
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
-	SDL_AudioQuit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
@@ -445,7 +437,7 @@ void LVP_SeekTo(double percent)
 	MediaPlayer::LVP_Player::SeekTo(percent);
 }
 
-bool LVP_SetAudioDevice(const std::string &device)
+bool LVP_SetAudioDevice(const LVP_AudioDevice& device)
 {
 	return MediaPlayer::LVP_Player::SetAudioDevice(device);
 }

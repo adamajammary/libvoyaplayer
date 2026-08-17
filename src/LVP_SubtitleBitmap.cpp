@@ -18,7 +18,7 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 		if (!IS_SUB_BITMAP(subtitle->type) || (subtitle->bitmap.w <= 0) || (subtitle->bitmap.h <= 0))
 			continue;
 
-		subtitle->surface = SDL_CreateRGBSurfaceWithFormat(0, subtitle->bitmap.w, subtitle->bitmap.h, 32, SDL_PIXELFORMAT_RGBA32);
+		subtitle->surface = SDL_CreateSurface(subtitle->bitmap.w, subtitle->bitmap.h, SDL_PIXELFORMAT_RGBA32);
 
 		LibFFmpeg::sws_convertPalette8ToPacked32(
 			subtitle->bitmap.data[0],
@@ -31,7 +31,7 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 		{
 			auto scaledSurface = LVP_SubtitleBitmap::scale(subContext, subtitle);
 
-			SDL_FreeSurface(subtitle->surface);
+			SDL_DestroySurface(subtitle->surface);
 
 			subtitle->surface = scaledSurface;
 		}
@@ -118,11 +118,11 @@ void MediaPlayer::LVP_SubtitleBitmap::render(SDL_Surface* videoSurface, double p
 
 void MediaPlayer::LVP_SubtitleBitmap::render(LVP_Subtitle* subtitle, SDL_Surface* videoSurface)
 {
-	auto srcColors = subtitle->surface->format->BytesPerPixel;
+	auto srcColors = SDL_BYTESPERPIXEL(subtitle->surface->format);
 	auto srcPitch  = subtitle->surface->pitch;
 	auto srcPixels = (uint8_t*)subtitle->surface->pixels;
 
-	auto destColors = videoSurface->format->BytesPerPixel;
+	auto destColors = SDL_BYTESPERPIXEL(videoSurface->format);
 	auto destPitch  = videoSurface->pitch;
 	auto destPixels = (uint8_t*)videoSurface->pixels;
 
@@ -173,9 +173,9 @@ SDL_Surface* MediaPlayer::LVP_SubtitleBitmap::scale(LVP_SubtitleContext* subCont
 	subtitle->bitmap.w = (int)((float)subtitle->bitmap.w * scaleX);
 	subtitle->bitmap.h = (int)((float)subtitle->bitmap.h * scaleY);
 
-	auto surface = SDL_CreateRGBSurfaceWithFormat(0, subtitle->bitmap.w, subtitle->bitmap.h, 32, SDL_PIXELFORMAT_RGBA32);
+	auto surface = SDL_CreateSurface(subtitle->bitmap.w, subtitle->bitmap.h, SDL_PIXELFORMAT_RGBA32);
 
-	SDL_UpperBlitScaled(subtitle->surface, NULL, surface, NULL);
+	SDL_BlitSurfaceScaled(subtitle->surface, NULL, surface, NULL, SDL_SCALEMODE_LINEAR);
 
 	return surface;
 }

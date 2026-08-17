@@ -16,7 +16,7 @@ MediaPlayer::LVP_PlayerState::LVP_PlayerState()
 	this->progress      = 0.0;
 	this->quit          = false;
 	this->trackCount    = 0;
-	this->volume        = SDL_MIX_MAXVOLUME;
+	this->volume        = 1.0f;
 
 	for (int i = 0; i < LVP_NR_OF_THREADS; i++)
 		this->threads[i] = false;

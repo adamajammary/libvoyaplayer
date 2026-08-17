@@ -72,10 +72,10 @@ std::string MediaPlayer::LVP_AudioSpecs::getChannelLayoutName(const LibFFmpeg::A
 LibFFmpeg::AVSampleFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(SDL_AudioFormat sdlFormat)
 {
 	switch (sdlFormat) {
-		case AUDIO_U8:     return LibFFmpeg::AV_SAMPLE_FMT_U8;
-		case AUDIO_S16SYS: return LibFFmpeg::AV_SAMPLE_FMT_S16;
-		case AUDIO_S32SYS: return LibFFmpeg::AV_SAMPLE_FMT_S32;
-		case AUDIO_F32SYS: return LibFFmpeg::AV_SAMPLE_FMT_FLT;
+		case SDL_AUDIO_U8:     return LibFFmpeg::AV_SAMPLE_FMT_U8;
+		case SDL_AUDIO_S16: return LibFFmpeg::AV_SAMPLE_FMT_S16;
+		case SDL_AUDIO_S32: return LibFFmpeg::AV_SAMPLE_FMT_S32;
+		case SDL_AUDIO_F32: return LibFFmpeg::AV_SAMPLE_FMT_FLT;
 		default: break;
 	}
 
@@ -87,21 +87,21 @@ SDL_AudioFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(LibFFmpeg::AVSample
 	switch (avFormat) {
 		case LibFFmpeg::AV_SAMPLE_FMT_U8:
 		case LibFFmpeg::AV_SAMPLE_FMT_U8P:
-			return AUDIO_U8;
+			return SDL_AUDIO_U8;
 		case LibFFmpeg::AV_SAMPLE_FMT_S16:
 		case LibFFmpeg::AV_SAMPLE_FMT_S16P:
-			return AUDIO_S16SYS;
+			return SDL_AUDIO_S16;
 		case LibFFmpeg::AV_SAMPLE_FMT_S32:
 		case LibFFmpeg::AV_SAMPLE_FMT_S32P:
-			return AUDIO_S32SYS;
+			return SDL_AUDIO_S32;
 		case LibFFmpeg::AV_SAMPLE_FMT_FLT:
 		case LibFFmpeg::AV_SAMPLE_FMT_FLTP:
-			return AUDIO_F32SYS;
+			return SDL_AUDIO_F32;
 		default:
 			break;
 	}
 
-	return 0;
+	return SDL_AUDIO_UNKNOWN;
 }
 
 int MediaPlayer::LVP_AudioSpecs::getSampleRate(int sampleRate, double playbackSpeed)

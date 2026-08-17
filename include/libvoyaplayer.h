@@ -29,14 +29,14 @@ DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
  * @brief Tells the player that a new audio device was connected.
- * @param adevice SDL2 audio device event.
+ * @param adevice SDL audio device event.
  */
 DLLEXPORT void DLL LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
 
 /**
  * @returns a list of available audio devices.
  */
-DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
+DLLEXPORT std::vector<LVP_AudioDevice> DLL LVP_GetAudioDevices();
 
 /**
  * @returns a list of chapters in the currently loaded media.
@@ -245,7 +245,7 @@ DLLEXPORT void DLL LVP_Quit();
 
 /**
  * @brief Tells the player that an audio device was disconnected.
- * @param adevice SDL2 audio device event.
+ * @param adevice SDL audio device event.
  */
 DLLEXPORT void DLL LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
 
@@ -278,10 +278,10 @@ DLLEXPORT void DLL LVP_SeekTo(double percent);
 
 /**
  * @brief Tries to set the given audio device as the current device if valid.
- * @param device Name of the audio device.
- * @returns true if the audio device is successfully set.
+ * @param device Audio device.
+ * @returns true if the audio device was successfully set.
  */
-DLLEXPORT bool DLL LVP_SetAudioDevice(const std::string& device);
+DLLEXPORT bool DLL LVP_SetAudioDevice(const LVP_AudioDevice& device);
 
 /**
  * @brief Mutes/unmutes the audio volume.

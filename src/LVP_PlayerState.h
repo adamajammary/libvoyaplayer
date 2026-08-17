@@ -30,7 +30,7 @@ namespace LibVoyaPlayer
 			bool                   quit;
 			bool                   threads[LVP_NR_OF_THREADS];
 			unsigned int           trackCount;
-			int                    volume;
+			float                  volume;
 
 		public:
 			void reset();

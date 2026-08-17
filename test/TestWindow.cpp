@@ -18,7 +18,7 @@ TestButton* TestWindow::GetClickedButton(const SDL_MouseButtonEvent& event)
 		auto      scale    = TestWindow::GetDPIScale();
 		SDL_Point position = { (int)((float)event.x * scale.x), (int)((float)event.y * scale.y) };
 	#else
-		SDL_Point position = { event.x, event.y };
+		SDL_Point position = { (int)event.x, (int)event.y };
 	#endif
 
 	for (const auto& button : TestWindow::buttons) {
@@ -33,8 +33,9 @@ SDL_Rect TestWindow::GetDimensions()
 {
     SDL_Rect dimensions = {};
 
-    SDL_GetWindowPosition(TestWindow::window,       &dimensions.x, &dimensions.y);
-	SDL_GetRendererOutputSize(TestWindow::renderer, &dimensions.w, &dimensions.h);
+    SDL_GetWindowPosition(TestWindow::window, &dimensions.x, &dimensions.y);
+
+	SDL_GetCurrentRenderOutputSize(TestWindow::renderer, &dimensions.w, &dimensions.h);
 
     return dimensions;
 }
@@ -69,18 +70,18 @@ SDL_Renderer* TestWindow::GetRenderer()
     return TestWindow::renderer;
 }
 
-void TestWindow::Init(int width, int height, const char* basePath)
+void TestWindow::Init(int width, int height, const std::string& basePath)
 {
-    if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
+    if (!SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO))
         throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
 
 	TestText::Init(basePath);
 
     TestWindow::window = SDL_CreateWindow(
 		TestWindow::title.c_str(),
-		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		width, height,
-		(SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE)
+		width,
+		height,
+		(SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE)
 	);
 
     if (!TestWindow::window)
@@ -88,10 +89,7 @@ void TestWindow::Init(int width, int height, const char* basePath)
 
 	SDL_SetWindowMinimumSize(TestWindow::window, 640, 480);
 
-    TestWindow::renderer = SDL_CreateRenderer(TestWindow::window, -1, SDL_RENDERER_ACCELERATED);
-
-    if (!TestWindow::renderer)
-        TestWindow::renderer = SDL_CreateRenderer(TestWindow::window, -1, SDL_RENDERER_SOFTWARE);
+    TestWindow::renderer = SDL_CreateRenderer(TestWindow::window, nullptr);
 
     if (!TestWindow::renderer)
         throw std::runtime_error(std::format("Failed to create a renderer: {}", SDL_GetError()));
@@ -135,7 +133,7 @@ void TestWindow::initButtons()
 }
 
 #if defined _linux || defined _macosx || defined _windows
-void TestWindow::initIcon(const char* basePath)
+void TestWindow::initIcon(const std::string& basePath)
 {
 	auto icon   = std::format("{}icon.ppm", basePath);
 	auto file   = std::fopen(icon.c_str(), "rb");
@@ -148,19 +146,18 @@ void TestWindow::initIcon(const char* basePath)
 
 	std::fclose(file);
 
-	auto surface = SDL_CreateRGBSurfaceWithFormatFrom(
-		pixels,
+	auto surface = SDL_CreateSurfaceFrom(
 		TestAppIcon::Width,
 		TestAppIcon::Height,
-		TestAppIcon::Depth,
-		TestAppIcon::Pitch,
-		TestAppIcon::Format
+		TestAppIcon::Format,
+		pixels,
+		TestAppIcon::Pitch
 	);
 
 	if (surface)
 		SDL_SetWindowIcon(TestWindow::window, surface);
 
-	SDL_FreeSurface(surface);
+	SDL_DestroySurface(surface);
 	std::free(pixels);
 }
 #endif
@@ -190,8 +187,10 @@ void TestWindow::Quit()
 
 void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 {
-	SDL_Point mousePosition = {};
-	SDL_GetMouseState(&mousePosition.x, &mousePosition.y);
+	float x, y;
+	SDL_GetMouseState(&x, &y);
+
+	SDL_Point mousePosition = { (int)x, (int)y };
 
 	SDL_Color backgroundColor = { 0x10, 0x10, 0x10, 0xFF };
 	SDL_Color highlightColor  = { 0x40, 0x40, 0x40, 0xFF };
@@ -207,15 +206,18 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 
 	auto offsetX = std::max(0, (std::max(0, (destination.w - controlsSize)) / 2));
 
+	SDL_FRect destinationF;
+	SDL_RectToFRect(&destination, &destinationF);
+
 	SDL_SetRenderDrawColor(TestWindow::renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
-	SDL_RenderFillRect(TestWindow::renderer, &destination);
+	SDL_RenderFillRect(TestWindow::renderer, &destinationF);
 
 	int lineY      = (destination.y + padding5);
 	int lineHeight = (destination.h - padding10);
 
 	if (!TestWindow::buttons.empty()) {
 		SDL_SetRenderDrawColor(TestWindow::renderer, lineColor.r, lineColor.g, lineColor.b, lineColor.a);
-		SDL_RenderDrawLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
+		SDL_RenderLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
 	}
 
 	offsetX += padding10;
@@ -225,21 +227,30 @@ void TestWindow::RenderControls(const SDL_Rect& destination, float dpiScale)
 		button->highlightArea = { (button->background.x - padding5), lineY, (button->background.w + padding10), lineHeight };
 
 		#if defined _linux || defined _macosx || defined _windows
-		if (button->enabled && SDL_PointInRect(&mousePosition, &button->highlightArea)) {
+		if (button->enabled && SDL_PointInRect(&mousePosition, &button->highlightArea))
+		{
+			SDL_FRect highlightF;
+			SDL_RectToFRect(&button->highlightArea, &highlightF);
+
 			SDL_SetRenderDrawColor(TestWindow::renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
-			SDL_RenderFillRect(TestWindow::renderer, &button->highlightArea);
+			SDL_RenderFillRect(TestWindow::renderer, &highlightF);
 		}
 		#endif
 
 		button->background = { offsetX, (lineY + ((lineHeight - button->size.y) / 2)), button->size.x, button->size.y };
 
 		if (button->texture)
-			SDL_RenderCopy(TestWindow::renderer, button->texture, nullptr, &button->background);
+		{
+			SDL_FRect backgroundF;
+			SDL_RectToFRect(&button->background, &backgroundF);
+
+			SDL_RenderTexture(TestWindow::renderer, button->texture, nullptr, &backgroundF);
+		}
 
 		offsetX += (button->background.w + padding10);
 
 		SDL_SetRenderDrawColor(TestWindow::renderer, lineColor.r, lineColor.g, lineColor.b, lineColor.a);
-		SDL_RenderDrawLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
+		SDL_RenderLine(TestWindow::renderer, offsetX, lineY, offsetX, (lineY + lineHeight));
 
 		offsetX += padding10;
 	}

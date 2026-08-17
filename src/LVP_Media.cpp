@@ -4,10 +4,10 @@ double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext, LibFF
 {
 	auto pts = (double)frame->best_effort_timestamp;
 
-	if (audioContext->stream->start_time != AV_NOPTS_VALUE)
-		pts -= (double)audioContext->stream->start_time;
+	if (audioContext->avStream->start_time != AV_NOPTS_VALUE)
+		pts -= (double)audioContext->avStream->start_time;
 
-	pts *= LibFFmpeg::av_q2d(audioContext->stream->time_base);
+	pts *= LibFFmpeg::av_q2d(audioContext->avStream->time_base);
 
 	if (pts < 0)
 		pts = (audioContext->lastPogress + audioContext->packetDuration);
@@ -342,13 +342,13 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	result = LibFFmpeg::sws_scale_frame(contextRGB, frameRGB, frame);
 
 	if (result > 0)
-		thumbnail = SDL_CreateRGBSurfaceWithFormat(0, frame->width, frame->height, 32, SDL_PIXELFORMAT_RGBA32);
+		thumbnail = SDL_CreateSurface(frame->width, frame->height, SDL_PIXELFORMAT_RGBA32);
 
 	if (thumbnail != NULL)
 	{
 		thumbnail->pitch = frameRGB->linesize[0];
 
-		auto size = (size_t)(frame->height * frame->width * thumbnail->format->BytesPerPixel);
+		auto size = (size_t)(frame->height * frame->width * SDL_BYTESPERPIXEL(thumbnail->format));
 
 		std::memcpy(thumbnail->pixels, frameRGB->data[0], size);
 	}
@@ -572,7 +572,7 @@ double MediaPlayer::LVP_Media::GetVideoPTS(LVP_VideoContext* videoContext, int64
 	if (startTime != AV_NOPTS_VALUE)
 		pts -= (double)startTime;
 
-	pts *= LibFFmpeg::av_q2d(videoContext->stream->time_base);
+	pts *= LibFFmpeg::av_q2d(videoContext->avStream->time_base);
 
 	return pts;
 }
@@ -685,19 +685,16 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 
 	if (IS_VIDEO(stream->codecpar->codec_type))
 	{
-		auto hwConfig = LVP_Media::getHardwareConfig(decoder);
+		auto videoContext = static_cast<LVP_VideoContext*>(mediaContext);
+		auto hwConfig     = LVP_Media::getHardwareConfig(decoder);
 
-		if (hwConfig != NULL)
+		if ((hwConfig != NULL) &&
+			(LibFFmpeg::av_hwdevice_ctx_create(&videoContext->hwDeviceContext, hwConfig->device_type, "auto", NULL, 0) == 0))
 		{
-			LibFFmpeg::AVBufferRef* hwDeviceContext = NULL;
+			videoContext->hwPixelFormat = hwConfig->pix_fmt;
 
-			if (LibFFmpeg::av_hwdevice_ctx_create(&hwDeviceContext, hwConfig->device_type, "auto", NULL, 0) == 0)
-			{
-				codec->get_format    = LVP_Media::getHardwarePixelFormat;
-				codec->hw_device_ctx = LibFFmpeg::av_buffer_ref(hwDeviceContext);
-
-				static_cast<LVP_VideoContext*>(mediaContext)->hardwareFormat = hwConfig->pix_fmt;
-			}
+			codec->get_format    = LVP_Media::getHardwarePixelFormat;
+			codec->hw_device_ctx = LibFFmpeg::av_buffer_ref(videoContext->hwDeviceContext);
 		}
 	}
 
@@ -705,23 +702,22 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 
 	LibFFmpeg::av_dict_set(&options, "threads", threads, 0);
 
-	if (LibFFmpeg::avcodec_open2(codec, decoder, &options) < 0)
-	{
-		FREE_AVCODEC(codec);
-		FREE_AVDICT(options);
-
-		return;
-	}
+	auto openResult = LibFFmpeg::avcodec_open2(codec, decoder, &options);
 
 	FREE_AVDICT(options);
+
+	if (openResult < 0) {
+		FREE_AVCODEC(codec);
+		return;
+	}
 
 	stream->discard = LibFFmpeg::AVDISCARD_DEFAULT;
 
 	bool isSubsExternal = (extSubFileIndex >= 0);
 
-	mediaContext->codec  = codec;
-	mediaContext->index  = (stream->index + (isSubsExternal ? ((extSubFileIndex + 1) * SUB_STREAM_EXTERNAL) : 0)),
-	mediaContext->stream = stream;
+	mediaContext->codec     = codec;
+	mediaContext->index    = (stream->index + (isSubsExternal ? ((extSubFileIndex + 1) * SUB_STREAM_EXTERNAL) : 0)),
+	mediaContext->avStream = stream;
 
 	if (codec->pix_fmt != LibFFmpeg::AV_PIX_FMT_NONE)
 		return;

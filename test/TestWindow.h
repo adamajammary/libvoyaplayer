@@ -24,7 +24,7 @@ public:
     static SDL_Rect      GetDimensions();
     static SDL_FPoint    GetDPIScale();
     static SDL_Renderer* GetRenderer();
-    static void          Init(int width, int height, const char* basePath);
+    static void          Init(int width, int height, const std::string& basePath);
     static void          Quit();
     static void          RenderControls(const SDL_Rect& destination, float dpiScale);
     static void          UpdateButton(TestButtonId id, const std::string& label);
@@ -35,7 +35,7 @@ private:
     static void initButtons();
 
     #if defined _linux || defined _macosx || defined _windows
-    static void initIcon(const char* basePath);
+    static void initIcon(const std::string& basePath);
     #endif
 
 };

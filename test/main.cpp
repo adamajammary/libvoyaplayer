@@ -2,9 +2,9 @@
 
 #include "main.h"
 
-char*       BASE_PATH  = nullptr;
+std::string BASE_PATH  = "";
 bool        QUIT       = false;
-const char* VIDEO_FILE = "caminandes_3_llamigos_2016_240p.mp4";
+std::string VIDEO_FILE = "caminandes_3_llamigos_2016_240p.mp4";
 
 #if defined _android
 static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environment)
@@ -19,7 +19,7 @@ static jclass getAndroidJniClass(const std::string& classPath, JNIEnv* environme
 
 static JNIEnv* getAndroidJniEnvironment()
 {
-    auto jniEnvironment = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    auto jniEnvironment = (JNIEnv*)SDL_GetAndroidJNIEnv();
 
     if (!jniEnvironment)
         throw std::runtime_error("Failed to get a valid Android JNI Environment.");
@@ -30,7 +30,7 @@ static JNIEnv* getAndroidJniEnvironment()
 static AAssetManager* getAndroidJniAssetManager()
 {
 	auto jniEnvironment    = getAndroidJniEnvironment();
-	auto jniObjectActivity = (jobject)SDL_AndroidGetActivity();
+	auto jniObjectActivity = (jobject)SDL_GetAndroidActivity();
 
 	if (!jniObjectActivity)
 		throw std::runtime_error("Failed to get a valid Android JNI Activity.");
@@ -60,10 +60,12 @@ static AAssetManager* getAndroidJniAssetManager()
 
 static void initBasePath()
 {
-    BASE_PATH = SDL_GetPrefPath(nullptr, nullptr);
+    auto prefPath = SDL_GetPrefPath(nullptr, nullptr);
 
-	if (!BASE_PATH)
-		throw std::runtime_error("Failed to get an app-specific location where files can be written.");
+    if (!prefPath)
+        throw std::runtime_error("Failed to get an app-specific location where files can be written.");
+
+    BASE_PATH = std::string(prefPath);
 
     auto jniAssetManager = getAndroidJniAssetManager();
 	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE, AASSET_MODE_STREAMING);
@@ -72,7 +74,7 @@ static void initBasePath()
 		throw std::runtime_error(std::format("Failed to open asset: {}", VIDEO_FILE));
 
 	auto destinationPath = std::format("{}{}", BASE_PATH, VIDEO_FILE);
-	auto destinationFile = SDL_RWFromFile(destinationPath.c_str(), "w");
+	auto destinationFile = SDL_IOFromFile(destinationPath.c_str(), "w");
 
 	if (!destinationFile)
 		throw std::runtime_error(std::format("Failed to write file '{}': {}", destinationPath, SDL_GetError()));
@@ -81,18 +83,20 @@ static void initBasePath()
 	int  fileReadSize = 0;
 
 	while ((fileReadSize = AAsset_read(videoAsset, destinationBuffer, BUFSIZ)) > 0)
-		SDL_RWwrite(destinationFile, destinationBuffer, fileReadSize, 1);
+		SDL_IOwrite(destinationFile, destinationBuffer, fileReadSize, 1);
 
-	SDL_RWclose(destinationFile);
+	SDL_IOclose(destinationFile);
 	AAsset_close(videoAsset);
 }
 #else
 static void initBasePath()
 {
-    BASE_PATH = SDL_GetBasePath();
+    auto basePath = SDL_GetBasePath();
 
-    if (!BASE_PATH)
+    if (!basePath)
         throw std::runtime_error("Failed to get the runtime location.");
+
+    BASE_PATH = std::string(basePath);
 }
 #endif
 
@@ -106,11 +110,11 @@ static void handleKeyDownEvent(const SDL_KeyboardEvent& event)
     if (LVP_IsStopped())
         return;
 
-    switch (event.keysym.sym) {
-    case SDLK_LEFT: case SDLK_AUDIOREWIND:
+    switch (event.key) {
+    case SDLK_LEFT: case SDLK_MEDIA_REWIND:
         LVP_SeekBy(-TestPlayer::SeekInterval);
         break;
-    case SDLK_RIGHT: case SDLK_AUDIOFASTFORWARD:
+    case SDLK_RIGHT: case SDLK_MEDIA_FAST_FORWARD:
         LVP_SeekBy(TestPlayer::SeekInterval);
         break;
     case SDLK_PLUS: case SDLK_KP_PLUS:
@@ -126,14 +130,14 @@ static void handleKeyDownEvent(const SDL_KeyboardEvent& event)
 
 static void handleKeyUpEvent(const SDL_KeyboardEvent& event)
 {
-    switch (event.keysym.sym) {
-    case SDLK_SPACE: case SDLK_AUDIOPLAY:
+    switch (event.key) {
+    case SDLK_SPACE: case SDLK_MEDIA_PLAY:
         if (LVP_IsStopped())
             openVideo();
         else
             LVP_TogglePause();
         break;
-    case SDLK_s: case SDLK_AUDIOSTOP:
+    case SDLK_S: case SDLK_MEDIA_STOP:
         if (!LVP_IsStopped())
             LVP_Stop();
         break;
@@ -205,20 +209,6 @@ static void handleUserEvent(const SDL_UserEvent& event)
     }
 }
 
-static void handleWindowEvent(const SDL_WindowEvent& event)
-{
-    switch (event.event) {
-    case SDL_WINDOWEVENT_CLOSE:
-        QUIT = true;
-        break;
-    case SDL_WINDOWEVENT_MOVED: case SDL_WINDOWEVENT_SIZE_CHANGED:
-        LVP_Resize();
-        break;
-	default:
-        break;
-    }
-}
-
 static int getSleepTime(uint32_t frameStart)
 {
     auto maxTimePerFrame = (LVP_IsPlaying() ? 41 : 100); // 24 fps = 1000 ms / 24 = 41.67 ms
@@ -235,29 +225,32 @@ static void handleEvents()
     while (SDL_PollEvent(&event))
     {
         switch (event.type) {
-        case SDL_QUIT:
+        case SDL_EVENT_QUIT:
             QUIT = true;
             break;
-        case SDL_AUDIODEVICEADDED:
+        case SDL_EVENT_AUDIO_DEVICE_ADDED:
             LVP_AddAudioDevice(event.adevice);
             break;
-        case SDL_AUDIODEVICEREMOVED:
+        case SDL_EVENT_AUDIO_DEVICE_REMOVED:
             LVP_RemoveAudioDevice(event.adevice);
             break;
-        case SDL_KEYDOWN:
+        case SDL_EVENT_KEY_DOWN:
             handleKeyDownEvent(event.key);
             break;
-        case SDL_KEYUP:
+        case SDL_EVENT_KEY_UP:
             handleKeyUpEvent(event.key);
             break;
-        case SDL_MOUSEBUTTONUP:
+        case SDL_EVENT_MOUSE_BUTTON_UP:
             handleMouseUpEvent(event.button);
             break;
-        case SDL_WINDOWEVENT:
-            handleWindowEvent(event.window);
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            QUIT = true;
+            break;
+        case SDL_EVENT_WINDOW_MOVED: case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            LVP_Resize();
             break;
         default:
-            if (event.type >= SDL_USEREVENT)
+            if (event.type >= SDL_EVENT_USER)
                 handleUserEvent(event.user);
             break;
         }

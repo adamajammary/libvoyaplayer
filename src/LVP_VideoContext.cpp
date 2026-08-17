@@ -6,7 +6,8 @@ MediaPlayer::LVP_VideoContext::LVP_VideoContext()
 	this->frameEncoded       = NULL;
 	this->frameHardware      = NULL;
 	this->frameSoftware      = NULL;
-	this->hardwareFormat     = LibFFmpeg::AV_PIX_FMT_NONE;
+	this->hwPixelFormat      = LibFFmpeg::AV_PIX_FMT_NONE;
+	this->hwDeviceContext    = NULL;
 	this->isReadyForRender   = false;
 	this->isReadyForPresent  = false;
 	this->isSoftwareRenderer = false;
@@ -25,6 +26,7 @@ MediaPlayer::LVP_VideoContext::~LVP_VideoContext()
 	FREE_AVFRAME(this->frameEncoded);
 	FREE_AVFRAME(this->frameHardware);
 	FREE_AVFRAME(this->frameSoftware);
+	FREE_HW_DEVICE_CTX(this->hwDeviceContext);
 	FREE_SURFACE(this->surface);
 	FREE_SWS(this->scaleContext);
 	FREE_TEXTURE(this->texture);

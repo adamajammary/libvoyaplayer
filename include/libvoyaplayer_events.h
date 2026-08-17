@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#ifndef LIB_SDL2_H
-#define LIB_SDL2_H
+#ifndef LIB_SDL_H
+#define LIB_SDL_H
 	extern "C" {
-		#include <SDL2/SDL.h>
+		#include <SDL3/SDL.h>
 	}
 #endif
 
@@ -43,6 +43,12 @@ enum LVP_MediaType
 using LVP_ErrorCallback  = std::function<void(const std::string& errorMessage, const void* data)>;
 using LVP_EventsCallback = std::function<void(LVP_EventType type, const void* data)>;
 using LVP_VideoCallback  = std::function<void(SDL_Surface* videoFrame, const void* data)>;
+
+struct LVP_AudioDevice
+{
+	SDL_AudioDeviceID id   = 0;
+	std::string       name = "";
+};
 
 struct LVP_CallbackContext
 {

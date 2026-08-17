@@ -43,7 +43,7 @@ namespace LibVoyaPlayer
 			static void                          AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
 			static void                          CallbackError(const std::string& errorMessage);
 			static void                          Close();
-			static LVP_Strings                   GetAudioDevices();
+			static std::vector<LVP_AudioDevice>  GetAudioDevices();
 			static int                           GetAudioTrack();
 			static std::vector<LVP_MediaTrack>   GetAudioTracks();
 			static std::vector<LVP_MediaChapter> GetChapters();
@@ -78,7 +78,7 @@ namespace LibVoyaPlayer
 			static void                          Run(const SDL_Rect& destination = {});
 			static void                          SeekBy(int seconds);
 			static void                          SeekTo(double percent);
-			static bool                          SetAudioDevice(const std::string& device = "");
+			static bool                          SetAudioDevice(const LVP_AudioDevice& device);
 			static void                          SetMuted(bool muted = true);
 			static void                          SetPlaybackSpeed(double speed);
 			static void                          SetTrack(const LVP_MediaTrack& track);
@@ -92,11 +92,12 @@ namespace LibVoyaPlayer
 			static void                          close();
 			static void                          closeAudioContext();
 			static void                          closeAudioDevice();
+			static void                          closeAudioStream();
 			static void                          closePackets(LVP_MediaContext* context);
 			static void                          closePackets();
 			static void                          closeStream(LibFFmpeg::AVMediaType streamType);
+			static void                          closeStream(LVP_MediaContext* mediaContext);
 			static void                          closeSubContext();
-			static void                          closeThreads();
 			static void                          closeVideoContext();
 			static int                           decodeAudioFrame();
 			static void                          decodeAudioFrames();
@@ -131,7 +132,7 @@ namespace LibVoyaPlayer
 			static void                          setAudioProgress(LibFFmpeg::AVFrame* frame);
 			static void                          stop(const std::string& errorMessage = "");
 			static int                           threadAudio();
-			static void                          threadAudioCallback(void* userData, uint8_t* stream, int streamSize);
+			static void                          threadAudioCallback(void* userData, SDL_AudioStream* stream, int streamSize, int total_amount);
 			static int                           threadPackets();
 			static int                           threadSub();
 			static int                           threadVideo();

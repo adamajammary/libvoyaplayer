@@ -25,15 +25,15 @@
     #include <windows.h> // DllMain()
 #endif
 
-#ifndef LIB_SDL2_H
-#define LIB_SDL2_H
+#ifndef LIB_SDL_H
+#define LIB_SDL_H
 extern "C"
 {
-	#include <SDL2/SDL.h>
+	#include <SDL3/SDL.h>
 }
 #endif
 
-#if defined _ENABLE_LIBASS
+#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 	#ifndef LIB_ASS_H
 	#define LIB_ASS_H
 	namespace LibASS
@@ -132,12 +132,13 @@ namespace LibVoyaPlayer
 		#define FREE_AVPOINTER(p)      if (p != NULL) { LibFFmpeg::av_free(p); p = NULL; }
 		#define FREE_AVPACKET(p)       if (p != NULL) { LibFFmpeg::av_packet_free(&p); LibFFmpeg::av_free(p); p = NULL; }
 		#define FREE_AVSTREAM(s)       if (s != NULL) { s->discard = LibFFmpeg::AVDISCARD_ALL; s = NULL; }
+		#define FREE_HW_DEVICE_CTX(c)  if (c != NULL) { LibFFmpeg::av_buffer_unref(&c); c = NULL; }
 		#define FREE_RENDERER(r)       if (r != NULL) { SDL_DestroyRenderer(r); r = NULL; }
 		#define FREE_SWR(s)            if (s != NULL) { LibFFmpeg::swr_free(&s); s = NULL; }
 		#define FREE_SWS(s)            if (s != NULL) { LibFFmpeg::sws_freeContext(s); s = NULL; }
 		#define FREE_SUB_DATA(t)       if (t != NULL) { LibFFmpeg::av_freep(&t); }
 		#define FREE_SUB_FRAME(f)      if (f.num_rects > 0) { LibFFmpeg::avsubtitle_free(&f); f = {}; }
-		#define FREE_SURFACE(s)        if (s != NULL) { SDL_FreeSurface(s); s = NULL; }
+		#define FREE_SURFACE(s)        if (s != NULL) { SDL_DestroySurface(s); s = NULL; }
 		#define FREE_TEXTURE(t)        if (t != NULL) { SDL_DestroyTexture(t); t = NULL; }
 		#define FREE_THREAD(t)         if (t != NULL) { SDL_DetachThread(t); t = NULL; }
 		#define FREE_THREAD_COND(c)    if (c != NULL) { SDL_DestroyCond(c);c = NULL; }
@@ -166,9 +167,8 @@ namespace LibVoyaPlayer
 		const int    MAX_ERRORS    = 100;
 		const double MAX_SUB_DELAY = -0.1;
 
-		const int      MIN_PACKET_QUEUE_SIZE     = 25;
-		const double   MIN_SUB_TIME_TO_PTS       = 0.03;
-		const uint32_t MIN_VALID_AUDIO_DEVICE_ID = 2U;
+		const int    MIN_PACKET_QUEUE_SIZE = 25;
+		const double MIN_SUB_TIME_TO_PTS   = 0.03;
 
 		enum LVP_RGBA
 		{
@@ -186,12 +186,6 @@ namespace LibVoyaPlayer
 			LVP_THREAD_SUBTITLE,
 			LVP_THREAD_VIDEO,
 			LVP_NR_OF_THREADS
-		};
-
-		struct LVP_AudioDevice
-		{
-			std::string       device = "";
-			SDL_AudioDeviceID id     = 0;
 		};
 
 		struct LVP_AudioFilter
@@ -218,11 +212,11 @@ namespace LibVoyaPlayer
 
 		struct LVP_MediaContext
 		{
+			LibFFmpeg::AVStream*             avStream    = NULL;
 			LibFFmpeg::AVCodecContext*       codec       = NULL;
 			int                              index       = -1;
 			std::queue<LibFFmpeg::AVPacket*> packets     = {};
 			std::mutex                       packetsLock = {};
-			LibFFmpeg::AVStream*             stream      = NULL;
 		};
 
 		struct LVP_PTS

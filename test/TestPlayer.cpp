@@ -15,7 +15,7 @@ void TestPlayer::freeResources()
 	}
 
 	if (TestPlayer::videoFrame) {
-		SDL_FreeSurface(TestPlayer::videoFrame);
+		SDL_DestroySurface(TestPlayer::videoFrame);
 		TestPlayer::videoFrame = nullptr;
 	}
 
@@ -83,7 +83,7 @@ void TestPlayer::handleVideoIsAvailable(SDL_Surface* videoFrame, const void* dat
 	TestPlayer::videoLock.lock();
 
 	if (TestPlayer::videoFrame)
-		SDL_FreeSurface(TestPlayer::videoFrame);
+		SDL_DestroySurface(TestPlayer::videoFrame);
 
 	TestPlayer::videoFrame = videoFrame;
 	TestPlayer::videoIsAvailable = true;
@@ -124,7 +124,7 @@ void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect& destination)
 	{
 		TestPlayer::texture = SDL_CreateTexture(
 			renderer,
-			TestPlayer::videoFrame->format->format,
+			TestPlayer::videoFrame->format,
 			SDL_TEXTUREACCESS_STREAMING,
 			TestPlayer::videoFrame->w,
 			TestPlayer::videoFrame->h
@@ -138,7 +138,7 @@ void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect& destination)
 	{
 		TestPlayer::videoIsAvailable = false;
 
-		if (SDL_UpdateTexture(TestPlayer::texture, nullptr, TestPlayer::videoFrame->pixels, TestPlayer::videoFrame->pitch) < 0)
+		if (!SDL_UpdateTexture(TestPlayer::texture, nullptr, TestPlayer::videoFrame->pixels, TestPlayer::videoFrame->pitch))
 			fprintf(stderr, "%s\n", SDL_GetError());
 	}
 
@@ -156,7 +156,10 @@ void TestPlayer::Render(SDL_Renderer* renderer, const SDL_Rect& destination)
 			scaledHeight
 		};
 
-		if (SDL_RenderCopy(renderer, TestPlayer::texture, nullptr, &scaledDestination) < 0)
+		SDL_FRect scaledDestinationF;
+		SDL_RectToFRect(&scaledDestination, &scaledDestinationF);
+
+		if (!SDL_RenderTexture(renderer, TestPlayer::texture, nullptr, &scaledDestinationF))
 			fprintf(stderr, "%s\n", SDL_GetError());
 	}
 

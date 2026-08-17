@@ -13,8 +13,8 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
 
     auto color    = (button->enabled ? WHITE : GRAY);
     auto size     = TestText::getSurfaceSize(button, TestText::font);
-    auto surface  = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA32);
-    auto colors   = surface->format->BytesPerPixel;
+    auto surface  = SDL_CreateSurface(size.x, size.y, SDL_PIXELFORMAT_RGBA32);
+    auto colors   = SDL_BYTESPERPIXEL(surface->format);
     auto pixels   = (uint8_t*)surface->pixels;
     auto position = SDL_Point();
 
@@ -67,7 +67,7 @@ SDL_Point TestText::getSurfaceSize(TestButton* button, LibFT::FT_Face font)
     return size;
 }
 
-void TestText::Init(const char* basePath)
+void TestText::Init(const std::string& basePath)
 {
     auto ftError = LibFT::FT_Init_FreeType(&TestText::library);
 
