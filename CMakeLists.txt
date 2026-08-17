@@ -283,9 +283,9 @@ if (BUILD_TEST)
             MACOSX_BUNDLE_COPYRIGHT            "(c) 2021 Adam A. Jammary (Jammary Studio)"
             MACOSX_BUNDLE_GUI_IDENTIFIER       "com.libvoyaplayer.test"
             MACOSX_BUNDLE_ICON_FILE            "icon"
-            MACOSX_BUNDLE_BUNDLE_VERSION       "1.0.0"
-            MACOSX_BUNDLE_LONG_VERSION_STRING  "1.0.0"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0.0"
+            MACOSX_BUNDLE_BUNDLE_VERSION       "1.6.1"
+            MACOSX_BUNDLE_LONG_VERSION_STRING  "1.6.1"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.6.1"
         )
     elseif (WIN32)
         set_property(TARGET testvoyaplayer PROPERTY LINK_FLAGS_DEBUG   "-SUBSYSTEM:CONSOLE,5.02")
