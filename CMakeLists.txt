@@ -90,7 +90,7 @@ else()
     set(EXT_LIB_SWS  libswscale.so.10)
     set(EXT_LIB_AV1  libdav1d.so.7)
     set(EXT_LIB_ASS  libass.so.9)
-    set(EXT_LIB_SDL  libSDL3.so.0.4.14)
+    set(EXT_LIB_SDL  libSDL3.so.0)
 endif()
 
 if (ENABLE_VIDEO_AV1_AND_SUBS_ASS)
