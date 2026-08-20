@@ -45,10 +45,16 @@ SDL_FPoint TestWindow::GetDPIScale()
 	SDL_FPoint dpiScale = { 1.0f, 1.0f };
 
 	#if defined _android
-		float dpi;
-		SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(TestWindow::window), &dpi, nullptr, nullptr);
+		// TODO: DPI Android?
 
-		dpiScale.x = (dpi / 160.0f);
+		//SDL_GetWindowSize
+		//SDL_GetWindowSizeInPixels
+
+		//SDL_GetDisplayContentScale
+		//SDL_GetWindowPixelDensity
+
+		dpiScale.x = SDL_GetWindowDisplayScale(TestWindow::window);
+		//dpiScale.x = (dpi / 160.0f);
 		dpiScale.y = dpiScale.x;
 	#else
 		auto sizeInPixels = TestWindow::GetDimensions();
