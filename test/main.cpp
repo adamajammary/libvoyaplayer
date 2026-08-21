@@ -68,7 +68,7 @@ static void initBasePath()
     BASE_PATH = std::string(prefPath);
 
     auto jniAssetManager = getAndroidJniAssetManager();
-	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE, AASSET_MODE_STREAMING);
+	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE.c_str(), AASSET_MODE_STREAMING);
 
 	if (!videoAsset)
 		throw std::runtime_error(std::format("Failed to open asset: {}", VIDEO_FILE));
@@ -83,9 +83,9 @@ static void initBasePath()
 	int  fileReadSize = 0;
 
 	while ((fileReadSize = AAsset_read(videoAsset, destinationBuffer, BUFSIZ)) > 0)
-		SDL_IOwrite(destinationFile, destinationBuffer, fileReadSize, 1);
+		SDL_WriteIO(destinationFile, destinationBuffer, fileReadSize, 1);
 
-	SDL_IOclose(destinationFile);
+	SDL_CloseIO(destinationFile);
 	AAsset_close(videoAsset);
 }
 #else
