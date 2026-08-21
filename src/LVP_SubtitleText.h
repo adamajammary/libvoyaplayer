@@ -1,4 +1,4 @@
-#if defined _ENABLE_LIBASS
+#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 
 #ifndef LVP_MAIN_H
 	#include "main.h"
@@ -18,10 +18,10 @@ namespace LibVoyaPlayer
 			~LVP_SubtitleText() {}
 
 		private:
-			static LibASS::ASS_Library*  library;
-			static LibASS::ASS_Renderer* renderer;
-			static LibASS::ASS_Track*    track;
-			static std::mutex            trackLock;
+			static ASS_Library*  library;
+			static ASS_Renderer* renderer;
+			static ASS_Track*    track;
+			static std::mutex    trackLock;
 
 		public:
 			static void Init(LVP_SubtitleContext* subContext);
@@ -31,8 +31,8 @@ namespace LibVoyaPlayer
 			static void Render(SDL_Surface* surface, double progress);
 
 		private:
-			static LibASS::ASS_Image* create(double progress);
-			static void               render(LibASS::ASS_Image* image, SDL_Surface* surface);
+			static ASS_Image* create(double progress);
+			static void       render(ASS_Image* image, SDL_Surface* surface);
 		};
 	}
 }

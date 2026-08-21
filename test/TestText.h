@@ -12,8 +12,8 @@ private:
     ~TestText() {}
 
 private:
-    static LibFT::FT_Face    font;
-    static LibFT::FT_Library library;
+    static FT_Face    font;
+    static FT_Library library;
 
 public:
     static SDL_Surface* GetSurface(TestButton* button);
@@ -21,7 +21,7 @@ public:
     static void         Quit();
 
 private:
-    static SDL_Point getSurfaceSize(TestButton* button, LibFT::FT_Face font);
+    static SDL_Point getSurfaceSize(TestButton* button, FT_Face font);
 };
 
 #endif

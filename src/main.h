@@ -36,33 +36,27 @@ extern "C"
 #if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 	#ifndef LIB_ASS_H
 	#define LIB_ASS_H
-	namespace LibASS
+	extern "C"
 	{
-		extern "C"
-		{
-			#include <ass/ass.h>
-		}
+		#include <ass/ass.h>
 	}
 	#endif
 #endif
 
 #ifndef LIB_FFMPEG_H
 #define LIB_FFMPEG_H
-namespace LibFFmpeg
+extern "C"
 {
-	extern "C"
-	{
-		#include <libavcodec/avcodec.h>
-		#include <libavfilter/avfilter.h>
-		#include <libavfilter/buffersink.h>
-		#include <libavfilter/buffersrc.h>
-		#include <libavformat/avformat.h>
-		#include <libavutil/imgutils.h>
-		#include <libavutil/opt.h>
-		#include <libavutil/time.h>
-		#include <libswresample/swresample.h>
-		#include <libswscale/swscale.h>
-	}
+	#include <libavcodec/avcodec.h>
+	#include <libavfilter/avfilter.h>
+	#include <libavfilter/buffersink.h>
+	#include <libavfilter/buffersrc.h>
+	#include <libavformat/avformat.h>
+	#include <libavutil/imgutils.h>
+	#include <libavutil/opt.h>
+	#include <libavutil/time.h>
+	#include <libswresample/swresample.h>
+	#include <libswscale/swscale.h>
 }
 #endif
 
@@ -96,11 +90,10 @@ namespace LibVoyaPlayer
 		#define LOG(x, ...) SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, x, ##__VA_ARGS__);
 	#endif
 
-	#define FREE_POINTER(p) if (p != NULL) { std::free(p); p = NULL; }
-
 	const int DEFAULT_CHAR_BUFFER_SIZE = 1024;
 
-	using LVP_Strings = std::vector<std::string>;
+	using LVP_MapStrStr = std::map<std::string, std::string>;
+	using LVP_Strings   = std::vector<std::string>;
 
 	namespace System
 	{
@@ -121,39 +114,40 @@ namespace LibVoyaPlayer
 		#define ARE_EQUAL_DOUBLES(a, b) ((a > (b - 0.01)) && (a < (b + 0.01)))
 		#define DELETE_POINTER(p)       if (p != NULL) { delete p; p = NULL; }
 
-		#define FREE_ASS_LIBRARY(l)    if (l != NULL) { LibASS::ass_library_done(l); l = NULL; }
-		#define FREE_ASS_RENDERER(r)   if (r != NULL) { LibASS::ass_renderer_done(r); r = NULL; }
-		#define FREE_ASS_TRACK(t)      if (t != NULL) { LibASS::ass_free_track(t); t = NULL; }
-		#define FREE_AVCODEC(c)        if (c != NULL) { LibFFmpeg::avcodec_free_context(&c); c = NULL; }
-		#define FREE_AVDICT(d)         if (d != NULL) { LibFFmpeg::av_dict_free(&d); d = NULL; }
-		#define FREE_AVFILTER_GRAPH(g) if (g != NULL) { LibFFmpeg::avfilter_graph_free(&g); }
-		#define FREE_AVFORMAT(f)       if (f != NULL) { LibFFmpeg::avformat_close_input(&f); LibFFmpeg::avformat_free_context(f); f = NULL; }
-		#define FREE_AVFRAME(f)        if (f != NULL) { LibFFmpeg::av_frame_free(&f); f = NULL; }
-		#define FREE_AVPOINTER(p)      if (p != NULL) { LibFFmpeg::av_free(p); p = NULL; }
-		#define FREE_AVPACKET(p)       if (p != NULL) { LibFFmpeg::av_packet_free(&p); LibFFmpeg::av_free(p); p = NULL; }
-		#define FREE_AVSTREAM(s)       if (s != NULL) { s->discard = LibFFmpeg::AVDISCARD_ALL; s = NULL; }
-		#define FREE_HW_DEVICE_CTX(c)  if (c != NULL) { LibFFmpeg::av_buffer_unref(&c); c = NULL; }
+		#define FREE_ASS_LIBRARY(l)    if (l != NULL) { ass_library_done(l); l = NULL; }
+		#define FREE_ASS_RENDERER(r)   if (r != NULL) { ass_renderer_done(r); r = NULL; }
+		#define FREE_ASS_TRACK(t)      if (t != NULL) { ass_free_track(t); t = NULL; }
+		#define FREE_AVCODEC(c)        if (c != NULL) { avcodec_free_context(&c); c = NULL; }
+		#define FREE_AVDICT(d)         if (d != NULL) { av_dict_free(&d); d = NULL; }
+		#define FREE_AVFILTER_GRAPH(g) if (g != NULL) { avfilter_graph_free(&g); }
+		#define FREE_AVFORMAT(f)       if (f != NULL) { avformat_close_input(&f); avformat_free_context(f); f = NULL; }
+		#define FREE_AVFRAME(f)        if (f != NULL) { av_frame_free(&f); f = NULL; }
+		#define FREE_AVPOINTER(p)      if (p != NULL) { av_free(p); p = NULL; }
+		#define FREE_AVPACKET(p)       if (p != NULL) { av_packet_free(&p); av_free(p); p = NULL; }
+		#define FREE_AVSTREAM(s)       if (s != NULL) { s->discard = AVDISCARD_ALL; s = NULL; }
+		#define FREE_HW_DEVICE_CTX(c)  if (c != NULL) { av_buffer_unref(&c); c = NULL; }
+		#define FREE_POINTER(p)        if (p != NULL) { std::free(p); p = NULL; }
 		#define FREE_RENDERER(r)       if (r != NULL) { SDL_DestroyRenderer(r); r = NULL; }
-		#define FREE_SWR(s)            if (s != NULL) { LibFFmpeg::swr_free(&s); s = NULL; }
-		#define FREE_SWS(s)            if (s != NULL) { LibFFmpeg::sws_freeContext(s); s = NULL; }
-		#define FREE_SUB_DATA(t)       if (t != NULL) { LibFFmpeg::av_freep(&t); }
-		#define FREE_SUB_FRAME(f)      if (f.num_rects > 0) { LibFFmpeg::avsubtitle_free(&f); f = {}; }
+		#define FREE_SWR(s)            if (s != NULL) { swr_free(&s); s = NULL; }
+		#define FREE_SWS(s)            if (s != NULL) { sws_freeContext(s); s = NULL; }
+		#define FREE_SUB_DATA(t)       if (t != NULL) { av_freep(&t); }
+		#define FREE_SUB_FRAME(f)      if (f.num_rects > 0) { avsubtitle_free(&f); f = {}; }
 		#define FREE_SURFACE(s)        if (s != NULL) { SDL_DestroySurface(s); s = NULL; }
 		#define FREE_TEXTURE(t)        if (t != NULL) { SDL_DestroyTexture(t); t = NULL; }
 		#define FREE_THREAD(t)         if (t != NULL) { SDL_DetachThread(t); t = NULL; }
 		#define FREE_THREAD_COND(c)    if (c != NULL) { SDL_DestroyCond(c);c = NULL; }
 		#define FREE_THREAD_MUTEX(m)   if (m != NULL) { SDL_DestroyMutex(m); m = NULL; }
 
-		#define IS_ATTACHMENT(t) (t == LibFFmpeg::AVMEDIA_TYPE_ATTACHMENT)
-		#define IS_AUDIO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_AUDIO)
+		#define IS_ATTACHMENT(t) (t == AVMEDIA_TYPE_ATTACHMENT)
+		#define IS_AUDIO(t)      (t == AVMEDIA_TYPE_AUDIO)
 		#define IS_BYTE_SEEK(i)  (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
-		#define IS_FONT(i)       ((i == LibFFmpeg::AV_CODEC_ID_TTF) || (i == LibFFmpeg::AV_CODEC_ID_OTF))
+		#define IS_FONT(i)       ((i == AV_CODEC_ID_TTF) || (i == AV_CODEC_ID_OTF))
 		#define IS_INVALID_PTS() (LVP_Player::seekRequestedBack && (LVP_Player::state.progress > LVP_Player::seekPTS))
-		#define IS_SUB(t)        (t == LibFFmpeg::AVMEDIA_TYPE_SUBTITLE)
-		#define IS_SUB_BITMAP(t) (t == LibFFmpeg::SUBTITLE_BITMAP)
-		#define IS_VIDEO(t)      (t == LibFFmpeg::AVMEDIA_TYPE_VIDEO)
+		#define IS_SUB(t)        (t == AVMEDIA_TYPE_SUBTITLE)
+		#define IS_SUB_BITMAP(t) (t == SUBTITLE_BITMAP)
+		#define IS_VIDEO(t)      (t == AVMEDIA_TYPE_VIDEO)
 
-		const int    DEFAULT_SCALE_FILTER = LibFFmpeg::SWS_POINT;
+		const int    DEFAULT_SCALE_FILTER = SWS_POINT;
 		const int    DELAY_TIME_DEFAULT   = 15;
 		const int    MEGA_BYTE            = 1024000;
 		const double ONE_SECOND_MS_D      = 1000.0;
@@ -190,33 +184,33 @@ namespace LibVoyaPlayer
 
 		struct LVP_AudioFilter
 		{
-			LibFFmpeg::AVFilterContext* bufferSink   = NULL;
-			LibFFmpeg::AVFilterContext* bufferSource = NULL;
-			LibFFmpeg::AVFilterGraph*   filterGraph  = NULL;
+			AVFilterContext* bufferSink   = NULL;
+			AVFilterContext* bufferSource = NULL;
+			AVFilterGraph*   filterGraph  = NULL;
 		};
 
 		// libavcodec/dvdsubdec.c
 		struct LVP_DVDSubContext
 		{
-			LibFFmpeg::AVClass* av_class;
-			uint32_t            palette[16];
-			char*               palette_str;
-			char*               ifo_str;
-			int                 has_palette;
-			uint8_t             colormap[4];
-			uint8_t             alpha[256];
-			uint8_t             buf[0x10000];
-			int                 buf_size;
-			int                 forced_subs_only;
+			AVClass* av_class;
+			uint32_t palette[16];
+			char*    palette_str;
+			char*    ifo_str;
+			int      has_palette;
+			uint8_t  colormap[4];
+			uint8_t  alpha[256];
+			uint8_t  buf[0x10000];
+			int      buf_size;
+			int      forced_subs_only;
 		};
 
 		struct LVP_MediaContext
 		{
-			LibFFmpeg::AVStream*             avStream    = NULL;
-			LibFFmpeg::AVCodecContext*       codec       = NULL;
-			int                              index       = -1;
-			std::queue<LibFFmpeg::AVPacket*> packets     = {};
-			std::mutex                       packetsLock = {};
+			AVStream*             avStream    = NULL;
+			AVCodecContext*       codec       = NULL;
+			int                   index       = -1;
+			std::queue<AVPacket*> packets     = {};
+			std::mutex            packetsLock = {};
 		};
 
 		struct LVP_PTS
@@ -233,9 +227,9 @@ namespace LibVoyaPlayer
 
 		struct LVP_SubtitleContext : LVP_MediaContext
 		{
-			LVP_Strings                 external      = {};
-			LibFFmpeg::AVFormatContext* formatContext = NULL;
-			LVP_Size                    videoSize     = {};
+			LVP_Strings      external      = {};
+			AVFormatContext* formatContext = NULL;
+			LVP_Size         videoSize     = {};
 
 			bool isEqualToVideoSize()
 			{

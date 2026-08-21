@@ -1,13 +1,13 @@
-#if defined _ENABLE_LIBASS
+#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 
 #include "LVP_SubtitleText.h"
 
-LibASS::ASS_Library*  MediaPlayer::LVP_SubtitleText::library   = NULL;
-LibASS::ASS_Renderer* MediaPlayer::LVP_SubtitleText::renderer  = NULL;
-LibASS::ASS_Track*    MediaPlayer::LVP_SubtitleText::track     = NULL;
+ASS_Library*  MediaPlayer::LVP_SubtitleText::library   = NULL;
+ASS_Renderer* MediaPlayer::LVP_SubtitleText::renderer  = NULL;
+ASS_Track*    MediaPlayer::LVP_SubtitleText::track     = NULL;
 std::mutex            MediaPlayer::LVP_SubtitleText::trackLock = {};
 
-LibASS::ASS_Image* MediaPlayer::LVP_SubtitleText::create(double progress)
+ASS_Image* MediaPlayer::LVP_SubtitleText::create(double progress)
 {
 	if (LVP_SubtitleText::track == NULL)
 		return NULL;
@@ -15,7 +15,7 @@ LibASS::ASS_Image* MediaPlayer::LVP_SubtitleText::create(double progress)
 	LVP_SubtitleText::trackLock.lock();
 
 	auto time  = (long long)(progress * ONE_SECOND_MS_D);
-	auto image = LibASS::ass_render_frame(LVP_SubtitleText::renderer, LVP_SubtitleText::track, time, NULL);
+	auto image = ass_render_frame(LVP_SubtitleText::renderer, LVP_SubtitleText::track, time, NULL);
 
 	LVP_SubtitleText::trackLock.unlock();
 
@@ -26,9 +26,9 @@ void MediaPlayer::LVP_SubtitleText::Init(LVP_SubtitleContext* subContext)
 {
 	LVP_SubtitleText::Quit();
 
-	LVP_SubtitleText::library  = LibASS::ass_library_init();
-	LVP_SubtitleText::renderer = LibASS::ass_renderer_init(LVP_SubtitleText::library);
-	LVP_SubtitleText::track    = LibASS::ass_new_track(LVP_SubtitleText::library);
+	LVP_SubtitleText::library  = ass_library_init();
+	LVP_SubtitleText::renderer = ass_renderer_init(LVP_SubtitleText::library);
+	LVP_SubtitleText::track    = ass_new_track(LVP_SubtitleText::library);
 
 	for (uint32_t i = 0; i < subContext->formatContext->nb_streams; i++)
 	{
@@ -37,18 +37,18 @@ void MediaPlayer::LVP_SubtitleText::Init(LVP_SubtitleContext* subContext)
 		if (!LVP_Media::IsStreamWithFontAttachments(stream))
 			continue;
 
-		auto fontName = LibFFmpeg::av_dict_get(stream->metadata, "filename", NULL, 0);
+		auto fontName = av_dict_get(stream->metadata, "filename", NULL, 0);
 
 		if ((fontName != NULL) && (fontName->value != NULL))
-			LibASS::ass_add_font(LVP_SubtitleText::library, fontName->value, (const char*)stream->codecpar->extradata, stream->codecpar->extradata_size);
+			ass_add_font(LVP_SubtitleText::library, fontName->value, (const char*)stream->codecpar->extradata, stream->codecpar->extradata_size);
 	}
 
-	LibASS::ass_set_fonts(LVP_SubtitleText::renderer, NULL, "sans-serif", LibASS::ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
+	ass_set_fonts(LVP_SubtitleText::renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
 
-	LibASS::ass_set_frame_size(LVP_SubtitleText::renderer,   subContext->videoSize.width, subContext->videoSize.height);
-	LibASS::ass_set_storage_size(LVP_SubtitleText::renderer, subContext->videoSize.width, subContext->videoSize.height);
+	ass_set_frame_size(LVP_SubtitleText::renderer,   subContext->videoSize.width, subContext->videoSize.height);
+	ass_set_storage_size(LVP_SubtitleText::renderer, subContext->videoSize.width, subContext->videoSize.height);
 
-	LibASS::ass_process_codec_private(LVP_SubtitleText::track, (const char*)subContext->codec->extradata, subContext->codec->extradata_size);
+	ass_process_codec_private(LVP_SubtitleText::track, (const char*)subContext->codec->extradata, subContext->codec->extradata_size);
 }
 
 void MediaPlayer::LVP_SubtitleText::ProcessEvent(LVP_Subtitle* subtitle)
@@ -61,7 +61,7 @@ void MediaPlayer::LVP_SubtitleText::ProcessEvent(LVP_Subtitle* subtitle)
 
 	LVP_SubtitleText::trackLock.lock();
 
-	LibASS::ass_process_chunk(LVP_SubtitleText::track, subtitle->dialogue.c_str(), (int)subtitle->dialogue.size(), start, duration);
+	ass_process_chunk(LVP_SubtitleText::track, subtitle->dialogue.c_str(), (int)subtitle->dialogue.size(), start, duration);
 
 	LVP_SubtitleText::trackLock.unlock();
 }
@@ -78,7 +78,7 @@ void MediaPlayer::LVP_SubtitleText::Quit()
 void MediaPlayer::LVP_SubtitleText::Remove()
 {
 	if (LVP_SubtitleText::track != NULL)
-		LibASS::ass_flush_events(LVP_SubtitleText::track);
+		ass_flush_events(LVP_SubtitleText::track);
 }
 
 void MediaPlayer::LVP_SubtitleText::Render(SDL_Surface* surface, double progress)
@@ -88,7 +88,7 @@ void MediaPlayer::LVP_SubtitleText::Render(SDL_Surface* surface, double progress
 	LVP_SubtitleText::render(image, surface);
 }
 
-void MediaPlayer::LVP_SubtitleText::render(LibASS::ASS_Image* image, SDL_Surface* surface)
+void MediaPlayer::LVP_SubtitleText::render(ASS_Image* image, SDL_Surface* surface)
 {
 	while (image != NULL)
 	{

@@ -10,7 +10,7 @@ MediaPlayer::LVP_PlayerState::LVP_PlayerState()
 	this->isPaused      = false;
 	this->isPlaying     = false;
 	this->isStopped     = true;
-	this->mediaType     = LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
+	this->mediaType     = AVMEDIA_TYPE_UNKNOWN;
 	this->openFilePath  = "";
 	this->playbackSpeed = 1.0;
 	this->progress      = 0.0;
@@ -29,7 +29,7 @@ void MediaPlayer::LVP_PlayerState::reset()
 	this->fileSize   = 0;
 	this->isPaused   = false;
 	this->isPlaying  = false;
-	this->mediaType  = LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
+	this->mediaType  = AVMEDIA_TYPE_UNKNOWN;
 	this->progress   = 0.0;
 	this->trackCount = 0;
 }

@@ -13,13 +13,10 @@
 
 #include <libvoyaplayer.h>
 
-namespace LibFT
+extern "C"
 {
-	extern "C"
-	{
-		#include <ft2build.h>
-		#include FT_FREETYPE_H
-	}
+	#include <ft2build.h>
+	#include FT_FREETYPE_H
 }
 
 struct TestAppIcon {

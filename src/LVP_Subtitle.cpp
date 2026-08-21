@@ -1,6 +1,6 @@
 #include "LVP_Subtitle.h"
 
-MediaPlayer::LVP_Subtitle::LVP_Subtitle(const LibFFmpeg::AVSubtitleRect& frameRect, const LVP_PTS& pts)
+MediaPlayer::LVP_Subtitle::LVP_Subtitle(const AVSubtitleRect& frameRect, const LVP_PTS& pts)
 {
 	this->bitmap      = {};
 	this->dialogue    = "";
@@ -9,9 +9,9 @@ MediaPlayer::LVP_Subtitle::LVP_Subtitle(const LibFFmpeg::AVSubtitleRect& frameRe
 	this->type        = frameRect.type;
 
 	switch (this->type) {
-		case LibFFmpeg::SUBTITLE_BITMAP: this->bitmap   = frameRect; break;
-		case LibFFmpeg::SUBTITLE_ASS:    this->dialogue = frameRect.ass; break;
-		case LibFFmpeg::SUBTITLE_TEXT:   this->dialogue = frameRect.text; break;
+		case SUBTITLE_BITMAP: this->bitmap   = frameRect; break;
+		case SUBTITLE_ASS:    this->dialogue = frameRect.ass; break;
+		case SUBTITLE_TEXT:   this->dialogue = frameRect.text; break;
 		default: break;
 	}
 }

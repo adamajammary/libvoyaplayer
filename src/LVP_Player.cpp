@@ -3,8 +3,8 @@
 MediaPlayer::LVP_AudioContext*    MediaPlayer::LVP_Player::audioContext          = NULL;
 LVP_AudioDevice                   MediaPlayer::LVP_Player::audioDevice           = {};
 LVP_CallbackContext               MediaPlayer::LVP_Player::callbackContext       = {};
-LibFFmpeg::AVFormatContext*       MediaPlayer::LVP_Player::formatContext         = NULL;
-LibFFmpeg::AVFormatContext*       MediaPlayer::LVP_Player::formatContextExternal = NULL;
+AVFormatContext*                  MediaPlayer::LVP_Player::formatContext         = NULL;
+AVFormatContext*                  MediaPlayer::LVP_Player::formatContextExternal = NULL;
 bool                              MediaPlayer::LVP_Player::isOpening             = false;
 bool                              MediaPlayer::LVP_Player::isStopping            = false;
 std::mutex                        MediaPlayer::LVP_Player::packetLock            = {};
@@ -105,9 +105,9 @@ void MediaPlayer::LVP_Player::close()
 
 	LVP_Player::closePackets();
 
-	LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
-	LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
-	LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_VIDEO);
+	LVP_Player::closeStream(AVMEDIA_TYPE_AUDIO);
+	LVP_Player::closeStream(AVMEDIA_TYPE_SUBTITLE);
+	LVP_Player::closeStream(AVMEDIA_TYPE_VIDEO);
 
 	LVP_Player::closeAudioContext();
 	LVP_Player::closeSubContext();
@@ -170,12 +170,12 @@ void MediaPlayer::LVP_Player::closePackets()
 	LVP_Player::closePackets(LVP_Player::videoContext);
 }
 
-void MediaPlayer::LVP_Player::closeStream(LibFFmpeg::AVMediaType streamType)
+void MediaPlayer::LVP_Player::closeStream(AVMediaType streamType)
 {
 	switch (streamType) {
-		case LibFFmpeg::AVMEDIA_TYPE_AUDIO:    LVP_Player::closeStream(LVP_Player::audioContext); break;
-		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE: LVP_Player::closeStream(LVP_Player::subContext);   break;
-		case LibFFmpeg::AVMEDIA_TYPE_VIDEO:    LVP_Player::closeStream(LVP_Player::videoContext); break;
+		case AVMEDIA_TYPE_AUDIO:    LVP_Player::closeStream(LVP_Player::audioContext); break;
+		case AVMEDIA_TYPE_SUBTITLE: LVP_Player::closeStream(LVP_Player::subContext);   break;
+		case AVMEDIA_TYPE_VIDEO:    LVP_Player::closeStream(LVP_Player::videoContext); break;
 		default: break;
 	}
 }
@@ -195,7 +195,7 @@ void MediaPlayer::LVP_Player::closeSubContext()
 {
 	LVP_SubtitleBitmap::Remove();
 
-	#if defined _ENABLE_LIBASS
+	#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 		LVP_SubtitleText::Remove();
 		LVP_SubtitleText::Quit();
 	#endif
@@ -218,11 +218,11 @@ int MediaPlayer::LVP_Player::decodeAudioFrame()
 	if (frame == NULL)
 		return -1;
 
-	auto bufferSize = LibFFmpeg::av_samples_get_buffer_size(
+	auto bufferSize = av_samples_get_buffer_size(
 		NULL,
 		frame->ch_layout.nb_channels,
 		frame->nb_samples,
-		(LibFFmpeg::AVSampleFormat)frame->format,
+		(AVSampleFormat)frame->format,
 		1
 	);
 
@@ -271,9 +271,9 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		LVP_Player::packetLock.lock();
 
-		auto frame = LibFFmpeg::av_frame_alloc();
+		auto frame = av_frame_alloc();
 
-		result = LibFFmpeg::avcodec_receive_frame(LVP_Player::audioContext->codec, frame);
+		result = avcodec_receive_frame(LVP_Player::audioContext->codec, frame);
 
 		LVP_Player::packetLock.unlock();
 
@@ -291,7 +291,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 			LVP_Player::audioContext->filterSpecs = LVP_AudioSpecs(frame, LVP_Player::state.playbackSpeed);
 		}
 
-		result = LibFFmpeg::av_buffersrc_add_frame(LVP_Player::audioContext->filter.bufferSource, frame);
+		result = av_buffersrc_add_frame(LVP_Player::audioContext->filter.bufferSource, frame);
 
 		if (result < 0) {
 			FREE_AVFRAME(frame);
@@ -302,7 +302,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		while (result >= 0)
 		{
-			result = LibFFmpeg::av_buffersink_get_frame(LVP_Player::audioContext->filter.bufferSink, frame);
+			result = av_buffersink_get_frame(LVP_Player::audioContext->filter.bufferSink, frame);
 
 			if (result >= 0)
 				isFrameFiltered = true;
@@ -331,7 +331,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 	{
 		#if defined _DEBUG
 			char strerror[AV_ERROR_MAX_STRING_SIZE];
-			LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+			av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 			LOG("AUDIO_DECODE_FRAME: %s\n", strerror);
 		#endif
 
@@ -341,17 +341,17 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 	{
 		LVP_Player::packetLock.lock();
 
-		LibFFmpeg::avcodec_flush_buffers(LVP_Player::audioContext->codec);
+		avcodec_flush_buffers(LVP_Player::audioContext->codec);
 
 		LVP_Player::packetLock.unlock();
 	}
 }
 
-void MediaPlayer::LVP_Player::decodeAudioPacket(LibFFmpeg::AVPacket* packet)
+void MediaPlayer::LVP_Player::decodeAudioPacket(AVPacket* packet)
 {
 	LVP_Player::packetLock.lock();
 
-	auto result = LibFFmpeg::avcodec_send_packet(LVP_Player::audioContext->codec, packet);
+	auto result = avcodec_send_packet(LVP_Player::audioContext->codec, packet);
 
 	LVP_Player::packetLock.unlock();
 
@@ -359,7 +359,7 @@ void MediaPlayer::LVP_Player::decodeAudioPacket(LibFFmpeg::AVPacket* packet)
 	{
 		#if defined _DEBUG
 			char strerror[AV_ERROR_MAX_STRING_SIZE];
-			LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+			av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 			LOG("AUDIO_SEND_PACKET: %s\n", strerror);
 		#endif
 	}
@@ -378,9 +378,9 @@ std::vector<LVP_AudioDevice> MediaPlayer::LVP_Player::GetAudioDevices()
 	return devices;
 }
 
-LibFFmpeg::AVFrame* MediaPlayer::LVP_Player::getAudioFrame()
+AVFrame* MediaPlayer::LVP_Player::getAudioFrame()
 {
-	LibFFmpeg::AVFrame* frame = NULL;
+	AVFrame* frame = NULL;
 
 	LVP_Player::audioContext->framesLock.lock();
 
@@ -406,9 +406,9 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks()
 	return LVP_Player::getAudioTracks(LVP_Player::formatContext);
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getAudioTracks(LibFFmpeg::AVFormatContext* formatContext)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getAudioTracks(AVFormatContext* formatContext)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_AUDIO, formatContext);
+	return LVP_Player::getMediaTracks(AVMEDIA_TYPE_AUDIO, formatContext);
 }
 
 std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
@@ -416,7 +416,7 @@ std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
 	return LVP_Player::getChapters(LVP_Player::formatContext);
 }
 
-std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::getChapters(LibFFmpeg::AVFormatContext* formatContext)
+std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::getChapters(AVFormatContext* formatContext)
 {
 	if (formatContext == NULL)
 		return {};
@@ -434,10 +434,10 @@ std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::getChapters(LibFFmpeg::AV
 
 		lastChapterEnd = chapter->end;
 
-		auto timeBase = LibFFmpeg::av_q2d(chapter->time_base);
+		auto timeBase = av_q2d(chapter->time_base);
 		auto end      = (int64_t)((double)chapter->end   * timeBase * ONE_SECOND_MS_D);
 		auto start    = (int64_t)((double)chapter->start * timeBase * ONE_SECOND_MS_D);
-		auto title    = LibFFmpeg::av_dict_get(chapter->metadata, "title", NULL, 0);
+		auto title    = av_dict_get(chapter->metadata, "title", NULL, 0);
 
 		chapters.push_back({
 			.title     = (title ? std::string(title->value) : ""),
@@ -485,7 +485,7 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string& fil
 	if (formatContext == NULL)
 		return {};
 
-	auto audioStream = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+	auto audioStream = LVP_Media::GetMediaTrackBest(formatContext, AVMEDIA_TYPE_AUDIO);
 	auto mediaType   = LVP_Media::GetMediaType(formatContext);
 	auto extSubFiles = (IS_VIDEO(mediaType) ? System::LVP_FileSystem::GetSubtitleFilesForVideo(filePath) : LVP_Strings());
 
@@ -507,9 +507,9 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(const std::string& fil
 	return details;
 }
 
-LibFFmpeg::AVPacket* MediaPlayer::LVP_Player::getMediaPacket(LVP_MediaContext* context)
+AVPacket* MediaPlayer::LVP_Player::getMediaPacket(LVP_MediaContext* context)
 {
-	LibFFmpeg::AVPacket* packet = NULL;
+	AVPacket* packet = NULL;
 
 	context->packetsLock.lock();
 
@@ -528,7 +528,7 @@ LibFFmpeg::AVPacket* MediaPlayer::LVP_Player::getMediaPacket(LVP_MediaContext* c
 
 		LVP_Player::packetLock.lock();
 
-		LibFFmpeg::avcodec_flush_buffers(context->codec);
+		avcodec_flush_buffers(context->codec);
 
 		LVP_Player::packetLock.unlock();
 	}
@@ -558,7 +558,7 @@ SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail(const std::string& fileP
 	return thumbnail;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::AVMediaType mediaType, LibFFmpeg::AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(AVMediaType mediaType, AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
 {
 	// INTERNAL MEDIA TRACKS
 
@@ -572,7 +572,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::A
 	for (int i = 0; i < (int)extSubFiles.size(); i++)
 	{
 		auto extFormatContext = LVP_Media::GetMediaFormatContext(extSubFiles[i], true);
-		auto extSubTracks     = LVP_Player::getMediaTracksMeta(extFormatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, i);
+		auto extSubTracks     = LVP_Player::getMediaTracksMeta(extFormatContext, AVMEDIA_TYPE_SUBTITLE, i);
 
 		if (!extSubTracks.empty())
 			tracks.insert(tracks.end(), extSubTracks.begin(), extSubTracks.end());
@@ -599,7 +599,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(LibFFmpeg::A
 	return tracks;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, int extSubFileIndex)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracksMeta(AVFormatContext* formatContext, AVMediaType mediaType, int extSubFileIndex)
 {
 	if (formatContext == NULL)
 		return {};
@@ -667,9 +667,9 @@ LVP_MediaType MediaPlayer::LVP_Player::GetMediaType(const std::string& filePath)
 	return mediaType;
 }
 
-LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
+AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
 {
-	return (LVP_Player::videoContext != NULL ? LVP_Player::videoContext->hwPixelFormat : LibFFmpeg::AV_PIX_FMT_NONE);
+	return (LVP_Player::videoContext != NULL ? LVP_Player::videoContext->hwPixelFormat : AV_PIX_FMT_NONE);
 }
 
 double MediaPlayer::LVP_Player::GetPlaybackSpeed()
@@ -716,9 +716,9 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks()
 	return LVP_Player::getSubtitleTracks(LVP_Player::formatContext, extSubFiles);
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getSubtitleTracks(LibFFmpeg::AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getSubtitleTracks(AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, formatContext, extSubFiles);
+	return LVP_Player::getMediaTracks(AVMEDIA_TYPE_SUBTITLE, formatContext, extSubFiles);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks()
@@ -726,9 +726,9 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks()
 	return LVP_Player::getVideoTracks(LVP_Player::formatContext);
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getVideoTracks(LibFFmpeg::AVFormatContext* formatContext)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getVideoTracks(AVFormatContext* formatContext)
 {
-	return LVP_Player::getMediaTracks(LibFFmpeg::AVMEDIA_TYPE_VIDEO, formatContext);
+	return LVP_Player::getMediaTracks(AVMEDIA_TYPE_VIDEO, formatContext);
 }
 
 double MediaPlayer::LVP_Player::GetVolume()
@@ -768,7 +768,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 		}
 
 		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			seekPositionExternal = (int64_t)(newPosition * LibFFmpeg::av_q2d(LVP_Player::subContext->avStream->time_base));
+			seekPositionExternal = (int64_t)(newPosition * av_q2d(LVP_Player::subContext->avStream->time_base));
 
 		if (LVP_Player::seekByRequest < 0)
 			LVP_Player::seekRequestedBack = true;
@@ -781,7 +781,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 			seekPosition = (int64_t)((double)duration * seekPercent);
 
 		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			seekPositionExternal = (int64_t)((double)LVP_Player::state.duration * LibFFmpeg::av_q2d(LVP_Player::subContext->avStream->time_base) * seekPercent);
+			seekPositionExternal = (int64_t)((double)LVP_Player::state.duration * av_q2d(LVP_Player::subContext->avStream->time_base) * seekPercent);
 
 		if (seekPercent < (LVP_Player::state.progress / (double)LVP_Player::state.duration))
 			LVP_Player::seekRequestedBack = true;
@@ -799,29 +799,29 @@ void MediaPlayer::LVP_Player::handleSeek()
 	if (seekByBytes)
 		seekFlags |= AVSEEK_FLAG_BYTE;
 
-	auto result = LibFFmpeg::av_seek_frame(LVP_Player::formatContext, -1, seekPosition, seekFlags);
+	auto result = av_seek_frame(LVP_Player::formatContext, -1, seekPosition, seekFlags);
 
 	if (result >= 0)
 	{
 		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			LibFFmpeg::avformat_seek_file(LVP_Player::formatContextExternal, LVP_Player::subContext->avStream->index, INT64_MIN, seekPositionExternal, INT64_MAX, 0);
+			avformat_seek_file(LVP_Player::formatContextExternal, LVP_Player::subContext->avStream->index, INT64_MIN, seekPositionExternal, INT64_MAX, 0);
 
 		LVP_SubtitleBitmap::Remove();
 
-		#if defined _ENABLE_LIBASS
+		#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 			LVP_SubtitleText::Remove();
 		#endif
 
 		LVP_Player::closePackets();
 
 		if (LVP_Player::audioContext->index >= 0)
-			LVP_Player::audioContext->packets.push(LibFFmpeg::av_packet_alloc());
+			LVP_Player::audioContext->packets.push(av_packet_alloc());
 
 		if (LVP_Player::subContext->index >= 0)
-			LVP_Player::subContext->packets.push(LibFFmpeg::av_packet_alloc());
+			LVP_Player::subContext->packets.push(av_packet_alloc());
 
 		if (LVP_Player::videoContext->index >= 0)
-			LVP_Player::videoContext->packets.push(LibFFmpeg::av_packet_alloc());
+			LVP_Player::videoContext->packets.push(av_packet_alloc());
 
 		LVP_Player::audioContext->bufferOffset = 0;
 		LVP_Player::videoContext->pts          = 0;
@@ -838,7 +838,7 @@ void MediaPlayer::LVP_Player::handleSeek()
 	else
 	{
 		char strerror[AV_ERROR_MAX_STRING_SIZE];
-		LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+		av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 		LOG("SEEK: %s\n", strerror);
 	}
 	#endif
@@ -870,7 +870,7 @@ void MediaPlayer::LVP_Player::handleTrack()
 
 		LVP_Player::trackRequests.pop();
 
-		auto mediaType = (LibFFmpeg::AVMediaType)trackRequest.mediaType;
+		auto mediaType = (AVMediaType)trackRequest.mediaType;
 		bool isAudio   = IS_AUDIO(mediaType);
 		bool isSub     = IS_SUB(mediaType);
 
@@ -884,11 +884,11 @@ void MediaPlayer::LVP_Player::handleTrack()
 
 		if (isSub && (trackRequest.track < 0))
 		{
-			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+			LVP_Player::closeStream(AVMEDIA_TYPE_SUBTITLE);
 
 			LVP_SubtitleBitmap::Remove();
 
-			#if defined _ENABLE_LIBASS
+			#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 				LVP_SubtitleText::Remove();
 			#endif
 
@@ -899,11 +899,11 @@ void MediaPlayer::LVP_Player::handleTrack()
 		auto lastProgress = (double)(LVP_Player::state.progress / (double)LVP_Player::state.duration);
 
 		switch (mediaType) {
-		case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
+		case AVMEDIA_TYPE_AUDIO:
 			if (!isPaused)
 				LVP_Player::Pause();
 
-			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
+			LVP_Player::closeStream(AVMEDIA_TYPE_AUDIO);
 
 			LVP_Player::audioContext->free();
 
@@ -922,12 +922,12 @@ void MediaPlayer::LVP_Player::handleTrack()
 				LVP_Player::Play();
 
 			break;
-		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
-			LVP_Player::closeStream(LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
+		case AVMEDIA_TYPE_SUBTITLE:
+			LVP_Player::closeStream(AVMEDIA_TYPE_SUBTITLE);
 
 			LVP_SubtitleBitmap::Remove();
 
-			#if defined _ENABLE_LIBASS
+			#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 				LVP_SubtitleText::Remove();
 			#endif
 
@@ -955,44 +955,44 @@ void MediaPlayer::LVP_Player::handleTrack()
 /**
  * @throws runtime_error
  */
-void MediaPlayer::LVP_Player::initAudioFilter(LibFFmpeg::AVFrame* frame)
+void MediaPlayer::LVP_Player::initAudioFilter(AVFrame* frame)
 {
-	auto abuffer     = LibFFmpeg::avfilter_get_by_name("abuffer");
-	auto abuffersink = LibFFmpeg::avfilter_get_by_name("abuffersink");
-	auto aresample   = LibFFmpeg::avfilter_get_by_name("aresample");
+	auto abuffer     = avfilter_get_by_name("abuffer");
+	auto abuffersink = avfilter_get_by_name("abuffersink");
+	auto aresample   = avfilter_get_by_name("aresample");
 
-	auto filterGraph    = LibFFmpeg::avfilter_graph_alloc();
-	auto bufferSource   = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffer,     "src");
-	auto bufferSink     = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
-	auto filterResample = LibFFmpeg::avfilter_graph_alloc_filter(filterGraph, aresample,   "aresample");
+	auto filterGraph    = avfilter_graph_alloc();
+	auto bufferSource   = avfilter_graph_alloc_filter(filterGraph, abuffer,     "src");
+	auto bufferSink     = avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
+	auto filterResample = avfilter_graph_alloc_filter(filterGraph, aresample,   "aresample");
 
 	// https://ffmpeg.org/ffmpeg-filters.html#abuffer
 
 	auto inChannelLayout = LVP_AudioSpecs::getChannelLayoutName(frame->ch_layout);
-	auto inSampleFormat  = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)frame->format);
+	auto inSampleFormat  = av_get_sample_fmt_name((AVSampleFormat)frame->format);
 
-	LibFFmpeg::av_opt_set(bufferSource,     "channel_layout", inChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set(bufferSource,     "sample_fmt",     inSampleFormat,          AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set_int(bufferSource, "sample_rate",    frame->sample_rate,      AV_OPT_SEARCH_CHILDREN);
+	av_opt_set(bufferSource,     "channel_layout", inChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
+	av_opt_set(bufferSource,     "sample_fmt",     inSampleFormat,          AV_OPT_SEARCH_CHILDREN);
+	av_opt_set_int(bufferSource, "sample_rate",    frame->sample_rate,      AV_OPT_SEARCH_CHILDREN);
 
 	// https://ffmpeg.org/ffmpeg-resampler.html#Resampler-Options
 
 	auto outChannelLayout = LVP_AudioSpecs::getChannelLayoutName(LVP_AudioSpecs::getChannelLayout(LVP_Player::audioContext->deviceSpecs.channels));
-	auto outSampleFormat  = LibFFmpeg::av_get_sample_fmt_name(LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format));
+	auto outSampleFormat  = av_get_sample_fmt_name(LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format));
 	auto outSampleRate    = LVP_AudioSpecs::getSampleRate(LVP_Player::audioContext->deviceSpecs.freq, LVP_Player::state.playbackSpeed);
 
-	LibFFmpeg::av_opt_set(filterResample,     "out_chlayout",    outChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set(filterResample,     "out_sample_fmt",  outSampleFormat,          AV_OPT_SEARCH_CHILDREN);
-	LibFFmpeg::av_opt_set_int(filterResample, "out_sample_rate", outSampleRate,            AV_OPT_SEARCH_CHILDREN);
+	av_opt_set(filterResample,     "out_chlayout",    outChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
+	av_opt_set(filterResample,     "out_sample_fmt",  outSampleFormat,          AV_OPT_SEARCH_CHILDREN);
+	av_opt_set_int(filterResample, "out_sample_rate", outSampleRate,            AV_OPT_SEARCH_CHILDREN);
 
-	LibFFmpeg::avfilter_init_str(bufferSource,   NULL);
-	LibFFmpeg::avfilter_init_str(bufferSink,     NULL);
-	LibFFmpeg::avfilter_init_str(filterResample, NULL);
+	avfilter_init_str(bufferSource,   NULL);
+	avfilter_init_str(bufferSink,     NULL);
+	avfilter_init_str(filterResample, NULL);
 
-	LibFFmpeg::avfilter_link(bufferSource,   0, filterResample, 0);
-	LibFFmpeg::avfilter_link(filterResample, 0, bufferSink, 0);
+	avfilter_link(bufferSource,   0, filterResample, 0);
+	avfilter_link(filterResample, 0, bufferSink, 0);
 
-	if (LibFFmpeg::avfilter_graph_config(filterGraph, NULL) < 0)
+	if (avfilter_graph_config(filterGraph, NULL) < 0)
 		throw std::runtime_error("Failed to initialize a valid audio filter.");
 
 	FREE_AVFILTER_GRAPH(LVP_Player::audioContext->filter.filterGraph);
@@ -1004,9 +1004,9 @@ void MediaPlayer::LVP_Player::initAudioFilter(LibFFmpeg::AVFrame* frame)
 
 bool MediaPlayer::LVP_Player::isHardwarePixelFormat(int frameFormat)
 {
-	auto format = (LibFFmpeg::AVPixelFormat)frameFormat;
+	auto format = (AVPixelFormat)frameFormat;
 
-	if (format == LibFFmpeg::AV_PIX_FMT_NONE)
+	if (format == AV_PIX_FMT_NONE)
 		return false;
 
 	return (format == LVP_Player::videoContext->hwPixelFormat);
@@ -1030,10 +1030,10 @@ bool MediaPlayer::LVP_Player::IsPlaying()
 bool MediaPlayer::LVP_Player::isPacketQueueFull()
 {
 	switch (LVP_Player::state.mediaType) {
-	case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
-		return LVP_Player::isPacketQueueFull(LibFFmpeg::AVMEDIA_TYPE_AUDIO);
-	case LibFFmpeg::AVMEDIA_TYPE_VIDEO:
-		return (LVP_Player::isPacketQueueFull(LibFFmpeg::AVMEDIA_TYPE_AUDIO) && LVP_Player::isPacketQueueFull(LibFFmpeg::AVMEDIA_TYPE_VIDEO));
+	case AVMEDIA_TYPE_AUDIO:
+		return LVP_Player::isPacketQueueFull(AVMEDIA_TYPE_AUDIO);
+	case AVMEDIA_TYPE_VIDEO:
+		return (LVP_Player::isPacketQueueFull(AVMEDIA_TYPE_AUDIO) && LVP_Player::isPacketQueueFull(AVMEDIA_TYPE_VIDEO));
 	default:
 		break;
 	}
@@ -1041,14 +1041,14 @@ bool MediaPlayer::LVP_Player::isPacketQueueFull()
 	return false;
 }
 
-bool MediaPlayer::LVP_Player::isPacketQueueFull(LibFFmpeg::AVMediaType streamType)
+bool MediaPlayer::LVP_Player::isPacketQueueFull(AVMediaType streamType)
 {
 	switch (streamType) {
-	case LibFFmpeg::AVMEDIA_TYPE_AUDIO:
+	case AVMEDIA_TYPE_AUDIO:
 		return ((LVP_Player::audioContext->index >= 0) && (LVP_Player::audioContext->packets.size() >= MIN_PACKET_QUEUE_SIZE));
-	case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE:
+	case AVMEDIA_TYPE_SUBTITLE:
 		return ((LVP_Player::subContext->index >= 0) && (LVP_Player::subContext->packets.size() >= MIN_PACKET_QUEUE_SIZE));
-	case LibFFmpeg::AVMEDIA_TYPE_VIDEO:
+	case AVMEDIA_TYPE_VIDEO:
 		return ((LVP_Player::videoContext->index >= 0) && (LVP_Player::videoContext->packets.size() >= MIN_PACKET_QUEUE_SIZE));
 	default:
 		break;
@@ -1206,7 +1206,7 @@ void MediaPlayer::LVP_Player::openStreams()
 	LVP_Player::videoContext->index = -1;
 
 	// AUDIO TRACK
-	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO, LVP_Player::audioContext);
+	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_AUDIO, LVP_Player::audioContext);
 
 	if (LVP_Player::audioContext->avStream == NULL)
 		throw std::runtime_error("Failed to find a valid audio track.");
@@ -1214,7 +1214,7 @@ void MediaPlayer::LVP_Player::openStreams()
 	LVP_Player::state.duration = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext->avStream);
 
 	// VIDEO TRACK
-	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_VIDEO, LVP_Player::videoContext);
+	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_VIDEO, LVP_Player::videoContext);
 
 	if (IS_VIDEO(LVP_Player::state.mediaType))
 	{
@@ -1222,7 +1222,7 @@ void MediaPlayer::LVP_Player::openStreams()
 			throw std::runtime_error("Failed to find a valid video track.");
 
 		// SUBTITLE TRACK
-		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE, LVP_Player::subContext);
+		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_SUBTITLE, LVP_Player::subContext);
 
 		auto protocols = std::string(LVP_Player::formatContext->protocol_whitelist);
 
@@ -1329,7 +1329,7 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		LVP_Player::videoContext->codec->height
 	};
 
-	#if defined _ENABLE_LIBASS
+	#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 		LVP_SubtitleText::Init(LVP_Player::subContext);
 	#endif
 }
@@ -1375,8 +1375,8 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 
 	// FRAME
 
-	LVP_Player::videoContext->frameHardware = LibFFmpeg::av_frame_alloc();
-	LVP_Player::videoContext->frameSoftware = LibFFmpeg::av_frame_alloc();
+	LVP_Player::videoContext->frameHardware = av_frame_alloc();
+	LVP_Player::videoContext->frameSoftware = av_frame_alloc();
 
 	if ((LVP_Player::videoContext->frameHardware == NULL) || (LVP_Player::videoContext->frameSoftware == NULL))
 		throw std::runtime_error("Failed to allocate a video context frame.");
@@ -1446,14 +1446,14 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 	if (LVP_Player::videoContext->frameEncoded == NULL)
 	{
-		LVP_Player::videoContext->frameEncoded = LibFFmpeg::av_frame_alloc();
+		LVP_Player::videoContext->frameEncoded = av_frame_alloc();
 
-		auto result = LibFFmpeg::av_image_alloc(
+		auto result = av_image_alloc(
 			LVP_Player::videoContext->frameEncoded->data,
 			LVP_Player::videoContext->frameEncoded->linesize,
 			LVP_Player::videoContext->codec->width,
 			LVP_Player::videoContext->codec->height,
-			LibFFmpeg::AV_PIX_FMT_RGBA,
+			AV_PIX_FMT_RGBA,
 			1
 		);
 
@@ -1466,21 +1466,21 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 	LVP_Player::packetLock.lock();
 
-	auto pixelFormat = (LibFFmpeg::AVPixelFormat)LVP_Player::videoContext->frame->format;
+	auto pixelFormat = (AVPixelFormat)LVP_Player::videoContext->frame->format;
 
 	LVP_Player::packetLock.unlock();
 
-	if (pixelFormat == LibFFmpeg::AV_PIX_FMT_NONE)
+	if (pixelFormat == AV_PIX_FMT_NONE)
 		return;
 
-	LVP_Player::videoContext->scaleContext = LibFFmpeg::sws_getCachedContext(
+	LVP_Player::videoContext->scaleContext = sws_getCachedContext(
 		LVP_Player::videoContext->scaleContext,
 		LVP_Player::videoContext->codec->width,
 		LVP_Player::videoContext->codec->height,
 		pixelFormat,
 		LVP_Player::videoContext->codec->width,
 		LVP_Player::videoContext->codec->height,
-		LibFFmpeg::AV_PIX_FMT_RGBA,
+		AV_PIX_FMT_RGBA,
 		DEFAULT_SCALE_FILTER,
 		NULL,
 		NULL,
@@ -1492,7 +1492,7 @@ void MediaPlayer::LVP_Player::renderVideo()
 
 	LVP_Player::packetLock.lock();
 
-	auto scaleResult = LibFFmpeg::sws_scale_frame(
+	auto scaleResult = sws_scale_frame(
 		LVP_Player::videoContext->scaleContext,
 		LVP_Player::videoContext->frameEncoded,
 		LVP_Player::videoContext->frame
@@ -1544,7 +1544,7 @@ void MediaPlayer::LVP_Player::Run(const SDL_Rect& destination)
 
 		LVP_SubtitleBitmap::Render(LVP_Player::videoContext->surface, LVP_Player::subContext, LVP_Player::state.progress);
 		
-		#if defined _ENABLE_LIBASS
+		#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 			LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
 		#endif
 	}
@@ -1632,18 +1632,18 @@ bool MediaPlayer::LVP_Player::SetAudioDevice(const LVP_AudioDevice& device)
 	return (LVP_Player::audioDevice.id > 0);
 }
 
-void MediaPlayer::LVP_Player::setAudioPacketDuration(LibFFmpeg::AVPacket* packet)
+void MediaPlayer::LVP_Player::setAudioPacketDuration(AVPacket* packet)
 {
 	if ((packet == NULL) || (packet->duration <= 0))
 		return;
 
 	auto packetDuration = ((double)packet->duration / LVP_Player::state.playbackSpeed);
-	auto streamTimeBase = LibFFmpeg::av_q2d(LVP_Player::audioContext->avStream->time_base);
+	auto streamTimeBase = av_q2d(LVP_Player::audioContext->avStream->time_base);
 
 	LVP_Player::audioContext->packetDuration = (packetDuration * streamTimeBase);
 }
 
-void MediaPlayer::LVP_Player::setAudioProgress(LibFFmpeg::AVFrame* frame)
+void MediaPlayer::LVP_Player::setAudioProgress(AVFrame* frame)
 {
 	if (frame == NULL)
 		return;
@@ -1758,7 +1758,7 @@ int MediaPlayer::LVP_Player::threadAudio()
 			LVP_Player::audioContext->free();
 
 			auto duration = (uint32_t)(LVP_Player::audioContext->packetDuration * ONE_SECOND_MS_D);
-			auto timeBase = LibFFmpeg::av_q2d(LVP_Player::audioContext->avStream->time_base);
+			auto timeBase = av_q2d(LVP_Player::audioContext->avStream->time_base);
 
 			if (packet->pts >= 0)
 				LVP_Player::state.progress = ((double)packet->pts * timeBase);
@@ -1794,7 +1794,7 @@ void MediaPlayer::LVP_Player::threadAudioCallback(void* userData, SDL_AudioStrea
 			if (dataSize < 0)
 			{
 				auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format);
-				auto sampleSize   = LibFFmpeg::av_samples_get_buffer_size(NULL, LVP_Player::audioContext->deviceSpecs.channels, 1, sampleFormat, 1);
+				auto sampleSize   = av_samples_get_buffer_size(NULL, LVP_Player::audioContext->deviceSpecs.channels, 1, sampleFormat, 1);
 
 				FREE_POINTER(LVP_Player::audioContext->buffer);
 
@@ -1854,7 +1854,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 		// Initialize a new packet
 
-		auto packet = LibFFmpeg::av_packet_alloc();
+		auto packet = av_packet_alloc();
 
 		if (packet == NULL)
 		{
@@ -1871,7 +1871,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 		LVP_Player::packetLock.lock();
 
-		auto result = LibFFmpeg::av_read_frame(LVP_Player::formatContext, packet);
+		auto result = av_read_frame(LVP_Player::formatContext, packet);
 
 		LVP_Player::packetLock.unlock();
 
@@ -1895,7 +1895,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 			// Media file has completed (EOF) or an error occured
 
-			if ((result == AVERROR_EOF) || LibFFmpeg::avio_feof(LVP_Player::formatContext->pb))
+			if ((result == AVERROR_EOF) || avio_feof(LVP_Player::formatContext->pb))
 			{
 				if (!endOfFile) {
 					endOfFile = true;
@@ -1908,7 +1908,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 				#if defined _DEBUG
 					char strerror[AV_ERROR_MAX_STRING_SIZE];
-					LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+					av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 					LOG("PACKET_READ: %s\n", strerror);
 				#endif
 
@@ -1974,13 +1974,13 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 		if (isSubExternal && (LVP_Player::subContext->packets.size() < MIN_PACKET_QUEUE_SIZE))
 		{
-			auto packetExternal = LibFFmpeg::av_packet_alloc();
+			auto packetExternal = av_packet_alloc();
 			
 			if (packetExternal != NULL)
 			{
 				LVP_Player::packetLock.lock();
 
-				auto result = LibFFmpeg::av_read_frame(LVP_Player::formatContextExternal, packetExternal);
+				auto result = av_read_frame(LVP_Player::formatContextExternal, packetExternal);
 
 				LVP_Player::packetLock.unlock();
 
@@ -2038,7 +2038,7 @@ int MediaPlayer::LVP_Player::threadSub()
 {
 	LVP_Player::state.threads[LVP_THREAD_SUBTITLE] = true;
 
-	LibFFmpeg::AVSubtitle subFrame = {};
+	AVSubtitle subFrame = {};
 
 	while (!LVP_Player::state.quit)
 	{
@@ -2108,7 +2108,7 @@ int MediaPlayer::LVP_Player::threadSub()
 		}
 
 		int  frameDecoded;
-		auto decodeResult = LibFFmpeg::avcodec_decode_subtitle2(LVP_Player::subContext->codec, &subFrame, &frameDecoded, packet);
+		auto decodeResult = avcodec_decode_subtitle2(LVP_Player::subContext->codec, &subFrame, &frameDecoded, packet);
 
 		LVP_Player::packetLock.unlock();
 
@@ -2122,10 +2122,10 @@ int MediaPlayer::LVP_Player::threadSub()
 			break;
 
 		switch (LVP_Player::subContext->codec->codec->id) {
-		case LibFFmpeg::AV_CODEC_ID_DVD_SUBTITLE:
+		case AV_CODEC_ID_DVD_SUBTITLE:
 			LVP_SubtitleBitmap::UpdateDVDColorPalette(LVP_Player::subContext->codec->priv_data);
 			break;
-		case LibFFmpeg::AV_CODEC_ID_HDMV_PGS_SUBTITLE:
+		case AV_CODEC_ID_HDMV_PGS_SUBTITLE:
 			if (subFrame.num_rects == 0)
 				LVP_SubtitleBitmap::UpdatePGSEndPTS(LVP_Media::GetSubtitlePGSEndPTS(packet, LVP_Player::subContext->avStream->time_base));
 			break;
@@ -2178,7 +2178,7 @@ int MediaPlayer::LVP_Player::threadSub()
 			auto sub = new LVP_Subtitle(*subFrame.rects[i], framePTS);
 
 			switch (sub->type) {
-			case LibFFmpeg::SUBTITLE_BITMAP:
+			case SUBTITLE_BITMAP:
 				#if defined _DEBUG
 				if (sub->pts.end != 0.0)
 					printf("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);
@@ -2192,14 +2192,14 @@ int MediaPlayer::LVP_Player::threadSub()
 
 				LVP_SubtitleBitmap::queueLock.unlock();
 				break;
-			case LibFFmpeg::SUBTITLE_ASS:
-			case LibFFmpeg::SUBTITLE_TEXT:
+			case SUBTITLE_ASS:
+			case SUBTITLE_TEXT:
 				#if defined _DEBUG
 				if (sub->dialogue.find("\\vr") == std::string::npos)
 					printf("[%.3f,%.3f] %s\n", sub->pts.start, sub->pts.end, sub->dialogue.c_str());
 				#endif
 
-				#if defined _ENABLE_LIBASS
+				#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 					LVP_SubtitleText::ProcessEvent(sub);
 				#endif
 
@@ -2247,7 +2247,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 		LVP_Player::packetLock.lock();
 
-		auto result = LibFFmpeg::avcodec_send_packet(LVP_Player::videoContext->codec, packet);
+		auto result = avcodec_send_packet(LVP_Player::videoContext->codec, packet);
 
 		LVP_Player::packetLock.unlock();
 
@@ -2262,7 +2262,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 			#if defined _DEBUG
 				char strerror[AV_ERROR_MAX_STRING_SIZE];
-				LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+				av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 				LOG("VIDEO_SEND_PACKET: %s\n", strerror);
 			#endif
 
@@ -2278,7 +2278,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 		{
 			LVP_Player::packetLock.lock();
 
-			result = LibFFmpeg::avcodec_receive_frame(LVP_Player::videoContext->codec, LVP_Player::videoContext->frameHardware);
+			result = avcodec_receive_frame(LVP_Player::videoContext->codec, LVP_Player::videoContext->frameHardware);
 
 			LVP_Player::packetLock.unlock();
 
@@ -2291,7 +2291,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 				#if defined _DEBUG
 					char strerror[AV_ERROR_MAX_STRING_SIZE];
-					LibFFmpeg::av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+					av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
 					LOG("VIDEO_DECODE_FRAME: %s\n", strerror);
 				#endif
 
@@ -2304,7 +2304,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 			if (LVP_Player::isHardwarePixelFormat(LVP_Player::videoContext->frameHardware->format))
 			{
-				LibFFmpeg::av_hwframe_transfer_data(LVP_Player::videoContext->frameSoftware, LVP_Player::videoContext->frameHardware, 0);
+				av_hwframe_transfer_data(LVP_Player::videoContext->frameSoftware, LVP_Player::videoContext->frameHardware, 0);
 
 				LVP_Player::videoContext->frameSoftware->best_effort_timestamp = LVP_Player::videoContext->frameHardware->best_effort_timestamp;
 				LVP_Player::videoContext->frameSoftware->pts                   = LVP_Player::videoContext->frameHardware->pts;

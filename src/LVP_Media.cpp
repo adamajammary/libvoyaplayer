@@ -1,13 +1,13 @@
 #include "LVP_Media.h"
 
-double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext, LibFFmpeg::AVFrame* frame)
+double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext, AVFrame* frame)
 {
 	auto pts = (double)frame->best_effort_timestamp;
 
 	if (audioContext->avStream->start_time != AV_NOPTS_VALUE)
 		pts -= (double)audioContext->avStream->start_time;
 
-	pts *= LibFFmpeg::av_q2d(audioContext->avStream->time_base);
+	pts *= av_q2d(audioContext->avStream->time_base);
 
 	if (pts < 0)
 		pts = (audioContext->lastPogress + audioContext->packetDuration);
@@ -15,26 +15,26 @@ double MediaPlayer::LVP_Media::GetAudioPTS(LVP_AudioContext* audioContext, LibFF
 	return pts;
 }
 
-const LibFFmpeg::AVCodecHWConfig* MediaPlayer::LVP_Media::getHardwareConfig(const LibFFmpeg::AVCodec* decoder)
+const AVCodecHWConfig* MediaPlayer::LVP_Media::getHardwareConfig(const AVCodec* decoder)
 {
-	const LibFFmpeg::AVCodecHWConfig* hardwareConfig = NULL;
+	const AVCodecHWConfig* hardwareConfig = NULL;
 
-	for (int i = 0; (hardwareConfig = LibFFmpeg::avcodec_get_hw_config(decoder, i)) != NULL; i++) {
-		if (hardwareConfig->methods & LibFFmpeg::AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+	for (int i = 0; (hardwareConfig = avcodec_get_hw_config(decoder, i)) != NULL; i++) {
+		if (hardwareConfig->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
 			return hardwareConfig;
 	}
 
 	return NULL;
 }
 
-std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(LibFFmpeg::AVStream* stream)
+LVP_MapStrStr MediaPlayer::LVP_Media::GetMediaCodecMeta(AVStream* stream)
 {
-	std::map<std::string, std::string> meta;
+	LVP_MapStrStr meta;
 
 	if ((stream == NULL) || (stream->codecpar == NULL))
 		return meta;
 
-	auto decoder = LibFFmpeg::avcodec_find_decoder(stream->codecpar->codec_id);
+	auto decoder = avcodec_find_decoder(stream->codecpar->codec_id);
 
 	if (decoder != NULL) {
 		meta["codec_name"] = std::string(decoder->long_name);
@@ -42,9 +42,9 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(Lib
 	}
 
 	switch (stream->codecpar->codec_type) {
-		case LibFFmpeg::AVMEDIA_TYPE_AUDIO:    meta["media_type"] = "audio"; break;
-		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE: meta["media_type"] = "subtitle"; break;
-		case LibFFmpeg::AVMEDIA_TYPE_VIDEO:    meta["media_type"] = "video"; break;
+		case AVMEDIA_TYPE_AUDIO:    meta["media_type"] = "audio"; break;
+		case AVMEDIA_TYPE_SUBTITLE: meta["media_type"] = "subtitle"; break;
+		case AVMEDIA_TYPE_VIDEO:    meta["media_type"] = "video"; break;
 		default: break;
 	}
 
@@ -62,7 +62,7 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(Lib
 		if (stream->codecpar->ch_layout.nb_channels > 0)
 			meta["channel_layout"] = LVP_AudioSpecs::getChannelLayoutName(stream->codecpar->ch_layout);
 
-		auto sampleFormat = LibFFmpeg::av_get_sample_fmt_name((LibFFmpeg::AVSampleFormat)stream->codecpar->format);
+		auto sampleFormat = av_get_sample_fmt_name((AVSampleFormat)stream->codecpar->format);
 
 		if (sampleFormat != NULL)
 			meta["sample_format"] = std::string(sampleFormat);
@@ -77,7 +77,7 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(Lib
 		if (frameRate > 0)
 			meta["frame_rate"] = std::to_string(frameRate);
 
-		auto pixelFormat = LibFFmpeg::av_get_pix_fmt_name((LibFFmpeg::AVPixelFormat)stream->codecpar->format);
+		auto pixelFormat = av_get_pix_fmt_name((AVPixelFormat)stream->codecpar->format);
 
 		if (pixelFormat != NULL)
 			meta["pixel_format"] = std::string(pixelFormat);
@@ -92,7 +92,7 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaCodecMeta(Lib
 	return meta;
 }
 
-int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVStream* audioStream)
+int64_t MediaPlayer::LVP_Media::GetMediaDuration(AVFormatContext* formatContext, AVStream* audioStream)
 {
 	if (formatContext == NULL)
 		return 0;
@@ -107,7 +107,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 		return 0;
 
 	if (audioStream->duration > 0)
-		return (size_t)((double)audioStream->duration * LibFFmpeg::av_q2d(audioStream->time_base));
+		return (size_t)((double)audioStream->duration * av_q2d(audioStream->time_base));
 
 	if (audioStream->codecpar == NULL)
 		return 0;
@@ -122,7 +122,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
 	auto avRescaleC = (int64_t)(audioStream->codecpar->bit_rate * audioStream->codecpar->ch_layout.nb_channels * audioStream->time_base.num);
 
 	if (avRescaleC > 0)
-		return (LibFFmpeg::av_rescale(avRescaleA, avRescaleB, avRescaleC) / AV_TIME_BASE_I64);
+		return (av_rescale(avRescaleA, avRescaleB, avRescaleC) / AV_TIME_BASE_I64);
 
 	return 0;
 }
@@ -131,7 +131,7 @@ int64_t MediaPlayer::LVP_Media::GetMediaDuration(LibFFmpeg::AVFormatContext* for
  * @throws invalid_argument
  * @throws runtime_error
  */
-LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const std::string& filePath, bool parseStreams, System::LVP_TimeOut* timeOut)
+AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const std::string& filePath, bool parseStreams, System::LVP_TimeOut* timeOut)
 {
 	if (filePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
@@ -143,7 +143,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	auto fileParts     = LVP_Strings();
 	auto file          = std::string(filePath);
-	auto formatContext = LibFFmpeg::avformat_alloc_context();
+	auto formatContext = avformat_alloc_context();
 	bool isConcat      = System::LVP_FileSystem::IsConcat(filePath);
 
 	// BLURAY/DVD: "concat:streamPath|stream1|...|streamN|duration|title|audioTrackCount|subTrackCount|"
@@ -169,7 +169,7 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 
 	formatContext->max_analyze_duration = (int64_t)(10 * AV_TIME_BASE);
 
-	int result = LibFFmpeg::avformat_open_input(&formatContext, file.c_str(), NULL, NULL);
+	int result = avformat_open_input(&formatContext, file.c_str(), NULL, NULL);
 
 	if ((result < 0) || (formatContext == NULL)) {
 		FREE_AVFORMAT(formatContext);
@@ -201,8 +201,8 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 			auto codecType = stream->codecpar->codec_type;
 			auto codecID   = stream->codecpar->codec_id;
 
-			if ((codecID == LibFFmpeg::AV_CODEC_ID_NONE) && IS_AUDIO(codecType))
-				stream->codecpar->codec_id = LibFFmpeg::AV_CODEC_ID_MP3;
+			if ((codecID == AV_CODEC_ID_NONE) && IS_AUDIO(codecType))
+				stream->codecpar->codec_id = AV_CODEC_ID_MP3;
 		}
 	}
 
@@ -223,32 +223,32 @@ LibFFmpeg::AVFormatContext* MediaPlayer::LVP_Media::GetMediaFormatContext(const 
 	return formatContext;
 }
 
-double MediaPlayer::LVP_Media::GetMediaFrameRate(LibFFmpeg::AVStream* stream)
+double MediaPlayer::LVP_Media::GetMediaFrameRate(AVStream* stream)
 {
 	if (stream == NULL)
 		return 0;
 
 	// r_frame_rate is wrong - Needs adjustment
 	if ((stream->time_base.num > 0) && (stream->time_base.den > 0) &&
-		(LibFFmpeg::av_q2d(stream->time_base) < (LibFFmpeg::av_q2d(stream->r_frame_rate) * 0.7)) &&
-		(fabs(1.0 - LibFFmpeg::av_q2d(av_div_q(stream->avg_frame_rate, stream->r_frame_rate))) > 0.1))
+		(av_q2d(stream->time_base) < (av_q2d(stream->r_frame_rate) * 0.7)) &&
+		(fabs(1.0 - av_q2d(av_div_q(stream->avg_frame_rate, stream->r_frame_rate))) > 0.1))
 	{
-		return LibFFmpeg::av_q2d(stream->time_base);
+		return av_q2d(stream->time_base);
 	// r_frame_rate is valid
 	} else if ((stream->r_frame_rate.num > 0) && (stream->r_frame_rate.den > 0)) {
-		return LibFFmpeg::av_q2d(stream->r_frame_rate);
+		return av_q2d(stream->r_frame_rate);
 	}
 
 	// r_frame_rate is not valid - Use avg_frame_rate
-	return LibFFmpeg::av_q2d(stream->avg_frame_rate);
+	return av_q2d(stream->avg_frame_rate);
 }
 
-std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaMeta(LibFFmpeg::AVFormatContext* formatContext)
+LVP_MapStrStr MediaPlayer::LVP_Media::GetMediaMeta(AVFormatContext* formatContext)
 {
 	return LVP_Media::getMeta(formatContext != NULL ? formatContext->metadata : NULL);
 }
 
-SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContext* formatContext)
+SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(AVFormatContext* formatContext)
 {
 	if (formatContext == NULL)
 		return NULL;
@@ -259,30 +259,30 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	auto videoStream = LVP_Media::getMediaTrackThumbnail(formatContext);
 
 	if (videoStream == NULL)
-		videoStream = LVP_Media::GetMediaTrackBest(formatContext, LibFFmpeg::AVMEDIA_TYPE_VIDEO);
+		videoStream = LVP_Media::GetMediaTrackBest(formatContext, AVMEDIA_TYPE_VIDEO);
 
 	if ((videoStream == NULL) || (videoStream->codecpar == NULL))
 		return NULL;
 
-	auto decoder = LibFFmpeg::avcodec_find_decoder(videoStream->codecpar->codec_id);
-	auto codec   = (decoder != NULL ? LibFFmpeg::avcodec_alloc_context3(decoder) : NULL);
+	auto decoder = avcodec_find_decoder(videoStream->codecpar->codec_id);
+	auto codec   = (decoder != NULL ? avcodec_alloc_context3(decoder) : NULL);
 
 	if (codec != NULL)
-		LibFFmpeg::avcodec_parameters_to_context(codec, videoStream->codecpar);
+		avcodec_parameters_to_context(codec, videoStream->codecpar);
 
-	if ((codec == NULL) || (LibFFmpeg::avcodec_open2(codec, decoder, NULL) < 0)) {
+	if ((codec == NULL) || (avcodec_open2(codec, decoder, NULL) < 0)) {
 		FREE_AVCODEC(codec);
 		return NULL;
 	}
 
 	int  result = -1;
-	auto frame  = LibFFmpeg::av_frame_alloc();
+	auto frame  = av_frame_alloc();
 
 	if (videoStream->attached_pic.size > 0)
 	{
-		LibFFmpeg::avcodec_send_packet(codec, &videoStream->attached_pic);
+		avcodec_send_packet(codec, &videoStream->attached_pic);
 
-		result = LibFFmpeg::avcodec_receive_frame(codec, frame);
+		result = avcodec_receive_frame(codec, frame);
 	}
 	else
 	{
@@ -290,25 +290,25 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 		auto seekPos    = LVP_Media::getMediaThumbnailSeekPos(formatContext, isByteSeek);
 
 		if (seekPos > 0)
-			LibFFmpeg::av_seek_frame(formatContext, -1, seekPos, (isByteSeek ? AVSEEK_FLAG_BYTE : 0));
+			av_seek_frame(formatContext, -1, seekPos, (isByteSeek ? AVSEEK_FLAG_BYTE : 0));
 
-		auto packet = LibFFmpeg::av_packet_alloc();
+		auto packet = av_packet_alloc();
 
-		for (int i = 0; (LibFFmpeg::av_read_frame(formatContext, packet) == 0) && (i < 100); i++)
+		for (int i = 0; (av_read_frame(formatContext, packet) == 0) && (i < 100); i++)
 		{
 			if (packet->stream_index != videoStream->index) {
-				LibFFmpeg::av_packet_unref(packet);
+				av_packet_unref(packet);
 				continue;
 			}
 
-			LibFFmpeg::avcodec_send_packet(codec, packet);
-			result = LibFFmpeg::avcodec_receive_frame(codec, frame);
+			avcodec_send_packet(codec, packet);
+			result = avcodec_receive_frame(codec, frame);
 
 			if (result != AVERROR(EAGAIN))
 				break;
 
-			LibFFmpeg::av_frame_unref(frame);
-			LibFFmpeg::av_packet_unref(packet);
+			av_frame_unref(frame);
+			av_packet_unref(packet);
 		}
 
 		FREE_AVPACKET(packet);
@@ -320,17 +320,17 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 		return NULL;
 	}
 
-	auto frameRGB = LibFFmpeg::av_frame_alloc();
+	auto frameRGB = av_frame_alloc();
 
-	LibFFmpeg::av_image_alloc(frameRGB->data, frameRGB->linesize, frame->width, frame->height, LibFFmpeg::AV_PIX_FMT_RGBA, 1);
+	av_image_alloc(frameRGB->data, frameRGB->linesize, frame->width, frame->height, AV_PIX_FMT_RGBA, 1);
 
-	auto contextRGB = LibFFmpeg::sws_getContext(
+	auto contextRGB = sws_getContext(
 		frame->width,
 		frame->height,
-		(LibFFmpeg::AVPixelFormat)frame->format,
+		(AVPixelFormat)frame->format,
 		frame->width,
 		frame->height,
-		LibFFmpeg::AV_PIX_FMT_RGBA,
+		AV_PIX_FMT_RGBA,
 		DEFAULT_SCALE_FILTER,
 		NULL,
 		NULL,
@@ -339,7 +339,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 
 	SDL_Surface* thumbnail = NULL;
 
-	result = LibFFmpeg::sws_scale_frame(contextRGB, frameRGB, frame);
+	result = sws_scale_frame(contextRGB, frameRGB, frame);
 
 	if (result > 0)
 		thumbnail = SDL_CreateSurface(frame->width, frame->height, SDL_PIXELFORMAT_RGBA32);
@@ -361,7 +361,7 @@ SDL_Surface* MediaPlayer::LVP_Media::GetMediaThumbnail(LibFFmpeg::AVFormatContex
 	return thumbnail;
 }
 
-int64_t MediaPlayer::LVP_Media::getMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext, bool isByteSeek)
+int64_t MediaPlayer::LVP_Media::getMediaThumbnailSeekPos(AVFormatContext* formatContext, bool isByteSeek)
 {
 	if (formatContext == NULL)
 		return 0;
@@ -388,13 +388,13 @@ int64_t MediaPlayer::LVP_Media::getMediaThumbnailSeekPos(LibFFmpeg::AVFormatCont
 	return (int64_t)((double)fileSize * percent);
 }
 
-LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType)
+AVStream* MediaPlayer::LVP_Media::GetMediaTrackBest(AVFormatContext* formatContext, AVMediaType mediaType)
 {
 	if ((formatContext == NULL) || (formatContext->nb_streams == 0))
 		return NULL;
 
-	LibFFmpeg::AVStream* firstMatch = NULL;
-	LibFFmpeg::AVStream* bestMatch  = NULL;
+	AVStream* firstMatch = NULL;
+	AVStream* bestMatch  = NULL;
 
 	for (uint32_t i = 0; i < formatContext->nb_streams; i++)
 	{
@@ -418,7 +418,7 @@ LibFFmpeg::AVStream* MediaPlayer::LVP_Media::GetMediaTrackBest(LibFFmpeg::AVForm
 	return bestMatch;
 }
 
-size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType)
+size_t MediaPlayer::LVP_Media::getMediaTrackCount(AVFormatContext* formatContext, AVMediaType mediaType)
 {
 	if (formatContext == NULL)
 		return 0;
@@ -434,7 +434,7 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 
 		if ((stream == NULL) ||
 			(stream->codecpar == NULL) ||
-			(stream->codecpar->codec_id == LibFFmpeg::AV_CODEC_ID_NONE) ||
+			(stream->codecpar->codec_id == AV_CODEC_ID_NONE) ||
 			(IS_VIDEO(mediaType) && (stream->disposition & AV_DISPOSITION_ATTACHED_PIC))) // AUDIO COVER
 		{
 			continue;
@@ -447,31 +447,31 @@ size_t MediaPlayer::LVP_Media::getMediaTrackCount(LibFFmpeg::AVFormatContext* fo
 	return streamCount;
 }
 
-std::map<std::string, std::string> MediaPlayer::LVP_Media::GetMediaTrackMeta(LibFFmpeg::AVStream* stream)
+LVP_MapStrStr MediaPlayer::LVP_Media::GetMediaTrackMeta(AVStream* stream)
 {
 	return LVP_Media::getMeta(stream != NULL ? stream->metadata : NULL);
 }
 
-LibFFmpeg::AVMediaType MediaPlayer::LVP_Media::GetMediaType(LibFFmpeg::AVFormatContext* formatContext)
+AVMediaType MediaPlayer::LVP_Media::GetMediaType(AVFormatContext* formatContext)
 {
 	if (formatContext == NULL)
-		return LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
+		return AVMEDIA_TYPE_UNKNOWN;
 
-	auto audioStreamCount = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_AUDIO);
-	auto subStreamCount   = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_SUBTITLE);
-	auto videoStreamCount = LVP_Media::getMediaTrackCount(formatContext, LibFFmpeg::AVMEDIA_TYPE_VIDEO);
+	auto audioStreamCount = LVP_Media::getMediaTrackCount(formatContext, AVMEDIA_TYPE_AUDIO);
+	auto subStreamCount   = LVP_Media::getMediaTrackCount(formatContext, AVMEDIA_TYPE_SUBTITLE);
+	auto videoStreamCount = LVP_Media::getMediaTrackCount(formatContext, AVMEDIA_TYPE_VIDEO);
 
 	if ((audioStreamCount > 0) && (videoStreamCount == 0) && (subStreamCount == 0))
-		return LibFFmpeg::AVMEDIA_TYPE_AUDIO;
+		return AVMEDIA_TYPE_AUDIO;
 	else if ((subStreamCount > 0) && (audioStreamCount == 0) && (videoStreamCount == 0))
-		return LibFFmpeg::AVMEDIA_TYPE_SUBTITLE;
+		return AVMEDIA_TYPE_SUBTITLE;
 	else if ((audioStreamCount > 0) && (videoStreamCount > 0))
-		return LibFFmpeg::AVMEDIA_TYPE_VIDEO;
+		return AVMEDIA_TYPE_VIDEO;
 
-	return LibFFmpeg::AVMEDIA_TYPE_UNKNOWN;
+	return AVMEDIA_TYPE_UNKNOWN;
 }
 
-LibFFmpeg::AVStream* MediaPlayer::LVP_Media::getMediaTrackThumbnail(LibFFmpeg::AVFormatContext* formatContext)
+AVStream* MediaPlayer::LVP_Media::getMediaTrackThumbnail(AVFormatContext* formatContext)
 {
 	for (uint32_t i = 0; i < formatContext->nb_streams; i++) {
 		if (IS_VIDEO(formatContext->streams[i]->codecpar->codec_type) && (formatContext->streams[i]->attached_pic.size > 0))
@@ -484,16 +484,16 @@ LibFFmpeg::AVStream* MediaPlayer::LVP_Media::getMediaTrackThumbnail(LibFFmpeg::A
 // http://wiki.multimedia.cx/index.php?title=FFmpeg_Metadata
 // https://www.exiftool.org/TagNames/ID3.html
 
-std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AVDictionary* metadata)
+LVP_MapStrStr MediaPlayer::LVP_Media::getMeta(AVDictionary* metadata)
 {
-	std::map<std::string, std::string> meta;
+	LVP_MapStrStr meta;
 
 	if (metadata == NULL)
 		return meta;
 
-	LibFFmpeg::AVDictionaryEntry* entry = NULL;
+	AVDictionaryEntry* entry = NULL;
 
-	while ((entry = LibFFmpeg::av_dict_get(metadata, "", entry, AV_DICT_IGNORE_SUFFIX)) != NULL)
+	while ((entry = av_dict_get(metadata, "", entry, AV_DICT_IGNORE_SUFFIX)) != NULL)
 	{
 		if (strcmp(entry->value, "und") == 0)
 			continue;
@@ -515,7 +515,7 @@ std::map<std::string, std::string> MediaPlayer::LVP_Media::getMeta(LibFFmpeg::AV
 	return meta;
 }
 
-MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime)
+MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetPacketPTS(AVPacket* packet, const AVRational& timeBase, int64_t startTime)
 {
 	if (packet == NULL)
 		return {};
@@ -527,13 +527,13 @@ MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetPacketPTS(LibFFmpeg::AVPacket* p
 	if (startTime != AV_NOPTS_VALUE)
 		pts.start -= (double)startTime;
 
-	pts.start *= LibFFmpeg::av_q2d(timeBase);
-	pts.end    = (packet->duration > 0 ? (pts.start + ((double)packet->duration * LibFFmpeg::av_q2d(timeBase))) : 0.0);
+	pts.start *= av_q2d(timeBase);
+	pts.end    = (packet->duration > 0 ? (pts.start + ((double)packet->duration * av_q2d(timeBase))) : 0.0);
 
 	return pts;
 }
 
-MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetSubtitlePTS(LibFFmpeg::AVPacket* packet, LibFFmpeg::AVSubtitle& frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime)
+MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetSubtitlePTS(AVPacket* packet, AVSubtitle& frame, const AVRational& timeBase, int64_t startTime)
 {
 	if (packet == NULL)
 		return {};
@@ -548,21 +548,21 @@ MediaPlayer::LVP_PTS MediaPlayer::LVP_Media::GetSubtitlePTS(LibFFmpeg::AVPacket*
 	else if (frame.end_display_time > 0)
 		pts.end = (double)(pts.start + (double)((double)frame.end_display_time / ONE_SECOND_MS_D));
 	else if (packet->duration > 0)
-		pts.end = (double)(pts.start + (double)((double)packet->duration * LibFFmpeg::av_q2d(timeBase)));
+		pts.end = (double)(pts.start + (double)((double)packet->duration * av_q2d(timeBase)));
 	else
 		pts.end = 0.0;
 
 	return pts;
 }
 
-double MediaPlayer::LVP_Media::GetSubtitlePGSEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase)
+double MediaPlayer::LVP_Media::GetSubtitlePGSEndPTS(AVPacket* packet, const AVRational& timeBase)
 {
 	if (packet == NULL)
 		return 0.0;
 
 	auto end = (double)(packet->pts != AV_NOPTS_VALUE ? packet->pts : packet->dts);
 
-	return (end * LibFFmpeg::av_q2d(timeBase));
+	return (end * av_q2d(timeBase));
 }
 
 double MediaPlayer::LVP_Media::GetVideoPTS(LVP_VideoContext* videoContext, int64_t startTime)
@@ -572,17 +572,17 @@ double MediaPlayer::LVP_Media::GetVideoPTS(LVP_VideoContext* videoContext, int64
 	if (startTime != AV_NOPTS_VALUE)
 		pts -= (double)startTime;
 
-	pts *= LibFFmpeg::av_q2d(videoContext->avStream->time_base);
+	pts *= av_q2d(videoContext->avStream->time_base);
 
 	return pts;
 }
 
-bool MediaPlayer::LVP_Media::isDRM(LibFFmpeg::AVDictionary* metaData)
+bool MediaPlayer::LVP_Media::isDRM(AVDictionary* metaData)
 {
-	return (LibFFmpeg::av_dict_get(metaData, "encryption", NULL, 0) != NULL);
+	return (av_dict_get(metaData, "encryption", NULL, 0) != NULL);
 }
 
-bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* stream)
+bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(AVStream* stream)
 {
 	if ((stream == NULL) || (stream->codecpar == NULL) || !IS_ATTACHMENT(stream->codecpar->codec_type) || (stream->codecpar->extradata_size <= 0))
 		return false;
@@ -590,7 +590,7 @@ bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* st
 	if (IS_FONT(stream->codecpar->codec_id))
 		return true;
 
-	auto mimeType = LibFFmpeg::av_dict_get(stream->metadata, "mimetype", NULL, 0);
+	auto mimeType = av_dict_get(stream->metadata, "mimetype", NULL, 0);
 
 	if ((mimeType == NULL) || (mimeType->value == NULL))
 		return false;
@@ -598,7 +598,7 @@ bool MediaPlayer::LVP_Media::IsStreamWithFontAttachments(LibFFmpeg::AVStream* st
 	return (strstr(mimeType->value, "font") || strstr(mimeType->value, "ttf") || strstr(mimeType->value, "otf"));
 }
 
-void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatContext, const std::string filePath)
+void MediaPlayer::LVP_Media::parseStreams(AVFormatContext* formatContext, const std::string filePath)
 {
 	if (formatContext->duration >= 0)
 		return;
@@ -608,7 +608,7 @@ void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatCont
 		formatContext->probesize            = (int64_t)(10 * MEGA_BYTE);
 	}
 
-	int result = LibFFmpeg::avformat_find_stream_info(formatContext, NULL);
+	int result = avformat_find_stream_info(formatContext, NULL);
 
 	if (result < 0) {
 		FREE_AVFORMAT(formatContext);
@@ -616,14 +616,14 @@ void MediaPlayer::LVP_Media::parseStreams(LibFFmpeg::AVFormatContext* formatCont
 	}
 
 	#if defined _DEBUG
-		LibFFmpeg::av_dump_format(formatContext, -1, filePath.c_str(), 0);
+		av_dump_format(formatContext, -1, filePath.c_str(), 0);
 	#endif
 
 	if (formatContext->duration < 0)
 		formatContext->duration = 0;
 }
 
-void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext)
+void MediaPlayer::LVP_Media::SetMediaTrackBest(AVFormatContext* formatContext, AVMediaType mediaType, LVP_MediaContext* mediaContext)
 {
 	if (formatContext == NULL)
 		return;
@@ -634,11 +634,11 @@ void MediaPlayer::LVP_Media::SetMediaTrackBest(LibFFmpeg::AVFormatContext* forma
 		LVP_Media::SetMediaTrackByIndex(formatContext, stream->index, mediaContext);
 }
 
-LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Media::getHardwarePixelFormat(LibFFmpeg::AVCodecContext* codec, const LibFFmpeg::AVPixelFormat* pixelFormats)
+AVPixelFormat MediaPlayer::LVP_Media::getHardwarePixelFormat(AVCodecContext* codec, const AVPixelFormat* pixelFormats)
 {
-	const LibFFmpeg::AVPixelFormat* pixelFormat;
+	const AVPixelFormat* pixelFormat;
 
-	for (pixelFormat = pixelFormats; *pixelFormat != LibFFmpeg::AV_PIX_FMT_NONE; pixelFormat++) {
+	for (pixelFormat = pixelFormats; *pixelFormat != AV_PIX_FMT_NONE; pixelFormat++) {
 		if (*pixelFormat == LVP_Player::GetPixelFormatHardware())
 			return *pixelFormat;
 	}
@@ -646,22 +646,22 @@ LibFFmpeg::AVPixelFormat MediaPlayer::LVP_Media::getHardwarePixelFormat(LibFFmpe
 	return codec->sw_pix_fmt;
 }
 
-void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext* mediaContext, int extSubFileIndex)
+void MediaPlayer::LVP_Media::SetMediaTrackByIndex(AVFormatContext* formatContext, int index, LVP_MediaContext* mediaContext, int extSubFileIndex)
 {
 	if ((formatContext == NULL) || (index < 0) || ((int)formatContext->nb_streams <= index))
 		return;
 
 	auto stream = formatContext->streams[index];
 
-	if ((stream == NULL) || (stream->codecpar == NULL) || (stream->codecpar->codec_id == LibFFmpeg::AV_CODEC_ID_NONE))
+	if ((stream == NULL) || (stream->codecpar == NULL) || (stream->codecpar->codec_id == AV_CODEC_ID_NONE))
 		return;
 
-	auto codec = LibFFmpeg::avcodec_alloc_context3(NULL);
+	auto codec = avcodec_alloc_context3(NULL);
 
 	if (codec == NULL)
 		return;
 
-	int initCodecResult = LibFFmpeg::avcodec_parameters_to_context(codec, stream->codecpar);
+	int initCodecResult = avcodec_parameters_to_context(codec, stream->codecpar);
 
 	if (initCodecResult < 0) {
 		FREE_AVCODEC(codec);
@@ -670,7 +670,7 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 
 	codec->pkt_timebase = stream->time_base;
 
-	auto decoder = LibFFmpeg::avcodec_find_decoder(codec->codec_id);
+	auto decoder = avcodec_find_decoder(codec->codec_id);
 
 	if (decoder == NULL) {
 		FREE_AVCODEC(codec);
@@ -680,7 +680,7 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 	codec->codec_id = decoder->id;
 
 	// Multi-threading must be disabled for some music cover/thumb types like PNG
-	bool isPNG   = (codec->codec_id == LibFFmpeg::AV_CODEC_ID_PNG);
+	bool isPNG   = (codec->codec_id == AV_CODEC_ID_PNG);
 	auto threads = (isPNG ? "1" : "auto");
 
 	if (IS_VIDEO(stream->codecpar->codec_type))
@@ -689,20 +689,20 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 		auto hwConfig     = LVP_Media::getHardwareConfig(decoder);
 
 		if ((hwConfig != NULL) &&
-			(LibFFmpeg::av_hwdevice_ctx_create(&videoContext->hwDeviceContext, hwConfig->device_type, "auto", NULL, 0) == 0))
+			(av_hwdevice_ctx_create(&videoContext->hwDeviceContext, hwConfig->device_type, "auto", NULL, 0) == 0))
 		{
 			videoContext->hwPixelFormat = hwConfig->pix_fmt;
 
 			codec->get_format    = LVP_Media::getHardwarePixelFormat;
-			codec->hw_device_ctx = LibFFmpeg::av_buffer_ref(videoContext->hwDeviceContext);
+			codec->hw_device_ctx = av_buffer_ref(videoContext->hwDeviceContext);
 		}
 	}
 
-	LibFFmpeg::AVDictionary* options = NULL;
+	AVDictionary* options = NULL;
 
-	LibFFmpeg::av_dict_set(&options, "threads", threads, 0);
+	av_dict_set(&options, "threads", threads, 0);
 
-	auto openResult = LibFFmpeg::avcodec_open2(codec, decoder, &options);
+	auto openResult = avcodec_open2(codec, decoder, &options);
 
 	FREE_AVDICT(options);
 
@@ -711,7 +711,7 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 		return;
 	}
 
-	stream->discard = LibFFmpeg::AVDISCARD_DEFAULT;
+	stream->discard = AVDISCARD_DEFAULT;
 
 	bool isSubsExternal = (extSubFileIndex >= 0);
 
@@ -719,12 +719,12 @@ void MediaPlayer::LVP_Media::SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* fo
 	mediaContext->index    = (stream->index + (isSubsExternal ? ((extSubFileIndex + 1) * SUB_STREAM_EXTERNAL) : 0)),
 	mediaContext->avStream = stream;
 
-	if (codec->pix_fmt != LibFFmpeg::AV_PIX_FMT_NONE)
+	if (codec->pix_fmt != AV_PIX_FMT_NONE)
 		return;
 
 	switch (stream->codecpar->codec_type) {
-		case LibFFmpeg::AVMEDIA_TYPE_SUBTITLE: codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_PAL8;    break;
-		case LibFFmpeg::AVMEDIA_TYPE_VIDEO:    codec->pix_fmt = LibFFmpeg::AV_PIX_FMT_YUV420P; break;
+		case AVMEDIA_TYPE_SUBTITLE: codec->pix_fmt = AV_PIX_FMT_PAL8;    break;
+		case AVMEDIA_TYPE_VIDEO:    codec->pix_fmt = AV_PIX_FMT_YUV420P; break;
 		default: break;
 	}
 }

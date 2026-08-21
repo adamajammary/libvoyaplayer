@@ -23,17 +23,13 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 			throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
 
 		#if defined _DEBUG
-			LibFFmpeg::av_log_set_level(AV_LOG_VERBOSE);
+			av_log_set_level(AV_LOG_VERBOSE);
 		#else
-			LibFFmpeg::av_log_set_level(AV_LOG_QUIET);
+			av_log_set_level(AV_LOG_QUIET);
 		#endif
 
-		if ((LibFFmpeg::av_version_info() == NULL) ||
-			(LibFFmpeg::avcodec_version() == 0) ||
-			(LibFFmpeg::avformat_version() == 0))
-		{
+		if ((av_version_info() == NULL) || (avcodec_version() == 0) || (avformat_version() == 0))
 			throw std::runtime_error("Failed to initialize FFmpeg.");
-		}
 
 		MediaPlayer::LVP_Player::Init(callbackContext);
 

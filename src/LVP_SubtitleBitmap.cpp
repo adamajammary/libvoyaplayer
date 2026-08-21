@@ -20,7 +20,7 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 
 		subtitle->surface = SDL_CreateSurface(subtitle->bitmap.w, subtitle->bitmap.h, SDL_PIXELFORMAT_RGBA32);
 
-		LibFFmpeg::sws_convertPalette8ToPacked32(
+		sws_convertPalette8ToPacked32(
 			subtitle->bitmap.data[0],
 			(uint8_t*)subtitle->surface->pixels,
 			(subtitle->bitmap.w * subtitle->bitmap.h),
@@ -46,13 +46,13 @@ void MediaPlayer::LVP_SubtitleBitmap::create(LVP_SubtitleContext* subContext)
 	LVP_SubtitleBitmap::queueLock.unlock();
 }
 
-void MediaPlayer::LVP_SubtitleBitmap::ProcessEvent(LVP_Subtitle* subtitle, const LibFFmpeg::AVSubtitleRect& frameRect)
+void MediaPlayer::LVP_SubtitleBitmap::ProcessEvent(LVP_Subtitle* subtitle, const AVSubtitleRect& frameRect)
 {
 	if (subtitle == NULL)
 		return;
 
-	subtitle->bitmap.data[0] = (uint8_t*)LibFFmpeg::av_memdup(frameRect.data[0], (size_t)(frameRect.linesize[0] * frameRect.h));
-	subtitle->bitmap.data[1] = (uint8_t*)LibFFmpeg::av_memdup(frameRect.data[1], AVPALETTE_SIZE);
+	subtitle->bitmap.data[0] = (uint8_t*)av_memdup(frameRect.data[0], (size_t)(frameRect.linesize[0] * frameRect.h));
+	subtitle->bitmap.data[1] = (uint8_t*)av_memdup(frameRect.data[1], AVPALETTE_SIZE);
 	subtitle->bitmap.data[2] = NULL;
 	subtitle->bitmap.data[3] = NULL;
 }

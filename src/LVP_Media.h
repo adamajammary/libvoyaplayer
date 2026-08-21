@@ -16,33 +16,33 @@ namespace LibVoyaPlayer
 			~LVP_Media() {}
 
 		public:
-			static double                             GetAudioPTS(LVP_AudioContext* audioContext, LibFFmpeg::AVFrame* frame);
-			static std::map<std::string, std::string> GetMediaCodecMeta(LibFFmpeg::AVStream* stream);
-			static int64_t                            GetMediaDuration(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVStream* audioStream);
-			static LibFFmpeg::AVFormatContext*        GetMediaFormatContext(const std::string& filePath, bool parseStreams, System::LVP_TimeOut* timeOut = NULL);
-			static double                             GetMediaFrameRate(LibFFmpeg::AVStream* stream);
-			static std::map<std::string, std::string> GetMediaMeta(LibFFmpeg::AVFormatContext* formatContext);
-			static SDL_Surface*                       GetMediaThumbnail(LibFFmpeg::AVFormatContext* formatContext);
-			static LibFFmpeg::AVStream*               GetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
-			static std::map<std::string, std::string> GetMediaTrackMeta(LibFFmpeg::AVStream* stream);
-			static LibFFmpeg::AVMediaType             GetMediaType(LibFFmpeg::AVFormatContext* formatContext);
-			static LVP_PTS                            GetPacketPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
-			static LVP_PTS                            GetSubtitlePTS(LibFFmpeg::AVPacket* packet, LibFFmpeg::AVSubtitle& frame, const LibFFmpeg::AVRational& timeBase, int64_t startTime);
-			static double                             GetSubtitlePGSEndPTS(LibFFmpeg::AVPacket* packet, const LibFFmpeg::AVRational& timeBase);
-			static double                             GetVideoPTS(LVP_VideoContext* videoContext, int64_t startTime);
-			static bool                               IsStreamWithFontAttachments(LibFFmpeg::AVStream* stream);
-			static void                               SetMediaTrackBest(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType, LVP_MediaContext* mediaContext);
-			static void                               SetMediaTrackByIndex(LibFFmpeg::AVFormatContext* formatContext, int index, LVP_MediaContext* mediaContext, int extSubFileIndex = -1);
+			static double           GetAudioPTS(LVP_AudioContext* audioContext, AVFrame* frame);
+			static LVP_MapStrStr    GetMediaCodecMeta(AVStream* stream);
+			static int64_t          GetMediaDuration(AVFormatContext* formatContext, AVStream* audioStream);
+			static AVFormatContext* GetMediaFormatContext(const std::string& filePath, bool parseStreams, System::LVP_TimeOut* timeOut = NULL);
+			static double           GetMediaFrameRate(AVStream* stream);
+			static LVP_MapStrStr    GetMediaMeta(AVFormatContext* formatContext);
+			static SDL_Surface*     GetMediaThumbnail(AVFormatContext* formatContext);
+			static AVStream*        GetMediaTrackBest(AVFormatContext* formatContext, AVMediaType mediaType);
+			static LVP_MapStrStr    GetMediaTrackMeta(AVStream* stream);
+			static AVMediaType      GetMediaType(AVFormatContext* formatContext);
+			static LVP_PTS          GetPacketPTS(AVPacket* packet, const AVRational& timeBase, int64_t startTime);
+			static LVP_PTS          GetSubtitlePTS(AVPacket* packet, AVSubtitle& frame, const AVRational& timeBase, int64_t startTime);
+			static double           GetSubtitlePGSEndPTS(AVPacket* packet, const AVRational& timeBase);
+			static double           GetVideoPTS(LVP_VideoContext* videoContext, int64_t startTime);
+			static bool             IsStreamWithFontAttachments(AVStream* stream);
+			static void             SetMediaTrackBest(AVFormatContext* formatContext, AVMediaType mediaType, LVP_MediaContext* mediaContext);
+			static void             SetMediaTrackByIndex(AVFormatContext* formatContext, int index, LVP_MediaContext* mediaContext, int extSubFileIndex = -1);
 
 		private:
-			static const LibFFmpeg::AVCodecHWConfig*  getHardwareConfig(const LibFFmpeg::AVCodec* decoder);
-			static LibFFmpeg::AVPixelFormat           getHardwarePixelFormat(LibFFmpeg::AVCodecContext* codec, const LibFFmpeg::AVPixelFormat* pixelFormats);
-			static int64_t                            getMediaThumbnailSeekPos(LibFFmpeg::AVFormatContext* formatContext, bool isByteSeek);
-			static size_t                             getMediaTrackCount(LibFFmpeg::AVFormatContext* formatContext, LibFFmpeg::AVMediaType mediaType);
-			static LibFFmpeg::AVStream*               getMediaTrackThumbnail(LibFFmpeg::AVFormatContext* formatContext);
-			static std::map<std::string, std::string> getMeta(LibFFmpeg::AVDictionary* metadata);
-			static bool                               isDRM(LibFFmpeg::AVDictionary* metaData);
-			static void                               parseStreams(LibFFmpeg::AVFormatContext* formatContext, const std::string filePath);
+			static const AVCodecHWConfig* getHardwareConfig(const AVCodec* decoder);
+			static AVPixelFormat          getHardwarePixelFormat(AVCodecContext* codec, const AVPixelFormat* pixelFormats);
+			static int64_t                getMediaThumbnailSeekPos(AVFormatContext* formatContext, bool isByteSeek);
+			static size_t                 getMediaTrackCount(AVFormatContext* formatContext, AVMediaType mediaType);
+			static AVStream*              getMediaTrackThumbnail(AVFormatContext* formatContext);
+			static LVP_MapStrStr          getMeta(AVDictionary* metadata);
+			static bool                   isDRM(AVDictionary* metaData);
+			static void                   parseStreams(AVFormatContext* formatContext, const std::string filePath);
 		};
 	}
 }

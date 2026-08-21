@@ -12,15 +12,15 @@ namespace LibVoyaPlayer
 		class LVP_Subtitle
 		{
 		public:
-			LVP_Subtitle(const LibFFmpeg::AVSubtitleRect& frameRect, const LVP_PTS& pts);
+			LVP_Subtitle(const AVSubtitleRect& frameRect, const LVP_PTS& pts);
 			~LVP_Subtitle();
 
 		public:
-			LibFFmpeg::AVSubtitleRect bitmap;
-			std::string               dialogue;
-			LVP_PTS                   pts;
-			SDL_Surface*              surface;
-			LibFFmpeg::AVSubtitleType type;
+			AVSubtitleRect bitmap;
+			std::string    dialogue;
+			LVP_PTS        pts;
+			SDL_Surface*   surface;
+			AVSubtitleType type;
 
 		public:
 			bool isExpiredPTS(double progress) const;

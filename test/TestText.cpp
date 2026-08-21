@@ -1,12 +1,12 @@
 #include "TestText.h"
 
-LibFT::FT_Face    TestText::font    = nullptr;
-LibFT::FT_Library TestText::library = nullptr;
+FT_Face    TestText::font    = nullptr;
+FT_Library TestText::library = nullptr;
 
 SDL_Surface* TestText::GetSurface(TestButton* button)
 {
    
-    LibFT::FT_Set_Char_Size(TestText::font, 0, (button->fontSize << 6), 0, 0);
+    FT_Set_Char_Size(TestText::font, 0, (button->fontSize << 6), 0, 0);
 
     const SDL_Color WHITE = { 0xFF, 0xFF, 0xFF, 0xFF };
     const SDL_Color GRAY  = { 0xAA, 0xAA, 0xAA, 0xFF };
@@ -20,7 +20,7 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
 
     for (auto charCode : button->label)
     {
-        LibFT::FT_Load_Char(TestText::font, charCode, FT_LOAD_RENDER);
+        FT_Load_Char(TestText::font, charCode, FT_LOAD_RENDER);
 
         auto offsetY = (position.y + (surface->h - TestText::font->glyph->bitmap_top));
 
@@ -51,13 +51,13 @@ SDL_Surface* TestText::GetSurface(TestButton* button)
     return surface;
 }
 
-SDL_Point TestText::getSurfaceSize(TestButton* button, LibFT::FT_Face font)
+SDL_Point TestText::getSurfaceSize(TestButton* button, FT_Face font)
 {
     SDL_Point size = {};
 
     for (auto charCode : button->label)
     {
-        LibFT::FT_Load_Char(font, charCode, FT_LOAD_BITMAP_METRICS_ONLY);
+        FT_Load_Char(font, charCode, FT_LOAD_BITMAP_METRICS_ONLY);
 
         size.x += (font->glyph->advance.x >> 6);
     }
@@ -69,9 +69,9 @@ SDL_Point TestText::getSurfaceSize(TestButton* button, LibFT::FT_Face font)
 
 void TestText::Init(const std::string& basePath)
 {
-    auto ftError = LibFT::FT_Init_FreeType(&TestText::library);
+    auto ftError = FT_Init_FreeType(&TestText::library);
 
-    if (!TestText::library || (ftError != LibFT::FT_Err_Ok))
+    if (!TestText::library || (ftError != FT_Err_Ok))
         throw std::runtime_error(std::format("Failed to initialize FreeType2: {}", ftError));
 
     #if defined _android
@@ -87,15 +87,15 @@ void TestText::Init(const std::string& basePath)
         auto fontPath = "C:\\Windows\\Fonts\\arial.ttf";
     #endif
 
-    ftError = LibFT::FT_New_Face(TestText::library, fontPath, 0, &TestText::font);
+    ftError = FT_New_Face(TestText::library, fontPath, 0, &TestText::font);
 
-    if (!TestText::font || (ftError != LibFT::FT_Err_Ok))
+    if (!TestText::font || (ftError != FT_Err_Ok))
         throw std::runtime_error(std::format("Failed to open font '{}': {}", fontPath, ftError));
 
 }
 
 void TestText::Quit()
 {
-    LibFT::FT_Done_Face(TestText::font);
-    LibFT::FT_Done_FreeType(TestText::library);
+    FT_Done_Face(TestText::font);
+    FT_Done_FreeType(TestText::library);
 }

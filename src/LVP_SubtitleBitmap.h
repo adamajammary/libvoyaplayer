@@ -24,7 +24,7 @@ namespace LibVoyaPlayer
 			static std::mutex                 subsLock;
 
 		public:
-			static void ProcessEvent(LVP_Subtitle* subtitle, const LibFFmpeg::AVSubtitleRect& frameRect);
+			static void ProcessEvent(LVP_Subtitle* subtitle, const AVSubtitleRect& frameRect);
 			static void Remove();
 			static void RemoveExpired(double progress);
 			static void Render(SDL_Surface* videoSurface, LVP_SubtitleContext* subContext, double progress);
