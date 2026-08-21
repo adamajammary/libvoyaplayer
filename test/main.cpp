@@ -83,7 +83,7 @@ static void initBasePath()
 	int  fileReadSize = 0;
 
 	while ((fileReadSize = AAsset_read(videoAsset, destinationBuffer, BUFSIZ)) > 0)
-		SDL_WriteIO(destinationFile, destinationBuffer, fileReadSize, 1);
+		SDL_WriteIO(destinationFile, destinationBuffer, fileReadSize);
 
 	SDL_CloseIO(destinationFile);
 	AAsset_close(videoAsset);
