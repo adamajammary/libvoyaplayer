@@ -5,7 +5,7 @@
 ASS_Library*  MediaPlayer::LVP_SubtitleText::library   = NULL;
 ASS_Renderer* MediaPlayer::LVP_SubtitleText::renderer  = NULL;
 ASS_Track*    MediaPlayer::LVP_SubtitleText::track     = NULL;
-std::mutex            MediaPlayer::LVP_SubtitleText::trackLock = {};
+std::mutex    MediaPlayer::LVP_SubtitleText::trackLock = {};
 
 ASS_Image* MediaPlayer::LVP_SubtitleText::create(double progress)
 {
@@ -104,7 +104,7 @@ void MediaPlayer::LVP_SubtitleText::render(ASS_Image* image, SDL_Surface* surfac
 			(uint8_t)(0xFF - (image->color & 0xFF))
 		};
 
-		auto destColors = surface->format->BytesPerPixel;
+		auto destColors = SDL_BYTESPERPIXEL(surface->format);
 		auto destPitch  = surface->pitch;
 		auto destPixels = (uint8_t*)surface->pixels;
 
