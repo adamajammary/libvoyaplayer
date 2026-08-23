@@ -209,7 +209,7 @@ static void handleUserEvent(const SDL_UserEvent& event)
     }
 }
 
-static int getSleepTime(uint32_t frameStart)
+static int getSleepTime(uint64_t frameStart)
 {
     auto maxTimePerFrame = (LVP_IsPlaying() ? 41 : 100); // 24 fps = 1000 ms / 24 = 41.67 ms
     auto timePerFrame    = (int)(SDL_GetTicks() - frameStart);
