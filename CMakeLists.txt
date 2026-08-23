@@ -112,20 +112,20 @@ set(INCS      "${SRC_DIR}/include" "${INC_DIR}" "${FFMPEG_INC_DIR}")
 set(TEST_INCS "${SRC_DIR}/include" "${INC_DIR}" "${INC_DIR}/freetype2")
 
 if (WIN32)
+    set(LIBS avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib swresample.lib swscale.lib SDL3.lib)
+
     if (ENABLE_VIDEO_AV1_AND_SUBS_ASS)
-        set(LIBS avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib swresample.lib swscale.lib dav1d.lib ass.lib SDL3.lib)
-    else()
-        set(LIBS avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib swresample.lib swscale.lib SDL3.lib)
+        set(LIBS ${LIBS} dav1d.lib ass.lib)
     endif()
 
     set(TEST_LIBS freetype.lib SDL3.lib)
 else()
     set(LIB_PREP "lib")
 
+    set(LIBS "-lavcodec" "-lavdevice" "-lavfilter" "-lavformat" "-lavutil" "-lswresample" "-lswscale" "-lSDL3")
+
     if (ENABLE_VIDEO_AV1_AND_SUBS_ASS)
-        set(LIBS "-lavcodec" "-lavdevice" "-lavfilter" "-lavformat" "-lavutil" "-lswresample" "-lswscale" "-ldav1d" "-lass" "-lSDL3")
-    else()
-        set(LIBS "-lavcodec" "-lavdevice" "-lavfilter" "-lavformat" "-lavutil" "-lswresample" "-lswscale" "-lSDL3")
+        set(LIBS ${LIBS} "-ldav1d" "-lass")
     endif()
 
     set(TEST_LIBS "-lfreetype" "-lSDL3")
@@ -274,8 +274,8 @@ if (BUILD_TEST)
 
     target_compile_definitions(testvoyaplayer PRIVATE ${OS} NOMINMAX)
     target_include_directories(testvoyaplayer PRIVATE ${TEST_INCS})
-    target_link_directories(testvoyaplayer PRIVATE ${LIB_DIR} ${FFMPEG_LIB_DIR})
-    target_link_libraries(testvoyaplayer PRIVATE voyaplayer ${TEST_LIBS} ${OS_TEST_LIBS})
+    target_link_directories(testvoyaplayer    PRIVATE ${LIB_DIR} ${FFMPEG_LIB_DIR})
+    target_link_libraries(testvoyaplayer      PRIVATE voyaplayer ${TEST_LIBS} ${OS_TEST_LIBS})
 
     if (IOS)
         set(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.libvoyaplayer.test")
