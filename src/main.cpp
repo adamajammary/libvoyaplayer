@@ -44,13 +44,27 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	}
 }
 
-void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice)
+void LVP_AddAudioDevice(SDL_AudioDeviceID id)
 {
-	MediaPlayer::LVP_Player::AddAudioDevice(adevice);
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::AddAudioDevice(id);
 }
 
-std::vector<LVP_AudioDevice> LVP_GetAudioDevices()
+std::string LVP_GetAudioDevice()
 {
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetAudioDevice();
+}
+
+LVP_Strings LVP_GetAudioDevices()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
 	return MediaPlayer::LVP_Player::GetAudioDevices();
 }
 
@@ -396,9 +410,12 @@ void LVP_Quit()
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice)
+void LVP_RemoveAudioDevice(SDL_AudioDeviceID id)
 {
-	MediaPlayer::LVP_Player::RemoveAudioDevice(adevice);
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::RemoveAudioDevice(id);
 }
 
 void LVP_Resize()
@@ -433,9 +450,12 @@ void LVP_SeekTo(double percent)
 	MediaPlayer::LVP_Player::SeekTo(percent);
 }
 
-bool LVP_SetAudioDevice(const LVP_AudioDevice& device)
+void LVP_SetAudioDevice(const std::string& name)
 {
-	return MediaPlayer::LVP_Player::SetAudioDevice(device);
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::SetAudioDevice(name);
 }
 
 void LVP_SetMuted(bool muted)

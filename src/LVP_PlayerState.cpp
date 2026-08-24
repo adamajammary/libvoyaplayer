@@ -2,6 +2,8 @@
 
 MediaPlayer::LVP_PlayerState::LVP_PlayerState()
 {
+	this->audioDevice   = {};
+	this->audioDevices  = {};
 	this->completed     = false;
 	this->duration      = 0;
 	this->filePath      = "";

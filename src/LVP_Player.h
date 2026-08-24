@@ -19,7 +19,6 @@ namespace LibVoyaPlayer
 
 		private:
 			static LVP_AudioContext*          audioContext;
-			static LVP_AudioDevice            audioDevice;
 			static LVP_CallbackContext        callbackContext;
 			static AVFormatContext*           formatContext;
 			static AVFormatContext*           formatContextExternal;
@@ -40,10 +39,11 @@ namespace LibVoyaPlayer
 			static LVP_VideoContext*          videoContext;
 
 		public:
-			static void                          AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+			static void                          AddAudioDevice(SDL_AudioDeviceID id);
 			static void                          CallbackError(const std::string& errorMessage);
 			static void                          Close();
-			static std::vector<LVP_AudioDevice>  GetAudioDevices();
+			static std::string                   GetAudioDevice();
+			static LVP_Strings                   GetAudioDevices();
 			static int                           GetAudioTrack();
 			static std::vector<LVP_MediaTrack>   GetAudioTracks();
 			static std::vector<LVP_MediaChapter> GetChapters();
@@ -73,12 +73,12 @@ namespace LibVoyaPlayer
 			static void                          Pause();
 			static void                          Play();
 			static void                          Quit();
-			static void                          RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
+			static void                          RemoveAudioDevice(SDL_AudioDeviceID id);
 			static void                          Resize();
 			static void                          Run(const SDL_Rect& destination = {});
 			static void                          SeekBy(int seconds);
 			static void                          SeekTo(double percent);
-			static bool                          SetAudioDevice(const LVP_AudioDevice& device);
+			static void                          SetAudioDevice(const std::string& name);
 			static void                          SetMuted(bool muted = true);
 			static void                          SetPlaybackSpeed(double speed);
 			static void                          SetTrack(const LVP_MediaTrack& track);
@@ -91,7 +91,6 @@ namespace LibVoyaPlayer
 			static void                          callbackVideoIsAvailable(SDL_Surface* surface);
 			static void                          close();
 			static void                          closeAudioContext();
-			static void                          closeAudioDevice();
 			static void                          closeAudioStream();
 			static void                          closePackets(LVP_MediaContext* context);
 			static void                          closePackets();
@@ -118,7 +117,7 @@ namespace LibVoyaPlayer
 			static bool                          isPacketQueueFull();
 			static bool                          isPacketQueueFull(AVMediaType streamType);
 			static void                          open();
-			static void                          openAudioDevice();
+			static void                          openAudioDevice(const std::string& name);
 			static void                          openFormatContext();
 			static void                          openStreams();
 			static void                          openSubExternal(int streamIndex = SUB_STREAM_EXTERNAL);
@@ -128,6 +127,7 @@ namespace LibVoyaPlayer
 			static void                          openThreadVideo();
 			static void                          renderVideo();
 			static void                          seekTo(double percent);
+			static void                          setAudioDevices();
 			static void                          setAudioPacketDuration(AVPacket* packet);
 			static void                          setAudioProgress(AVFrame* frame);
 			static void                          stop(const std::string& errorMessage = "");

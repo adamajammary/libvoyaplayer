@@ -29,20 +29,22 @@ DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
  * @brief Tells the player that a new audio device was connected.
- * @param adevice SDL audio device event.
+ * @param id SDL audio device ID.
+ * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+DLLEXPORT void DLL LVP_AddAudioDevice(SDL_AudioDeviceID id);
+
+/**
+ * @returns the current audio device.
+ * @throws runtime_error
+ */
+DLLEXPORT std::string DLL LVP_GetAudioDevice();
 
 /**
  * @returns a list of available audio devices.
- */
-DLLEXPORT std::vector<LVP_AudioDevice> DLL LVP_GetAudioDevices();
-
-/**
- * @returns a list of chapters in the currently loaded media.
  * @throws runtime_error
  */
-DLLEXPORT std::vector<LVP_MediaChapter> DLL LVP_GetChapters();
+DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
 
 /**
  * @returns the current audio track index number.
@@ -55,6 +57,12 @@ DLLEXPORT int DLL LVP_GetAudioTrack();
  * @throws runtime_error
  */
 DLLEXPORT std::vector<LVP_MediaTrack> DLL LVP_GetAudioTracks();
+
+/**
+ * @returns a list of chapters in the currently loaded media.
+ * @throws runtime_error
+ */
+DLLEXPORT std::vector<LVP_MediaChapter> DLL LVP_GetChapters();
 
 /**
  * @returns the media duration in milliseconds (one thousandth of a second).
@@ -245,9 +253,10 @@ DLLEXPORT void DLL LVP_Quit();
 
 /**
  * @brief Tells the player that an audio device was disconnected.
- * @param adevice SDL audio device event.
+ * @param id SDL audio device ID.
+ * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
+DLLEXPORT void DLL LVP_RemoveAudioDevice(SDL_AudioDeviceID id);
 
 /**
  * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
@@ -278,10 +287,10 @@ DLLEXPORT void DLL LVP_SeekTo(double percent);
 
 /**
  * @brief Tries to set the given audio device as the current device if valid.
- * @param device Audio device.
- * @returns true if the audio device was successfully set.
+ * @param name Audio device name.
+ * @throws runtime_error
  */
-DLLEXPORT bool DLL LVP_SetAudioDevice(const LVP_AudioDevice& device);
+DLLEXPORT void DLL LVP_SetAudioDevice(const std::string& name);
 
 /**
  * @brief Mutes/unmutes the audio volume.

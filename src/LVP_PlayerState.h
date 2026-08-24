@@ -15,22 +15,24 @@ namespace LibVoyaPlayer
 			LVP_PlayerState();
 
 		public:
-			bool        completed;
-			int64_t     duration;
-			std::string filePath;
-			size_t      fileSize;
-			bool        isMuted;
-			bool        isPaused;
-			bool        isPlaying;
-			bool        isStopped;
-			AVMediaType mediaType;
-			std::string openFilePath;
-			double      playbackSpeed;
-			double      progress;
-			bool        quit;
-			bool        threads[LVP_NR_OF_THREADS];
-			uint32_t    trackCount;
-			float       volume;
+			LVP_AudioDevice  audioDevice;
+			LVP_AudioDevices audioDevices;
+			bool             completed;
+			int64_t          duration;
+			std::string      filePath;
+			size_t           fileSize;
+			bool             isMuted;
+			bool             isPaused;
+			bool             isPlaying;
+			bool             isStopped;
+			AVMediaType      mediaType;
+			std::string      openFilePath;
+			double           playbackSpeed;
+			double           progress;
+			bool             quit;
+			bool             threads[LVP_NR_OF_THREADS];
+			uint32_t         trackCount;
+			float            volume;
 
 		public:
 			void reset();

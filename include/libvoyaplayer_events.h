@@ -44,12 +44,6 @@ using LVP_ErrorCallback  = std::function<void(const std::string& errorMessage, c
 using LVP_EventsCallback = std::function<void(LVP_EventType type, const void* data)>;
 using LVP_VideoCallback  = std::function<void(SDL_Surface* videoFrame, const void* data)>;
 
-struct LVP_AudioDevice
-{
-	SDL_AudioDeviceID id   = 0;
-	std::string       name = "";
-};
-
 struct LVP_CallbackContext
 {
 	/**

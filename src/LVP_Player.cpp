@@ -1,7 +1,6 @@
 ﻿#include "LVP_Player.h"
 
 MediaPlayer::LVP_AudioContext*    MediaPlayer::LVP_Player::audioContext          = NULL;
-LVP_AudioDevice                   MediaPlayer::LVP_Player::audioDevice           = {};
 LVP_CallbackContext               MediaPlayer::LVP_Player::callbackContext       = {};
 AVFormatContext*                  MediaPlayer::LVP_Player::formatContext         = NULL;
 AVFormatContext*                  MediaPlayer::LVP_Player::formatContextExternal = NULL;
@@ -25,23 +24,19 @@ void MediaPlayer::LVP_Player::Init(const LVP_CallbackContext& callbackContext)
 {
 	LVP_Player::callbackContext = callbackContext;
 	LVP_Player::state.quit      = false;
+
+	LVP_Player::setAudioDevices();
 }
 
-void MediaPlayer::LVP_Player::AddAudioDevice(const SDL_AudioDeviceEvent& adevice)
+void MediaPlayer::LVP_Player::AddAudioDevice(SDL_AudioDeviceID id)
 {
-	if (LVP_Player::state.isStopped || (LVP_Player::audioDevice.id > 0))
-		return;
+	auto name = SDL_GetAudioDeviceName(id);
 
 	#if defined _DEBUG
-		printf("Audio device connected: %s\n", SDL_GetAudioDeviceName(adevice.which));
+		printf("Audio device connected: %s\n", name);
 	#endif
 
-	bool isPaused = LVP_Player::state.isPaused;
-
-	LVP_Player::openAudioDevice();
-
-	if (!isPaused)
-		SDL_ResumeAudioDevice(LVP_Player::audioDevice.id);
+	LVP_Player::state.audioDevices[name] = id;
 }
 
 void MediaPlayer::LVP_Player::CallbackError(const std::string& errorMessage)
@@ -133,16 +128,6 @@ void MediaPlayer::LVP_Player::closeAudioContext()
 	LVP_Player::closeAudioStream();
 
 	DELETE_POINTER(LVP_Player::audioContext);
-
-	LVP_Player::closeAudioDevice();
-}
-
-void MediaPlayer::LVP_Player::closeAudioDevice()
-{
-	if (LVP_Player::audioDevice.id > 0)
-		SDL_CloseAudioDevice(LVP_Player::audioDevice.id);
-
-	LVP_Player::audioDevice = { .id = 0, .name = "" };
 }
 
 void MediaPlayer::LVP_Player::closeAudioStream()
@@ -365,15 +350,17 @@ void MediaPlayer::LVP_Player::decodeAudioPacket(AVPacket* packet)
 	}
 }
 
-std::vector<LVP_AudioDevice> MediaPlayer::LVP_Player::GetAudioDevices()
+std::string MediaPlayer::LVP_Player::GetAudioDevice()
 {
-	std::vector<LVP_AudioDevice> devices;
+	return LVP_Player::state.audioDevice.name;
+}
 
-	int  nrOfAudioDevices;
-	auto deviceIds = SDL_GetAudioPlaybackDevices(&nrOfAudioDevices);
+LVP_Strings MediaPlayer::LVP_Player::GetAudioDevices()
+{
+	LVP_Strings devices;
 
-	for (int i = 0; i < nrOfAudioDevices; i++)
-		devices.push_back({ .id = deviceIds[i], .name = SDL_GetAudioDeviceName(deviceIds[i]) });
+	for (const auto& device : LVP_Player::state.audioDevices)
+		devices.push_back(device.first);
 
 	return devices;
 }
@@ -895,13 +882,13 @@ void MediaPlayer::LVP_Player::handleTrack()
 			continue;
 		}
 
-		bool isPaused     = LVP_Player::state.isPaused;
+		bool isPlaying    = LVP_Player::state.isPlaying;
 		auto lastProgress = (double)(LVP_Player::state.progress / (double)LVP_Player::state.duration);
 
 		switch (mediaType) {
 		case AVMEDIA_TYPE_AUDIO:
-			if (!isPaused)
-				LVP_Player::Pause();
+			if (isPlaying)
+				SDL_PauseAudioDevice(LVP_Player::state.audioDevice.id);
 
 			LVP_Player::closeStream(AVMEDIA_TYPE_AUDIO);
 
@@ -918,8 +905,8 @@ void MediaPlayer::LVP_Player::handleTrack()
 			if (!LVP_Player::seekRequested)
 				LVP_Player::seekTo(lastProgress);
 
-			if (!isPaused)
-				LVP_Player::Play();
+			if (isPlaying)
+				SDL_ResumeAudioDevice(LVP_Player::state.audioDevice.id);
 
 			break;
 		case AVMEDIA_TYPE_SUBTITLE:
@@ -1106,7 +1093,7 @@ void MediaPlayer::LVP_Player::open()
 	LVP_Player::isOpening          = false;
 }
 
-void MediaPlayer::LVP_Player::openAudioDevice()
+void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
 {
 	int nrOfAudioDevices;
 	SDL_GetAudioPlaybackDevices(&nrOfAudioDevices);
@@ -1119,14 +1106,11 @@ void MediaPlayer::LVP_Player::openAudioDevice()
 		return;
 	}
 
-	bool isDefault = (LVP_Player::audioDevice.name == "Default");
-	bool isEmpty   = LVP_Player::audioDevice.name.empty();
-
-	auto deviceId = (isEmpty || isDefault ? SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK : LVP_Player::audioDevice.id);
-
 	LVP_Player::closeAudioStream();
-	LVP_Player::closeAudioDevice();
+	LVP_Player::setAudioDevices();
 
+	auto deviceId = (name == "Default" ? SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK : LVP_Player::state.audioDevices[name]);
+		
 	LVP_Player::audioContext->audioStream = SDL_OpenAudioDeviceStream(
 		deviceId,
 		&LVP_Player::audioContext->deviceSpecs,
@@ -1136,23 +1120,17 @@ void MediaPlayer::LVP_Player::openAudioDevice()
 
 	auto currentDeviceId = SDL_GetAudioStreamDevice(LVP_Player::audioContext->audioStream);
 
-	LVP_Player::audioDevice = {
-		.id   = currentDeviceId,
-		.name = SDL_GetAudioDeviceName(currentDeviceId)
-	};
-
-	if (LVP_Player::audioDevice.id == 0)
+	if (currentDeviceId == 0)
 	{
 		#if defined _DEBUG
 			LOG("%s\n", SDL_GetError());
 		#endif
-
-		LVP_Player::closeAudioStream();
-		LVP_Player::closeAudioDevice();
 		return;
 	}
 
-	SDL_ResumeAudioDevice(LVP_Player::audioDevice.id);
+	LVP_Player::state.audioDevices[name] = currentDeviceId;
+
+	LVP_Player::state.audioDevice = { .id = currentDeviceId, .name = name };
 }
 
 /**
@@ -1268,6 +1246,8 @@ void MediaPlayer::LVP_Player::openThreads()
 		LVP_Player::openThreadSub();
 
 	std::thread(LVP_Player::threadPackets).detach();
+
+	SDL_ResumeAudioDevice(LVP_Player::state.audioDevice.id);
 }
 
 /**
@@ -1297,7 +1277,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		.freq     = sampleRate
 	};
 
-	LVP_Player::openAudioDevice();
+	LVP_Player::openAudioDevice(LVP_Player::state.audioDevice.name);
 
 	if (!LVP_Player::state.threads[LVP_THREAD_AUDIO])
 		std::thread(LVP_Player::threadAudio).detach();
@@ -1403,7 +1383,7 @@ void MediaPlayer::LVP_Player::Pause()
 	LVP_Player::state.isPlaying = false;
 	LVP_Player::state.isStopped = false;
 
-	SDL_PauseAudioDevice(LVP_Player::audioDevice.id);
+	SDL_PauseAudioDevice(LVP_Player::state.audioDevice.id);
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_PAUSED);
 }
@@ -1417,7 +1397,7 @@ void MediaPlayer::LVP_Player::Play()
 	LVP_Player::state.isPaused  = false;
 	LVP_Player::state.isStopped = false;
 
-	SDL_ResumeAudioDevice(LVP_Player::audioDevice.id);
+	SDL_ResumeAudioDevice(LVP_Player::state.audioDevice.id);
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_PLAYING);
 }
@@ -1427,16 +1407,16 @@ void MediaPlayer::LVP_Player::Quit()
 	LVP_Player::close();
 }
 
-void MediaPlayer::LVP_Player::RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice)
+void MediaPlayer::LVP_Player::RemoveAudioDevice(SDL_AudioDeviceID id)
 {
-	if (LVP_Player::state.isStopped || (adevice.which != LVP_Player::audioDevice.id))
-		return;
+	auto name = SDL_GetAudioDeviceName(id);
 
 	#if defined _DEBUG
-		printf("Audio device disconnected: %s\n", SDL_GetAudioDeviceName(adevice.which));
+		printf("Audio device disconnected: %s\n", name);
 	#endif
 
-	LVP_Player::openAudioDevice();
+	if (LVP_Player::state.audioDevices.contains(name))
+		LVP_Player::state.audioDevices.erase(name);
 }
 
 void MediaPlayer::LVP_Player::renderVideo()
@@ -1614,22 +1594,40 @@ void MediaPlayer::LVP_Player::seekTo(double percent)
 		LVP_Player::seekRequestedPaused = true;
 }
 
-bool MediaPlayer::LVP_Player::SetAudioDevice(const LVP_AudioDevice& device)
+void MediaPlayer::LVP_Player::SetAudioDevice(const std::string& name)
 {
-	bool isPaused = LVP_Player::state.isPaused;
+	if (LVP_Player::state.isStopped)
+	{
+		LVP_Player::state.audioDevice = {
+			.id   = LVP_Player::state.audioDevices[name],
+			.name = name
+		};
 
-	if (!isPaused)
-		LVP_Player::Pause();
+		return;
+	}
 
-	LVP_Player::audioDevice = device;
+	bool isPlaying = LVP_Player::state.isPlaying;
 
-	if (!LVP_Player::state.isStopped)
-		LVP_Player::openAudioDevice();
+	if (isPlaying)
+		SDL_PauseAudioDevice(LVP_Player::state.audioDevice.id);
 
-	if (!isPaused)
-		LVP_Player::Play();
+	LVP_Player::openAudioDevice(name);
 
-	return (LVP_Player::audioDevice.id > 0);
+	if (isPlaying)
+		SDL_ResumeAudioDevice(LVP_Player::state.audioDevice.id);
+}
+
+void MediaPlayer::LVP_Player::setAudioDevices()
+{
+	LVP_Player::state.audioDevices.clear();
+
+	LVP_Player::state.audioDevices["Default"] = 0;
+
+	int  nrOfAudioDevices;
+	auto deviceIds = SDL_GetAudioPlaybackDevices(&nrOfAudioDevices);
+
+	for (int i = 0; i < nrOfAudioDevices; i++)
+		LVP_Player::state.audioDevices[SDL_GetAudioDeviceName(deviceIds[i])] = deviceIds[i];
 }
 
 void MediaPlayer::LVP_Player::setAudioPacketDuration(AVPacket* packet)
@@ -1728,7 +1726,7 @@ int MediaPlayer::LVP_Player::threadAudio()
 
 	while (!LVP_Player::state.quit)
 	{
-		while (!LVP_Player::state.quit && (LVP_Player::audioDevice.id > 0) && (
+		while (!LVP_Player::state.quit && (LVP_Player::state.audioDevice.id > 0) && (
 			LVP_Player::state.isPaused ||
 			LVP_Player::seekRequested ||
 			LVP_Player::trackRequested ||
@@ -1748,7 +1746,7 @@ int MediaPlayer::LVP_Player::threadAudio()
 
 		LVP_Player::setAudioPacketDuration(packet);
 
-		if (LVP_Player::audioDevice.id > 0)
+		if (LVP_Player::state.audioDevice.id > 0)
 		{
 			LVP_Player::decodeAudioPacket(packet);
 			LVP_Player::decodeAudioFrames();

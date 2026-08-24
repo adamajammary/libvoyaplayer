@@ -18,7 +18,7 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[FFmpeg](https://ffmpeg.org/) | [9.0](https://ffmpeg.org/releases/ffmpeg-9.0.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[FFmpeg](https://ffmpeg.org/) | [9.0.1](https://ffmpeg.org/releases/ffmpeg-9.0.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
 [dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.4](https://code.videolan.org/videolan/dav1d/-/archive/1.5.4/dav1d-1.5.4.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
 [libass](https://github.com/libass/libass) | [0.17.5](https://github.com/libass/libass/releases/download/0.17.5/libass-0.17.5.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
 [FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.3](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-3/freetype-VER-2-14-3.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
@@ -512,14 +512,22 @@ Exceptions
 ### LVP_AddAudioDevice
 
 ```cpp
-void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+void LVP_AddAudioDevice(SDL_AudioDeviceID id);
 ```
 
 Tells the player that a new audio device was connected.
 
 Parameters
 
-- **adevice** SDL2 audio device event.
+- **id** SDL audio device ID.
+
+### LVP_GetAudioDevice
+
+```cpp
+std::string LVP_GetAudioDevice();
+```
+
+Returns the current audio device.
 
 ### LVP_GetAudioDevices
 
@@ -528,18 +536,6 @@ std::vector<std::string> LVP_GetAudioDevices();
 ```
 
 Returns a list of available audio devices.
-
-### LVP_GetChapters
-
-```cpp
-std::vector<LVP_MediaChapter> LVP_GetChapters();
-```
-
-Returns a list of chapters in the currently loaded media.
-
-Exceptions
-
-- runtime_error
 
 ### LVP_GetAudioTrack
 
@@ -560,6 +556,18 @@ std::vector<LVP_MediaTrack> LVP_GetAudioTracks();
 ```
 
 Returns a list of audio tracks in the currently loaded media.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetChapters
+
+```cpp
+std::vector<LVP_MediaChapter> LVP_GetChapters();
+```
+
+Returns a list of chapters in the currently loaded media.
 
 Exceptions
 
@@ -957,14 +965,14 @@ Cleans up allocated resources.
 ### LVP_RemoveAudioDevice
 
 ```cpp
-void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
+void LVP_RemoveAudioDevice(SDL_AudioDeviceID id);
 ```
 
 Tells the player that an audio device was disconnected.
 
 Parameters
 
-- **adevice** SDL2 audio device event.
+- **id** SDL audio device ID.
 
 ### LVP_Resize
 
@@ -1024,16 +1032,14 @@ Exceptions
 ### LVP_SetAudioDevice
 
 ```cpp
-bool LVP_SetAudioDevice(const std::string& device);
+void LVP_SetAudioDevice(const std::string& name);
 ```
 
 Tries to set the given audio device as the current device if valid.
 
-Returns true if the audio device is successfully set.
-
 Parameters
 
-- **device** Name of the audio device.
+- **name** Audio device name.
 
 ### LVP_SetMuted
 

@@ -92,8 +92,9 @@ namespace LibVoyaPlayer
 
 	const int DEFAULT_CHAR_BUFFER_SIZE = 1024;
 
-	using LVP_MapStrStr = std::map<std::string, std::string>;
-	using LVP_Strings   = std::vector<std::string>;
+	using LVP_AudioDevices = std::map<std::string, SDL_AudioDeviceID>;
+	using LVP_MapStrStr    = std::map<std::string, std::string>;
+	using LVP_Strings      = std::vector<std::string>;
 
 	namespace System
 	{
@@ -180,6 +181,12 @@ namespace LibVoyaPlayer
 			LVP_THREAD_SUBTITLE,
 			LVP_THREAD_VIDEO,
 			LVP_NR_OF_THREADS
+		};
+
+		struct LVP_AudioDevice
+		{
+			SDL_AudioDeviceID id   = 0;
+			std::string       name = "Default";
 		};
 
 		struct LVP_AudioFilter
