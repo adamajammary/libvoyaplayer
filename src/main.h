@@ -9,6 +9,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #if defined _android
@@ -92,7 +93,7 @@ namespace LibVoyaPlayer
 
 	const int DEFAULT_CHAR_BUFFER_SIZE = 1024;
 
-	using LVP_AudioDevices = std::map<std::string, SDL_AudioDeviceID>;
+	using LVP_AudioDevices = std::unordered_map<std::string, SDL_AudioDeviceID>;
 	using LVP_MapStrStr    = std::map<std::string, std::string>;
 	using LVP_Strings      = std::vector<std::string>;
 
