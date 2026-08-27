@@ -359,8 +359,13 @@ LVP_Strings MediaPlayer::LVP_Player::GetAudioDevices()
 {
 	LVP_Strings devices;
 
-	for (const auto& device : LVP_Player::state.audioDevices)
-		devices.push_back(device.first);
+	devices.reserve(LVP_Player::state.audioDevices.size());
+	devices.push_back("Default");
+
+	for (const auto& device : LVP_Player::state.audioDevices) {
+		if (device.first != "Default")
+			devices.push_back(device.first);
+	}
 
 	return devices;
 }
