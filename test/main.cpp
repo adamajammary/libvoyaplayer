@@ -1,8 +1,8 @@
-#if defined _windows
-    #define SDL_MAIN_HANDLED
-#endif
-
 #include "main.h"
+
+extern "C" {
+	#include "SDL3/SDL_main.h"
+}
 
 std::string BASE_PATH  = "";
 bool        QUIT       = false;
@@ -314,13 +314,7 @@ static void run()
     SDL_RenderPresent(renderer);
 }
 
-#if defined _windows && defined _DEBUG
-int wmain(int argc, wchar_t* argv[])
-#elif defined _windows && defined NDEBUG
-int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
-#else
 int main(int argc, char* argv[])
-#endif
 {
     try
     {

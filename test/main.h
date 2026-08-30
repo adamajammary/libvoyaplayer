@@ -13,15 +13,6 @@
 
 #include <libvoyaplayer.h>
 
-#if !defined _windows
-    #ifndef LIB_SDL_MAIN_H
-    #define LIB_SDL_MAIN_H
-	    extern "C" {
-		    #include "SDL3/SDL_main.h"
-	    }
-    #endif
-#endif
-
 extern "C"
 {
 	#include <ft2build.h>
