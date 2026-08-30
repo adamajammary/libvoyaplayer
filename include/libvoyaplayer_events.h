@@ -12,6 +12,10 @@
 #define LIB_SDL_H
 	extern "C" {
 		#include <SDL3/SDL.h>
+
+		#if !defined _windows
+			#include "SDL3/SDL_main.h"
+		#endif
 	}
 #endif
 

@@ -1,4 +1,6 @@
-#define SDL_MAIN_HANDLED
+#if !defined _windows
+    #define SDL_MAIN_HANDLED
+#endif
 
 #include "main.h"
 
