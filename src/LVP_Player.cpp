@@ -32,6 +32,14 @@ void MediaPlayer::LVP_Player::AddAudioDevice(SDL_AudioDeviceID id)
 {
 	auto name = SDL_GetAudioDeviceName(id);
 
+	if (!name)
+	{
+		#if defined _DEBUG
+			printf("AddAudioDevice SDL_GetAudioDeviceName(%u): %s\n", id, SDL_GetError());
+		#endif
+		return;
+	}
+
 	#if defined _DEBUG
 		printf("Audio device connected: %s\n", name);
 	#endif
@@ -1415,6 +1423,14 @@ void MediaPlayer::LVP_Player::Quit()
 void MediaPlayer::LVP_Player::RemoveAudioDevice(SDL_AudioDeviceID id)
 {
 	auto name = SDL_GetAudioDeviceName(id);
+
+	if (!name)
+	{
+		#if defined _DEBUG
+			printf("RemoveAudioDevice SDL_GetAudioDeviceName(%u): %s\n", id, SDL_GetError());
+		#endif
+		return;
+	}
 
 	#if defined _DEBUG
 		printf("Audio device disconnected: %s\n", name);
