@@ -1,4 +1,4 @@
-#if !defined _windows
+#if defined _windows
     #define SDL_MAIN_HANDLED
 #endif
 
