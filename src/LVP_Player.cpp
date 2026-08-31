@@ -1290,6 +1290,20 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 		.freq     = sampleRate
 	};
 
+	// https://stackoverflow.com/questions/11085007/ios-background-audio-stops-when-screen-is-locked
+
+	const int DEFAULT_SAMPLE_COUNT = 4096;
+
+	#if defined _ios && !defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
+		auto sampleCount = DEFAULT_SAMPLE_COUNT;
+	#else
+		auto sampleCount = LVP_Player::audioContext->codec->frame_size;
+	#endif
+
+	auto samples = (sampleCount > 0 ? sampleCount : DEFAULT_SAMPLE_COUNT);
+
+	SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, std::to_string(samples).c_str(), SDL_HINT_OVERRIDE);
+
 	LVP_Player::openAudioDevice(LVP_Player::state.audioDevice.name);
 
 	if (!LVP_Player::state.threads[LVP_THREAD_AUDIO])
