@@ -65,9 +65,11 @@ static void initBasePath()
     auto prefPath = SDL_GetPrefPath(nullptr, nullptr);
 
     if (!prefPath)
-        throw std::runtime_error("Failed to get an app-specific location where files can be written.");
+        throw std::runtime_error(std::format("Failed to get an app-specific location where files can be written: {}", SDL_GetError()));
 
     BASE_PATH = std::string(prefPath);
+
+    SDL_free(prefPath);
 
     auto jniAssetManager = getAndroidJniAssetManager();
 	auto videoAsset      = AAssetManager_open(jniAssetManager, VIDEO_FILE.c_str(), AASSET_MODE_STREAMING);
