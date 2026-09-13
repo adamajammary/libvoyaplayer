@@ -212,7 +212,7 @@ void MediaPlayer::LVP_SubtitleBitmap::UpdatePGSEndPTS(double pts)
 		sub->pts.end = pts;
 
 		#if defined _DEBUG
-			printf("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);
+			LOG("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);
 		#endif
 	}
 

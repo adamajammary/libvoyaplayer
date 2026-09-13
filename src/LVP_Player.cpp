@@ -32,16 +32,13 @@ void MediaPlayer::LVP_Player::AddAudioDevice(SDL_AudioDeviceID id)
 {
 	auto name = SDL_GetAudioDeviceName(id);
 
-	if (!name)
-	{
-		#if defined _DEBUG
-			printf("AddAudioDevice SDL_GetAudioDeviceName(%u): %s\n", id, SDL_GetError());
-		#endif
+	if (!name) {
+		LOG("LVP_Player::AddAudioDevice(%u) failed: %s\n", id, SDL_GetError());
 		return;
 	}
 
 	#if defined _DEBUG
-		printf("Audio device connected: %s\n", name);
+		LOG("Audio device connected: %s\n", name);
 	#endif
 
 	LVP_Player::state.audioDevices[name] = id;
@@ -322,12 +319,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 	if ((result < 0) && (result != AVERROR(EAGAIN)))
 	{
-		#if defined _DEBUG
-			char strerror[AV_ERROR_MAX_STRING_SIZE];
-			av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-			LOG("AUDIO_DECODE_FRAME: %s\n", strerror);
-		#endif
-
+		LVP_Player::logAVError(result, "LVP_Player::decodeAudioFrames failed");
 		LVP_Player::stop("Failed to decode audio.");
 	}
 	else if (result == AVERROR_EOF)
@@ -349,13 +341,7 @@ void MediaPlayer::LVP_Player::decodeAudioPacket(AVPacket* packet)
 	LVP_Player::packetLock.unlock();
 
 	if ((result < 0) && (result != AVERROR(EAGAIN)))
-	{
-		#if defined _DEBUG
-			char strerror[AV_ERROR_MAX_STRING_SIZE];
-			av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-			LOG("AUDIO_SEND_PACKET: %s\n", strerror);
-		#endif
-	}
+		LVP_Player::logAVError(result, "LVP_Player::decodeAudioPacket failed");
 }
 
 std::string MediaPlayer::LVP_Player::GetAudioDevice()
@@ -833,15 +819,9 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 		if (LVP_Player::state.isPaused)
 			LVP_Player::state.progress = LVP_Player::seekPTS;
+	} else {
+		LVP_Player::logAVError(result, "LVP_Player::handleSeek failed");
 	}
-	#if defined _DEBUG
-	else
-	{
-		char strerror[AV_ERROR_MAX_STRING_SIZE];
-		av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-		LOG("SEEK: %s\n", strerror);
-	}
-	#endif
 
 	LVP_Player::seekByRequest = 0;
 	LVP_Player::seekToRequest = 0.0;
@@ -1062,6 +1042,15 @@ bool MediaPlayer::LVP_Player::IsStopped()
 	return LVP_Player::state.isStopped;
 }
 
+void MediaPlayer::LVP_Player::logAVError(int result, const std::string& message)
+{
+	char strerror[AV_ERROR_MAX_STRING_SIZE];
+
+	av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
+
+	LOG("%s: %s\n", message.c_str(), strerror);
+}
+
 /**
  * @throws invalid_argument
  */
@@ -1111,11 +1100,8 @@ void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
 	int nrOfAudioDevices;
 	SDL_GetAudioPlaybackDevices(&nrOfAudioDevices);
 
-	if (nrOfAudioDevices <= 0)
-	{
-		#if defined _DEBUG
-			LOG("Failed to find a valid audio playback device.\n");
-		#endif
+	if (nrOfAudioDevices <= 0) {
+		LOG("LVP_Player::openAudioDevice(%s) failed: Couldn't find a valid audio playback device.\n", name.c_str());
 		return;
 	}
 
@@ -1133,11 +1119,8 @@ void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
 
 	auto currentDeviceId = SDL_GetAudioStreamDevice(LVP_Player::audioContext->audioStream);
 
-	if (currentDeviceId == 0)
-	{
-		#if defined _DEBUG
-			LOG("%s\n", SDL_GetError());
-		#endif
+	if (currentDeviceId == 0) {
+		LOG("LVP_Player::openAudioDevice(%s) failed: %s\n", name.c_str(), SDL_GetError());
 		return;
 	}
 
@@ -1323,7 +1306,7 @@ void MediaPlayer::LVP_Player::openThreadSub()
 		if (subHeader.empty())
 			subHeader = (extradata != NULL ? std::string(reinterpret_cast<char*>(extradata)) : "");
 
-		printf("\n%s\n", subHeader.c_str());
+		LOG("\n%s\n", subHeader.c_str());
 	#endif
 
 	if (!LVP_Player::state.threads[LVP_THREAD_SUBTITLE])
@@ -1438,16 +1421,13 @@ void MediaPlayer::LVP_Player::RemoveAudioDevice(SDL_AudioDeviceID id)
 {
 	auto name = SDL_GetAudioDeviceName(id);
 
-	if (!name)
-	{
-		#if defined _DEBUG
-			printf("RemoveAudioDevice SDL_GetAudioDeviceName(%u): %s\n", id, SDL_GetError());
-		#endif
+	if (!name) {
+		LOG("LVP_Player::RemoveAudioDevice(%u): %s\n", id, SDL_GetError());
 		return;
 	}
 
 	#if defined _DEBUG
-		printf("Audio device disconnected: %s\n", name);
+		LOG("Audio device disconnected: %s\n", name);
 	#endif
 
 	if (LVP_Player::state.audioDevices.contains(name))
@@ -1937,13 +1917,9 @@ int MediaPlayer::LVP_Player::threadPackets()
 			}
 			else
 			{
-				errorCount++;
+				LVP_Player::logAVError(result, "LVP_Player::threadPackets failed");
 
-				#if defined _DEBUG
-					char strerror[AV_ERROR_MAX_STRING_SIZE];
-					av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-					LOG("PACKET_READ: %s\n", strerror);
-				#endif
+				errorCount++;
 
 				if (errorCount < MAX_ERRORS)
 					continue;
@@ -2113,7 +2089,7 @@ int MediaPlayer::LVP_Player::threadSub()
 		if ((packetPTS.end > 0.0) && ((packetDelayStart <= MAX_SUB_DELAY) || (packetDelayEnd <= 0.0)))
 		{
 			#if defined _DEBUG
-				printf("SUB_PACKET_DELAY: %.3fs [%.3fs]\n", packetDelayStart, packetDelayEnd);
+				LOG("SUB_PACKET_DELAY: %.3fs [%.3fs]\n", packetDelayStart, packetDelayEnd);
 			#endif
 
 			if (packetDelayEnd <= 0.0)
@@ -2194,7 +2170,7 @@ int MediaPlayer::LVP_Player::threadSub()
 		if ((framePTS.end > 0.0) && ((frameDelayStart <= MAX_SUB_DELAY) || (frameDelayEnd <= 0.0)))
 		{
 			#if defined _DEBUG
-				printf("SUB_FRAME_DELAY: %.3fs [%.3fs]\n", frameDelayStart, frameDelayEnd);
+				LOG("SUB_FRAME_DELAY: %.3fs [%.3fs]\n", frameDelayStart, frameDelayEnd);
 			#endif
 
 			if (frameDelayEnd <= 0.0)
@@ -2214,7 +2190,7 @@ int MediaPlayer::LVP_Player::threadSub()
 			case SUBTITLE_BITMAP:
 				#if defined _DEBUG
 				if (sub->pts.end != 0.0)
-					printf("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);
+					LOG("[%.3f,%.3f] %d,%d %dx%d\n", sub->pts.start, sub->pts.end, sub->bitmap.x, sub->bitmap.y, sub->bitmap.w, sub->bitmap.h);
 				#endif
 
 				LVP_SubtitleBitmap::ProcessEvent(sub, *subFrame.rects[i]);
@@ -2229,7 +2205,7 @@ int MediaPlayer::LVP_Player::threadSub()
 			case SUBTITLE_TEXT:
 				#if defined _DEBUG
 				if (sub->dialogue.find("\\vr") == std::string::npos)
-					printf("[%.3f,%.3f] %s\n", sub->pts.start, sub->pts.end, sub->dialogue.c_str());
+					LOG("[%.3f,%.3f] %s\n", sub->pts.start, sub->pts.end, sub->dialogue.c_str());
 				#endif
 
 				#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
@@ -2289,15 +2265,11 @@ int MediaPlayer::LVP_Player::threadVideo()
 			if ((result == AVERROR(EAGAIN)) || (result == AVERROR_EOF))
 				continue;
 
-			errorCount++;
-
 			FREE_AVPACKET(packet);
 
-			#if defined _DEBUG
-				char strerror[AV_ERROR_MAX_STRING_SIZE];
-				av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-				LOG("VIDEO_SEND_PACKET: %s\n", strerror);
-			#endif
+			LVP_Player::logAVError(result, "LVP_Player::threadVideo failed");
+
+			errorCount++;
 
 			if (errorCount >= MAX_ERRORS) {
 				LVP_Player::stop("Failed to decode video.");
@@ -2318,16 +2290,9 @@ int MediaPlayer::LVP_Player::threadVideo()
 			if ((result == AVERROR(EAGAIN)) || (result == AVERROR_EOF))
 				break;
 
-			if (result < 0)
-			{
+			if (result < 0) {
+				LVP_Player::logAVError(result, "LVP_Player::threadVideo failed");
 				errorCount++;
-
-				#if defined _DEBUG
-					char strerror[AV_ERROR_MAX_STRING_SIZE];
-					av_strerror(result, strerror, AV_ERROR_MAX_STRING_SIZE);
-					LOG("VIDEO_DECODE_FRAME: %s\n", strerror);
-				#endif
-
 				break;
 			}
 

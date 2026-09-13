@@ -116,6 +116,7 @@ namespace LibVoyaPlayer
 			static bool                          isHardwarePixelFormat(int frameFormat);
 			static bool                          isPacketQueueFull();
 			static bool                          isPacketQueueFull(AVMediaType streamType);
+			static void                          logAVError(int result, const std::string& message);
 			static void                          open();
 			static void                          openAudioDevice(const std::string& name);
 			static void                          openFormatContext();
