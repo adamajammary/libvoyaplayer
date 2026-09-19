@@ -1187,11 +1187,11 @@ void MediaPlayer::LVP_Player::openStreams()
 
 	LVP_Player::state.duration = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext->avStream);
 
-	// VIDEO TRACK
-	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_VIDEO, LVP_Player::videoContext);
-
 	if (IS_VIDEO(LVP_Player::state.mediaType))
 	{
+		// VIDEO TRACK
+		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_VIDEO, LVP_Player::videoContext);
+
 		if (LVP_Player::videoContext->avStream == NULL)
 			throw std::runtime_error("Failed to find a valid video track.");
 
