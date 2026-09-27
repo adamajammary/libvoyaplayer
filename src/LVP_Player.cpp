@@ -25,23 +25,7 @@ void MediaPlayer::LVP_Player::Init(const LVP_CallbackContext& callbackContext)
 	LVP_Player::callbackContext = callbackContext;
 	LVP_Player::state.quit      = false;
 
-	LVP_Player::setAudioDevices();
-}
-
-void MediaPlayer::LVP_Player::AddAudioDevice(SDL_AudioDeviceID id)
-{
-	auto name = SDL_GetAudioDeviceName(id);
-
-	if (!name) {
-		LOG("LVP_Player::AddAudioDevice(%u) failed: %s\n", id, SDL_GetError());
-		return;
-	}
-
-	#if defined _DEBUG
-		LOG("Audio device connected: %s\n", name);
-	#endif
-
-	LVP_Player::state.audioDevices[name] = id;
+	LVP_Player::SetAudioDevices();
 }
 
 void MediaPlayer::LVP_Player::CallbackError(const std::string& errorMessage)
@@ -1106,7 +1090,7 @@ void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
 	}
 
 	LVP_Player::closeAudioStream();
-	LVP_Player::setAudioDevices();
+	LVP_Player::SetAudioDevices();
 
 	auto deviceId = (name == "Default" ? SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK : LVP_Player::state.audioDevices[name]);
 		
@@ -1417,23 +1401,6 @@ void MediaPlayer::LVP_Player::Quit()
 	LVP_Player::close();
 }
 
-void MediaPlayer::LVP_Player::RemoveAudioDevice(SDL_AudioDeviceID id)
-{
-	auto name = SDL_GetAudioDeviceName(id);
-
-	if (!name) {
-		LOG("LVP_Player::RemoveAudioDevice(%u): %s\n", id, SDL_GetError());
-		return;
-	}
-
-	#if defined _DEBUG
-		LOG("Audio device disconnected: %s\n", name);
-	#endif
-
-	if (LVP_Player::state.audioDevices.contains(name))
-		LVP_Player::state.audioDevices.erase(name);
-}
-
 void MediaPlayer::LVP_Player::renderVideo()
 {
 	if ((LVP_Player::videoContext->index < 0) || (LVP_Player::videoContext->codec == NULL) || (LVP_Player::videoContext->frame == NULL))
@@ -1632,7 +1599,7 @@ void MediaPlayer::LVP_Player::SetAudioDevice(const std::string& name)
 		SDL_ResumeAudioDevice(LVP_Player::state.audioDevice.id);
 }
 
-void MediaPlayer::LVP_Player::setAudioDevices()
+void MediaPlayer::LVP_Player::SetAudioDevices()
 {
 	LVP_Player::state.audioDevices.clear();
 

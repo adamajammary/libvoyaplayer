@@ -44,14 +44,6 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	}
 }
 
-void LVP_AddAudioDevice(SDL_AudioDeviceID id)
-{
-	if (!isInitialized)
-		throw std::runtime_error(ERROR_NO_INIT);
-
-	MediaPlayer::LVP_Player::AddAudioDevice(id);
-}
-
 std::string LVP_GetAudioDevice()
 {
 	if (!isInitialized)
@@ -410,14 +402,6 @@ void LVP_Quit()
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-void LVP_RemoveAudioDevice(SDL_AudioDeviceID id)
-{
-	if (!isInitialized)
-		throw std::runtime_error(ERROR_NO_INIT);
-
-	MediaPlayer::LVP_Player::RemoveAudioDevice(id);
-}
-
 void LVP_Resize()
 {
 	if (!isInitialized)
@@ -512,6 +496,14 @@ void LVP_TogglePause()
 		throw std::runtime_error(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::TogglePause();
+}
+
+void LVP_UpdateAudioDevices()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::SetAudioDevices();
 }
 
 #if defined _windows

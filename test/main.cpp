@@ -231,10 +231,8 @@ static void handleEvents()
             QUIT = true;
             break;
         case SDL_EVENT_AUDIO_DEVICE_ADDED:
-            LVP_AddAudioDevice(event.adevice.which);
-            break;
         case SDL_EVENT_AUDIO_DEVICE_REMOVED:
-            LVP_RemoveAudioDevice(event.adevice.which);
+            LVP_UpdateAudioDevices();
             break;
         case SDL_EVENT_KEY_DOWN:
             handleKeyDownEvent(event.key);
@@ -248,7 +246,8 @@ static void handleEvents()
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             QUIT = true;
             break;
-        case SDL_EVENT_WINDOW_MOVED: case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        case SDL_EVENT_WINDOW_MOVED:
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             LVP_Resize();
             break;
         default:

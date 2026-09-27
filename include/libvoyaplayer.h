@@ -28,13 +28,6 @@
 DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
- * @brief Tells the player that a new audio device was connected.
- * @param id SDL audio device ID.
- * @throws runtime_error
- */
-DLLEXPORT void DLL LVP_AddAudioDevice(SDL_AudioDeviceID id);
-
-/**
  * @returns the current audio device.
  * @throws runtime_error
  */
@@ -252,13 +245,6 @@ DLLEXPORT void DLL LVP_Play();
 DLLEXPORT void DLL LVP_Quit();
 
 /**
- * @brief Tells the player that an audio device was disconnected.
- * @param id SDL audio device ID.
- * @throws runtime_error
- */
-DLLEXPORT void DLL LVP_RemoveAudioDevice(SDL_AudioDeviceID id);
-
-/**
  * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
  */
 DLLEXPORT void DLL LVP_Resize();
@@ -337,5 +323,11 @@ DLLEXPORT void DLL LVP_ToggleMute();
  * @throws runtime_error
  */
 DLLEXPORT void DLL LVP_TogglePause();
+
+/**
+ * @brief Tells the player to update the list of available audio devices.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_UpdateAudioDevices();
 
 #endif

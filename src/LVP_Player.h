@@ -39,7 +39,6 @@ namespace LibVoyaPlayer
 			static LVP_VideoContext*          videoContext;
 
 		public:
-			static void                          AddAudioDevice(SDL_AudioDeviceID id);
 			static void                          CallbackError(const std::string& errorMessage);
 			static void                          Close();
 			static std::string                   GetAudioDevice();
@@ -73,12 +72,12 @@ namespace LibVoyaPlayer
 			static void                          Pause();
 			static void                          Play();
 			static void                          Quit();
-			static void                          RemoveAudioDevice(SDL_AudioDeviceID id);
 			static void                          Resize();
 			static void                          Run(const SDL_Rect& destination = {});
 			static void                          SeekBy(int seconds);
 			static void                          SeekTo(double percent);
 			static void                          SetAudioDevice(const std::string& name);
+			static void                          SetAudioDevices();
 			static void                          SetMuted(bool muted = true);
 			static void                          SetPlaybackSpeed(double speed);
 			static void                          SetTrack(const LVP_MediaTrack& track);
@@ -128,7 +127,6 @@ namespace LibVoyaPlayer
 			static void                          openThreadVideo();
 			static void                          renderVideo();
 			static void                          seekTo(double percent);
-			static void                          setAudioDevices();
 			static void                          setAudioPacketDuration(AVPacket* packet);
 			static void                          setAudioProgress(AVFrame* frame);
 			static void                          stop(const std::string& errorMessage = "");

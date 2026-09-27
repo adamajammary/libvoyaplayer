@@ -509,18 +509,6 @@ Exceptions
 
 - runtime_error
 
-### LVP_AddAudioDevice
-
-```cpp
-void LVP_AddAudioDevice(SDL_AudioDeviceID id);
-```
-
-Tells the player that a new audio device was connected.
-
-Parameters
-
-- **id** SDL audio device ID.
-
 ### LVP_GetAudioDevice
 
 ```cpp
@@ -962,18 +950,6 @@ void LVP_Quit();
 
 Cleans up allocated resources.
 
-### LVP_RemoveAudioDevice
-
-```cpp
-void LVP_RemoveAudioDevice(SDL_AudioDeviceID id);
-```
-
-Tells the player that an audio device was disconnected.
-
-Parameters
-
-- **id** SDL audio device ID.
-
 ### LVP_Resize
 
 ```cpp
@@ -1140,3 +1116,11 @@ Toggles between pausing and playing.
 Exceptions
 
 - runtime_error
+
+### LVP_UpdateAudioDevices
+
+```cpp
+void LVP_UpdateAudioDevices();
+```
+
+Tells the player to update the list of available audio devices.
