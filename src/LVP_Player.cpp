@@ -258,7 +258,8 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		// Apply filter to frame
 
-		if (!LVP_Player::audioContext->filterSpecs.equals(frame, LVP_Player::state.playbackSpeed) || (LVP_Player::audioContext->filter.filterGraph == NULL))
+		if (!LVP_Player::audioContext->filterSpecs.equals(frame, LVP_Player::state.playbackSpeed) ||
+			(LVP_Player::audioContext->filter.filterGraph == NULL))
 		{
 			LVP_Player::initAudioFilter(frame);
 
@@ -916,6 +917,14 @@ void MediaPlayer::LVP_Player::handleTrack()
 	LVP_Player::packetLock.unlock();
 }
 
+bool MediaPlayer::LVP_Player::hasValidAudioDevice()
+{
+	int nrOfAudioDevices;
+	SDL_GetAudioPlaybackDevices(&nrOfAudioDevices);
+
+	return (nrOfAudioDevices > 0);
+}
+
 /**
  * @throws runtime_error
  */
@@ -1081,10 +1090,7 @@ void MediaPlayer::LVP_Player::open()
 
 void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
 {
-	int nrOfAudioDevices;
-	SDL_GetAudioPlaybackDevices(&nrOfAudioDevices);
-
-	if (nrOfAudioDevices <= 0) {
+	if (!LVP_Player::hasValidAudioDevice()) {
 		LOG("LVP_Player::openAudioDevice(%s) failed: Couldn't find a valid audio playback device.\n", name.c_str());
 		return;
 	}
@@ -2351,5 +2357,26 @@ void MediaPlayer::LVP_Player::TogglePause()
 	if (!LVP_Player::state.isPaused)
 		LVP_Player::Pause();
 	else
+		LVP_Player::Play();
+}
+
+void MediaPlayer::LVP_Player::UpdateAudioDevices()
+{
+	bool isPlaying = LVP_Player::state.isPlaying;
+
+	if (isPlaying)
+		LVP_Player::Pause();
+
+	if ((LVP_Player::audioContext != NULL) && (LVP_Player::audioContext->audioStream == NULL))
+		LVP_Player::openAudioDevice(LVP_Player::state.audioDevice.name);
+	else
+		LVP_Player::SetAudioDevices();
+
+	if (!LVP_Player::hasValidAudioDevice()) {
+		LVP_Player::closeAudioStream();
+		LVP_Player::state.audioDevice = {};
+	}
+
+	if (isPlaying)
 		LVP_Player::Play();
 }

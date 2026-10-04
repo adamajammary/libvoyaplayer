@@ -135,9 +135,6 @@ namespace LibVoyaPlayer
 		#define FREE_SUB_FRAME(f)      if (f.num_rects > 0) { avsubtitle_free(&f); f = {}; }
 		#define FREE_SURFACE(s)        if (s != NULL) { SDL_DestroySurface(s); s = NULL; }
 		#define FREE_TEXTURE(t)        if (t != NULL) { SDL_DestroyTexture(t); t = NULL; }
-		#define FREE_THREAD(t)         if (t != NULL) { SDL_DetachThread(t); t = NULL; }
-		#define FREE_THREAD_COND(c)    if (c != NULL) { SDL_DestroyCond(c);c = NULL; }
-		#define FREE_THREAD_MUTEX(m)   if (m != NULL) { SDL_DestroyMutex(m); m = NULL; }
 
 		#define IS_ATTACHMENT(t) (t == AVMEDIA_TYPE_ATTACHMENT)
 		#define IS_AUDIO(t)      (t == AVMEDIA_TYPE_AUDIO)

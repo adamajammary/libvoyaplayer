@@ -84,6 +84,7 @@ namespace LibVoyaPlayer
 			static void                          SetVolume(double percent);
 			static void                          ToggleMute();
 			static void                          TogglePause();
+			static void                          UpdateAudioDevices();
 
 		private:
 			static void                          callbackEvents(LVP_EventType type);
@@ -111,6 +112,7 @@ namespace LibVoyaPlayer
 			static std::vector<LVP_MediaTrack>   getVideoTracks(AVFormatContext* formatContext);
 			static void                          handleSeek();
 			static void                          handleTrack();
+			static bool                          hasValidAudioDevice();
 			static void                          initAudioFilter(AVFrame* frame);
 			static bool                          isHardwarePixelFormat(int frameFormat);
 			static bool                          isPacketQueueFull();

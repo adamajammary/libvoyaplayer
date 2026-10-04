@@ -503,7 +503,7 @@ void LVP_UpdateAudioDevices()
 	if (!isInitialized)
 		throw std::runtime_error(ERROR_NO_INIT);
 
-	MediaPlayer::LVP_Player::SetAudioDevices();
+	MediaPlayer::LVP_Player::UpdateAudioDevices();
 }
 
 #if defined _windows
