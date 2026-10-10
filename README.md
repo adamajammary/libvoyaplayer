@@ -22,7 +22,7 @@ Library | Version | License
 [dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.4](https://code.videolan.org/videolan/dav1d/-/archive/1.5.4/dav1d-1.5.4.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
 [libass](https://github.com/libass/libass) | [0.17.5](https://github.com/libass/libass/releases/download/0.17.5/libass-0.17.5.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
 [FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.3](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-3/freetype-VER-2-14-3.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
-[SDL3](https://github.com/libsdl-org/SDL) | [3.4.16](https://github.com/libsdl-org/SDL/releases/download/release-3.4.16/SDL3-3.4.16.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
+[SDL3](https://github.com/libsdl-org/SDL) | [3.4.18](https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
 
 ## Platform-dependent Include Headers
 
