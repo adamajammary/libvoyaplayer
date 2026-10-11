@@ -37,5 +37,7 @@ void MediaPlayer::LVP_AudioContext::free()
 	FREE_POINTER(this->buffer);
 	FREE_AVFILTER_GRAPH(this->filter.filterGraph);
 
+	this->filter = {};
+
 	LVP_AudioContext::clearFrames();
 }

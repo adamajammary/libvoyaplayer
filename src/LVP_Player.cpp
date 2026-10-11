@@ -1,75 +1,60 @@
 ﻿#include "LVP_Player.h"
 
-MediaPlayer::LVP_AudioContext*    MediaPlayer::LVP_Player::audioContext          = NULL;
-LVP_CallbackContext               MediaPlayer::LVP_Player::callbackContext       = {};
-AVFormatContext*                  MediaPlayer::LVP_Player::formatContext         = NULL;
-AVFormatContext*                  MediaPlayer::LVP_Player::formatContextExternal = NULL;
-bool                              MediaPlayer::LVP_Player::isOpening             = false;
-bool                              MediaPlayer::LVP_Player::isStopping            = false;
-std::mutex                        MediaPlayer::LVP_Player::packetLock            = {};
-double                            MediaPlayer::LVP_Player::seekPTS               = 0.0;
-bool                              MediaPlayer::LVP_Player::seekRequested         = false;
-bool                              MediaPlayer::LVP_Player::seekRequestedBack     = false;
-bool                              MediaPlayer::LVP_Player::seekRequestedPaused   = false;
-int                               MediaPlayer::LVP_Player::seekByRequest         = 0;
-double                            MediaPlayer::LVP_Player::seekToRequest         = 0.0;
-MediaPlayer::LVP_PlayerState      MediaPlayer::LVP_Player::state                 = {};
-MediaPlayer::LVP_SubtitleContext* MediaPlayer::LVP_Player::subContext            = {};
-System::LVP_TimeOut*              MediaPlayer::LVP_Player::timeOut               = NULL;
-bool                              MediaPlayer::LVP_Player::trackRequested        = false;
-std::queue<LVP_MediaTrack>        MediaPlayer::LVP_Player::trackRequests         = {};
-MediaPlayer::LVP_VideoContext*    MediaPlayer::LVP_Player::videoContext          = {};
+LVP_CallbackContext             MediaPlayer::LVP_Player::callback   = {};
+MediaPlayer::LVP_PlayerContext* MediaPlayer::LVP_Player::context    = NULL;
+std::mutex                      MediaPlayer::LVP_Player::packetLock = {};
+MediaPlayer::LVP_PlayerState    MediaPlayer::LVP_Player::state      = {};
 
 void MediaPlayer::LVP_Player::Init(const LVP_CallbackContext& callbackContext)
 {
-	LVP_Player::callbackContext = callbackContext;
-	LVP_Player::state.quit      = false;
+	LVP_Player::callback   = callbackContext;
+	LVP_Player::state.quit = false;
 
 	LVP_Player::SetAudioDevices();
 }
 
 void MediaPlayer::LVP_Player::CallbackError(const std::string& errorMessage)
 {
-	if (LVP_Player::callbackContext.errorCB == nullptr)
+	if (LVP_Player::callback.errorCB == nullptr)
 		return;
 
 	std::thread([errorMessage]() {
-		LVP_Player::callbackContext.errorCB(errorMessage, LVP_Player::callbackContext.data);
+		LVP_Player::callback.errorCB(errorMessage, LVP_Player::callback.data);
 	}).detach();
 }
 
 void MediaPlayer::LVP_Player::callbackEvents(LVP_EventType type)
 {
-	if (LVP_Player::callbackContext.eventsCB == nullptr)
+	if (LVP_Player::callback.eventsCB == nullptr)
 		return;
 
 	std::thread([type]() {
-		LVP_Player::callbackContext.eventsCB(type, LVP_Player::callbackContext.data);
+		LVP_Player::callback.eventsCB(type, LVP_Player::callback.data);
 	}).detach();
 }
 
 void MediaPlayer::LVP_Player::callbackVideoIsAvailable(SDL_Surface* surface)
 {
-	if (LVP_Player::callbackContext.videoCB == nullptr)
+	if (LVP_Player::callback.videoCB == nullptr)
 		return;
 
 	std::thread([surface]() {
-		LVP_Player::callbackContext.videoCB(surface, LVP_Player::callbackContext.data);
+		LVP_Player::callback.videoCB(surface, LVP_Player::callback.data);
 	}).detach();
 }
 
 void MediaPlayer::LVP_Player::Close()
 {
-	if (!LVP_Player::state.isStopped && !LVP_Player::isStopping)
+	if (!LVP_Player::state.isStopped && !LVP_Player::state.isStopping)
 		LVP_Player::state.quit = true;
 }
 
 void MediaPlayer::LVP_Player::close()
 {
-	if (LVP_Player::state.isStopped || LVP_Player::isStopping)
+	if (LVP_Player::state.isStopped || LVP_Player::state.isStopping)
 		return;
 
-	LVP_Player::isStopping = true;
+	LVP_Player::state.isStopping = true;
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_STOPPING);
 
@@ -93,40 +78,30 @@ void MediaPlayer::LVP_Player::close()
 	LVP_Player::closeStream(AVMEDIA_TYPE_SUBTITLE);
 	LVP_Player::closeStream(AVMEDIA_TYPE_VIDEO);
 
-	LVP_Player::closeAudioContext();
+	LVP_Player::closeAudioStream();
 	LVP_Player::closeSubContext();
-	LVP_Player::closeVideoContext();
 
-	FREE_AVFORMAT(LVP_Player::formatContext);
-	FREE_AVFORMAT(LVP_Player::formatContextExternal);
-	DELETE_POINTER(LVP_Player::timeOut);
+	DELETE_POINTER(LVP_Player::context);
 
 	LVP_Player::state.reset();
 
-	LVP_Player::state.completed = false;
-	LVP_Player::state.isStopped = true;
-	LVP_Player::state.quit      = false;
+	LVP_Player::state.isCompleted = false;
+	LVP_Player::state.isStopped   = true;
+	LVP_Player::state.quit        = false;
 
 	LVP_Player::callbackEvents(LVP_EVENT_MEDIA_STOPPED);
 
-	LVP_Player::isStopping = false;
-}
-
-void MediaPlayer::LVP_Player::closeAudioContext()
-{
-	LVP_Player::closeAudioStream();
-
-	DELETE_POINTER(LVP_Player::audioContext);
+	LVP_Player::state.isStopping = false;
 }
 
 void MediaPlayer::LVP_Player::closeAudioStream()
 {
-	if ((LVP_Player::audioContext == NULL) || (LVP_Player::audioContext->audioStream == NULL))
+	if ((LVP_Player::context->audio == NULL) || (LVP_Player::context->audio->audioStream == NULL))
 		return;
 
-	SDL_DestroyAudioStream(LVP_Player::audioContext->audioStream);
+	SDL_DestroyAudioStream(LVP_Player::context->audio->audioStream);
 
-	LVP_Player::audioContext->audioStream = NULL;
+	LVP_Player::context->audio->audioStream = NULL;
 }
 
 void MediaPlayer::LVP_Player::closePackets(LVP_MediaContext* context)
@@ -139,17 +114,17 @@ void MediaPlayer::LVP_Player::closePackets(LVP_MediaContext* context)
 
 void MediaPlayer::LVP_Player::closePackets()
 {
-	LVP_Player::closePackets(LVP_Player::audioContext);
-	LVP_Player::closePackets(LVP_Player::subContext);
-	LVP_Player::closePackets(LVP_Player::videoContext);
+	LVP_Player::closePackets(LVP_Player::context->audio);
+	LVP_Player::closePackets(LVP_Player::context->subtitle);
+	LVP_Player::closePackets(LVP_Player::context->video);
 }
 
 void MediaPlayer::LVP_Player::closeStream(AVMediaType streamType)
 {
 	switch (streamType) {
-		case AVMEDIA_TYPE_AUDIO:    LVP_Player::closeStream(LVP_Player::audioContext); break;
-		case AVMEDIA_TYPE_SUBTITLE: LVP_Player::closeStream(LVP_Player::subContext);   break;
-		case AVMEDIA_TYPE_VIDEO:    LVP_Player::closeStream(LVP_Player::videoContext); break;
+		case AVMEDIA_TYPE_AUDIO:    LVP_Player::closeStream(LVP_Player::context->audio);    break;
+		case AVMEDIA_TYPE_SUBTITLE: LVP_Player::closeStream(LVP_Player::context->subtitle); break;
+		case AVMEDIA_TYPE_VIDEO:    LVP_Player::closeStream(LVP_Player::context->video);    break;
 		default: break;
 	}
 }
@@ -173,13 +148,6 @@ void MediaPlayer::LVP_Player::closeSubContext()
 		LVP_SubtitleText::Remove();
 		LVP_SubtitleText::Quit();
 	#endif
-
-	DELETE_POINTER(LVP_Player::subContext);
-}
-
-void MediaPlayer::LVP_Player::closeVideoContext()
-{
-	DELETE_POINTER(LVP_Player::videoContext);
 }
 
 int MediaPlayer::LVP_Player::decodeAudioFrame()
@@ -201,24 +169,24 @@ int MediaPlayer::LVP_Player::decodeAudioFrame()
 	);
 
 	// Allocate initial buffer
-	if (LVP_Player::audioContext->buffer == NULL)
+	if (LVP_Player::context->audio->buffer == NULL)
 	{
-		LVP_Player::audioContext->buffer = (uint8_t*)std::malloc(bufferSize);
+		LVP_Player::context->audio->buffer = (uint8_t*)std::malloc(bufferSize);
 	}
 	// Increase size of buffer if needed
-	else if (bufferSize > LVP_Player::audioContext->bufferSize)
+	else if (bufferSize > LVP_Player::context->audio->bufferSize)
 	{
-		auto newBuffer = (uint8_t*)std::realloc(LVP_Player::audioContext->buffer, bufferSize);
+		auto newBuffer = (uint8_t*)std::realloc(LVP_Player::context->audio->buffer, bufferSize);
 
 		if (newBuffer != NULL)
-			LVP_Player::audioContext->buffer = newBuffer;
+			LVP_Player::context->audio->buffer = newBuffer;
 		else
-			FREE_POINTER(LVP_Player::audioContext->buffer);
+			FREE_POINTER(LVP_Player::context->audio->buffer);
 	}
 
-	LVP_Player::audioContext->bufferSize = bufferSize;
+	LVP_Player::context->audio->bufferSize = bufferSize;
 
-	if (LVP_Player::audioContext->buffer == NULL)
+	if (LVP_Player::context->audio->buffer == NULL)
 	{
 		FREE_AVFRAME(frame);
 		LVP_Player::stop("Failed to create an audio buffer.");
@@ -226,7 +194,7 @@ int MediaPlayer::LVP_Player::decodeAudioFrame()
 		return AVERROR(ENOMEM);
 	}
 
-	std::memcpy(LVP_Player::audioContext->buffer, frame->extended_data[0], bufferSize);
+	std::memcpy(LVP_Player::context->audio->buffer, frame->extended_data[0], bufferSize);
 
 	LVP_Player::setAudioProgress(frame);
 
@@ -247,7 +215,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		auto frame = av_frame_alloc();
 
-		result = avcodec_receive_frame(LVP_Player::audioContext->codec, frame);
+		result = avcodec_receive_frame(LVP_Player::context->audio->codec, frame);
 
 		LVP_Player::packetLock.unlock();
 
@@ -258,15 +226,15 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		// Apply filter to frame
 
-		if (!LVP_Player::audioContext->filterSpecs.equals(frame, LVP_Player::state.playbackSpeed) ||
-			(LVP_Player::audioContext->filter.filterGraph == NULL))
+		if (!LVP_Player::context->audio->filterSpecs.equals(frame, LVP_Player::state.playbackSpeed) ||
+			(LVP_Player::context->audio->filter.filterGraph == NULL))
 		{
 			LVP_Player::initAudioFilter(frame);
 
-			LVP_Player::audioContext->filterSpecs = LVP_AudioSpecs(frame, LVP_Player::state.playbackSpeed);
+			LVP_Player::context->audio->filterSpecs = LVP_AudioSpecs(frame, LVP_Player::state.playbackSpeed);
 		}
 
-		result = av_buffersrc_add_frame(LVP_Player::audioContext->filter.bufferSource, frame);
+		result = av_buffersrc_add_frame(LVP_Player::context->audio->filter.bufferSource, frame);
 
 		if (result < 0) {
 			FREE_AVFRAME(frame);
@@ -277,7 +245,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		while (result >= 0)
 		{
-			result = av_buffersink_get_frame(LVP_Player::audioContext->filter.bufferSink, frame);
+			result = av_buffersink_get_frame(LVP_Player::context->audio->filter.bufferSink, frame);
 
 			if (result >= 0)
 				isFrameFiltered = true;
@@ -295,11 +263,11 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 
 		// Add filtered frame
 
-		LVP_Player::audioContext->framesLock.lock();
+		LVP_Player::context->audio->framesLock.lock();
 
-		LVP_Player::audioContext->frames.push(frame);
+		LVP_Player::context->audio->frames.push(frame);
 
-		LVP_Player::audioContext->framesLock.unlock();
+		LVP_Player::context->audio->framesLock.unlock();
 	}
 
 	if ((result < 0) && (result != AVERROR(EAGAIN)))
@@ -311,7 +279,7 @@ void MediaPlayer::LVP_Player::decodeAudioFrames()
 	{
 		LVP_Player::packetLock.lock();
 
-		avcodec_flush_buffers(LVP_Player::audioContext->codec);
+		avcodec_flush_buffers(LVP_Player::context->audio->codec);
 
 		LVP_Player::packetLock.unlock();
 	}
@@ -321,7 +289,7 @@ void MediaPlayer::LVP_Player::decodeAudioPacket(AVPacket* packet)
 {
 	LVP_Player::packetLock.lock();
 
-	auto result = avcodec_send_packet(LVP_Player::audioContext->codec, packet);
+	auto result = avcodec_send_packet(LVP_Player::context->audio->codec, packet);
 
 	LVP_Player::packetLock.unlock();
 
@@ -353,28 +321,28 @@ AVFrame* MediaPlayer::LVP_Player::getAudioFrame()
 {
 	AVFrame* frame = NULL;
 
-	LVP_Player::audioContext->framesLock.lock();
+	LVP_Player::context->audio->framesLock.lock();
 
-	if (!LVP_Player::audioContext->frames.empty())
+	if (!LVP_Player::context->audio->frames.empty())
 	{
-		frame = LVP_Player::audioContext->frames.front();
+		frame = LVP_Player::context->audio->frames.front();
 
-		LVP_Player::audioContext->frames.pop();
+		LVP_Player::context->audio->frames.pop();
 	}
 
-	LVP_Player::audioContext->framesLock.unlock();
+	LVP_Player::context->audio->framesLock.unlock();
 
 	return frame;
 }
 
 int MediaPlayer::LVP_Player::GetAudioTrack()
 {
-	return (LVP_Player::audioContext ? LVP_Player::audioContext->index : -1);
+	return (LVP_Player::context->audio ? LVP_Player::context->audio->index : -1);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetAudioTracks()
 {
-	return LVP_Player::getAudioTracks(LVP_Player::formatContext);
+	return LVP_Player::getAudioTracks(LVP_Player::context->format);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getAudioTracks(AVFormatContext* formatContext)
@@ -384,7 +352,7 @@ std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getAudioTracks(AVFormatCont
 
 std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::GetChapters()
 {
-	return LVP_Player::getChapters(LVP_Player::formatContext);
+	return LVP_Player::getChapters(LVP_Player::context->format);
 }
 
 std::vector<LVP_MediaChapter> MediaPlayer::LVP_Player::getChapters(AVFormatContext* formatContext)
@@ -427,7 +395,7 @@ int64_t MediaPlayer::LVP_Player::GetDuration()
 
 std::string MediaPlayer::LVP_Player::GetFilePath()
 {
-	return (LVP_Player::formatContext != NULL ? std::string(LVP_Player::formatContext->url) : "");
+	return (LVP_Player::context->format != NULL ? std::string(LVP_Player::context->format->url) : "");
 }
 
 LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(bool skipThumbnail)
@@ -437,11 +405,11 @@ LVP_MediaDetails MediaPlayer::LVP_Player::GetMediaDetails(bool skipThumbnail)
 
 	return
 	{
-		.duration       = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext->avStream),
-		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::formatContext->url),
+		.duration       = LVP_Media::GetMediaDuration(LVP_Player::context->format, LVP_Player::context->audio->avStream),
+		.fileSize       = System::LVP_FileSystem::GetFileSize(LVP_Player::context->format->url),
 		.mediaType      = (LVP_MediaType)LVP_Player::state.mediaType,
-		.meta           = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
-		.thumbnail      = (!skipThumbnail ? LVP_Media::GetMediaThumbnail(LVP_Player::formatContext) : NULL),
+		.meta           = LVP_Media::GetMediaMeta(LVP_Player::context->format),
+		.thumbnail      = (!skipThumbnail ? LVP_Media::GetMediaThumbnail(LVP_Player::context->format) : NULL),
 		.chapters       = LVP_Player::GetChapters(),
 		.audioTracks    = LVP_Player::GetAudioTracks(),
 		.subtitleTracks = LVP_Player::GetSubtitleTracks(),
@@ -512,7 +480,7 @@ SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail()
 	if (LVP_Player::state.isStopped)
 		return nullptr;
 
-	return LVP_Media::GetMediaThumbnail(LVP_Player::formatContext);
+	return LVP_Media::GetMediaThumbnail(LVP_Player::context->format);
 }
 
 SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail(const std::string& filePath)
@@ -529,7 +497,11 @@ SDL_Surface* MediaPlayer::LVP_Player::GetMediaThumbnail(const std::string& fileP
 	return thumbnail;
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(AVMediaType mediaType, AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getMediaTracks(
+	AVMediaType        mediaType,
+	AVFormatContext*   formatContext,
+	const LVP_Strings& extSubFiles
+)
 {
 	// INTERNAL MEDIA TRACKS
 
@@ -601,8 +573,8 @@ LVP_MediaMeta MediaPlayer::LVP_Player::GetMediaMeta()
 {
 	LVP_MediaMeta mediaMeta =
 	{
-		.meta      = LVP_Media::GetMediaMeta(LVP_Player::formatContext),
-		.mediaType = (LVP_MediaType)LVP_Media::GetMediaType(LVP_Player::formatContext)
+		.meta      = LVP_Media::GetMediaMeta(LVP_Player::context->format),
+		.mediaType = (LVP_MediaType)LVP_Media::GetMediaType(LVP_Player::context->format)
 	};
 
 	return mediaMeta;
@@ -640,7 +612,7 @@ LVP_MediaType MediaPlayer::LVP_Player::GetMediaType(const std::string& filePath)
 
 AVPixelFormat MediaPlayer::LVP_Player::GetPixelFormatHardware()
 {
-	return (LVP_Player::videoContext != NULL ? LVP_Player::videoContext->hwPixelFormat : AV_PIX_FMT_NONE);
+	return (LVP_Player::context->video != NULL ? LVP_Player::context->video->hwPixelFormat : AV_PIX_FMT_NONE);
 }
 
 double MediaPlayer::LVP_Player::GetPlaybackSpeed()
@@ -655,11 +627,11 @@ int64_t MediaPlayer::LVP_Player::GetProgress()
 
 SDL_Rect MediaPlayer::LVP_Player::getScaledVideoDestination(const SDL_Rect& destination)
 {
-	if (SDL_RectEmpty(&destination) || (LVP_Player::videoContext->codec == NULL))
+	if (SDL_RectEmpty(&destination) || (LVP_Player::context->video->codec == NULL))
 		return {};
 
-	int videoWidth   = LVP_Player::videoContext->codec->width;
-	int videoHeight  = LVP_Player::videoContext->codec->height;
+	int videoWidth   = LVP_Player::context->video->codec->width;
+	int videoHeight  = LVP_Player::context->video->codec->height;
 	int maxWidth     = (int)((double)videoWidth  / (double)videoHeight * (double)destination.h);
 	int maxHeight    = (int)((double)videoHeight / (double)videoWidth  * (double)destination.w);
 	int scaledWidth  = std::min(destination.w, maxWidth);
@@ -677,24 +649,27 @@ SDL_Rect MediaPlayer::LVP_Player::getScaledVideoDestination(const SDL_Rect& dest
 
 int MediaPlayer::LVP_Player::GetSubtitleTrack()
 {
-	return (LVP_Player::subContext ? LVP_Player::subContext->index : -1);
+	return (LVP_Player::context->subtitle ? LVP_Player::context->subtitle->index : -1);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetSubtitleTracks()
 {
-	auto extSubFiles = (LVP_Player::subContext ? LVP_Player::subContext->external : LVP_Strings());
+	auto extSubFiles = (LVP_Player::context->subtitle ? LVP_Player::context->subtitle->external : LVP_Strings());
 
-	return LVP_Player::getSubtitleTracks(LVP_Player::formatContext, extSubFiles);
+	return LVP_Player::getSubtitleTracks(LVP_Player::context->format, extSubFiles);
 }
 
-std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getSubtitleTracks(AVFormatContext* formatContext, const LVP_Strings& extSubFiles)
+std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getSubtitleTracks(
+	AVFormatContext*   formatContext,
+	const LVP_Strings& extSubFiles
+)
 {
 	return LVP_Player::getMediaTracks(AVMEDIA_TYPE_SUBTITLE, formatContext, extSubFiles);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::GetVideoTracks()
 {
-	return LVP_Player::getVideoTracks(LVP_Player::formatContext);
+	return LVP_Player::getVideoTracks(LVP_Player::context->format);
 }
 
 std::vector<LVP_MediaTrack> MediaPlayer::LVP_Player::getVideoTracks(AVFormatContext* formatContext)
@@ -709,27 +684,27 @@ double MediaPlayer::LVP_Player::GetVolume()
 
 void MediaPlayer::LVP_Player::handleSeek()
 {
-	if (!LVP_Player::seekRequested)
+	if (!LVP_Player::state.seek.isRequested)
 		return;
 
 	LVP_Player::packetLock.lock();
 
-	LVP_Player::audioContext->packetsLock.lock();
-	LVP_Player::subContext->packetsLock.lock();
-	LVP_Player::videoContext->packetsLock.lock();
+	LVP_Player::context->audio->packetsLock.lock();
+	LVP_Player::context->subtitle->packetsLock.lock();
+	LVP_Player::context->video->packetsLock.lock();
 
-	LVP_Player::seekRequestedBack = false;
+	LVP_Player::state.seek.isRequestedBack = false;
 
 	int64_t duration    = (LVP_Player::state.duration * AV_TIME_BASE_I64);
-	bool    seekByBytes = (IS_BYTE_SEEK(LVP_Player::formatContext->iformat) && (LVP_Player::state.fileSize > 0));
-	double  seekPercent = LVP_Player::seekToRequest;
+	bool    seekByBytes = (IS_BYTE_SEEK(LVP_Player::context->format->iformat) && (LVP_Player::state.fileSize > 0));
+	double  seekPercent = LVP_Player::state.seek.to;
 
 	int64_t seekPosition         = 0;
 	int64_t seekPositionExternal = 0;
 
-	if (LVP_Player::seekByRequest != 0)
+	if (LVP_Player::state.seek.by != 0)
 	{
-		auto newPosition = (LVP_Player::state.progress + (double)LVP_Player::seekByRequest);
+		auto newPosition = (LVP_Player::state.progress + (double)LVP_Player::state.seek.by);
 
 		if (seekByBytes) {
 			seekPercent  = (newPosition / (double)LVP_Player::state.duration);
@@ -738,11 +713,11 @@ void MediaPlayer::LVP_Player::handleSeek()
 			seekPosition = (int64_t)(newPosition * AV_TIME_BASE_D);
 		}
 
-		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			seekPositionExternal = (int64_t)(newPosition * av_q2d(LVP_Player::subContext->avStream->time_base));
+		if (LVP_Player::context->subtitle->index >= SUB_STREAM_EXTERNAL)
+			seekPositionExternal = (int64_t)(newPosition * av_q2d(LVP_Player::context->subtitle->avStream->time_base));
 
-		if (LVP_Player::seekByRequest < 0)
-			LVP_Player::seekRequestedBack = true;
+		if (LVP_Player::state.seek.by < 0)
+			LVP_Player::state.seek.isRequestedBack = true;
 	}
 	else
 	{
@@ -751,11 +726,16 @@ void MediaPlayer::LVP_Player::handleSeek()
 		else
 			seekPosition = (int64_t)((double)duration * seekPercent);
 
-		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			seekPositionExternal = (int64_t)((double)LVP_Player::state.duration * av_q2d(LVP_Player::subContext->avStream->time_base) * seekPercent);
+		if (LVP_Player::context->subtitle->index >= SUB_STREAM_EXTERNAL)
+		{
+			auto duration = (double)LVP_Player::state.duration;
+			auto timeBase = av_q2d(LVP_Player::context->subtitle->avStream->time_base);
+
+			seekPositionExternal = (int64_t)(duration * timeBase * seekPercent);
+		}
 
 		if (seekPercent < (LVP_Player::state.progress / (double)LVP_Player::state.duration))
-			LVP_Player::seekRequestedBack = true;
+			LVP_Player::state.seek.isRequestedBack = true;
 	}
 
 	auto seekMax = (seekByBytes ? (int64_t)LVP_Player::state.fileSize : duration);
@@ -765,17 +745,22 @@ void MediaPlayer::LVP_Player::handleSeek()
 	else if (seekPosition > seekMax)
 		seekPosition = seekMax;
 
-	int seekFlags = (LVP_Player::seekRequestedBack ? AVSEEK_FLAG_BACKWARD : 0);
+	int seekFlags = (LVP_Player::state.seek.isRequestedBack ? AVSEEK_FLAG_BACKWARD : 0);
 
 	if (seekByBytes)
 		seekFlags |= AVSEEK_FLAG_BYTE;
 
-	auto result = av_seek_frame(LVP_Player::formatContext, -1, seekPosition, seekFlags);
+	auto result = av_seek_frame(LVP_Player::context->format, -1, seekPosition, seekFlags);
 
 	if (result >= 0)
 	{
-		if (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL)
-			avformat_seek_file(LVP_Player::formatContextExternal, LVP_Player::subContext->avStream->index, INT64_MIN, seekPositionExternal, INT64_MAX, 0);
+		if (LVP_Player::context->subtitle->index >= SUB_STREAM_EXTERNAL)
+		{
+			auto formatContext = LVP_Player::context->formatExternal;
+			auto streamIndex   = LVP_Player::context->subtitle->avStream->index;
+
+			avformat_seek_file(formatContext, streamIndex, INT64_MIN, seekPositionExternal, INT64_MAX, 0);
+		}
 
 		LVP_SubtitleBitmap::Remove();
 
@@ -785,36 +770,37 @@ void MediaPlayer::LVP_Player::handleSeek()
 
 		LVP_Player::closePackets();
 
-		if (LVP_Player::audioContext->index >= 0)
-			LVP_Player::audioContext->packets.push(av_packet_alloc());
+		if (LVP_Player::context->audio->index >= 0)
+			LVP_Player::context->audio->packets.push(av_packet_alloc());
 
-		if (LVP_Player::subContext->index >= 0)
-			LVP_Player::subContext->packets.push(av_packet_alloc());
+		if (LVP_Player::context->subtitle->index >= 0)
+			LVP_Player::context->subtitle->packets.push(av_packet_alloc());
 
-		if (LVP_Player::videoContext->index >= 0)
-			LVP_Player::videoContext->packets.push(av_packet_alloc());
+		if (LVP_Player::context->video->index >= 0)
+			LVP_Player::context->video->packets.push(av_packet_alloc());
 
-		LVP_Player::audioContext->bufferOffset = 0;
-		LVP_Player::videoContext->pts          = 0;
+		LVP_Player::context->audio->bufferOffset = 0;
+		LVP_Player::context->video->pts          = 0;
 
 		if (seekByBytes)
-			LVP_Player::seekPTS = ((double)LVP_Player::state.duration * seekPercent);
+			LVP_Player::state.seek.pts = ((double)LVP_Player::state.duration * seekPercent);
 		else
-			LVP_Player::seekPTS = ((double)seekPosition / AV_TIME_BASE_D);
+			LVP_Player::state.seek.pts = ((double)seekPosition / AV_TIME_BASE_D);
 
 		if (LVP_Player::state.isPaused)
-			LVP_Player::state.progress = LVP_Player::seekPTS;
+			LVP_Player::state.progress = LVP_Player::state.seek.pts;
 	} else {
 		LVP_Player::logAVError(result, "LVP_Player::handleSeek failed");
 	}
 
-	LVP_Player::seekByRequest = 0;
-	LVP_Player::seekToRequest = 0.0;
-	LVP_Player::seekRequested = false;
+	LVP_Player::state.seek.by = 0;
+	LVP_Player::state.seek.to = 0.0;
 
-	LVP_Player::videoContext->packetsLock.unlock();
-	LVP_Player::subContext->packetsLock.unlock();
-	LVP_Player::audioContext->packetsLock.unlock();
+	LVP_Player::state.seek.isRequested = false;
+
+	LVP_Player::context->video->packetsLock.unlock();
+	LVP_Player::context->subtitle->packetsLock.unlock();
+	LVP_Player::context->audio->packetsLock.unlock();
 
 	LVP_Player::packetLock.unlock();
 }
@@ -824,23 +810,23 @@ void MediaPlayer::LVP_Player::handleSeek()
  */
 void MediaPlayer::LVP_Player::handleTrack()
 {
-	if (!LVP_Player::trackRequested)
+	if (!LVP_Player::state.track.requested)
 		return;
 
 	LVP_Player::packetLock.lock();
 
-	while (!LVP_Player::trackRequests.empty())
+	while (!LVP_Player::state.track.requests.empty())
 	{
-		const auto& trackRequest = LVP_Player::trackRequests.front();
+		const auto& trackRequest = LVP_Player::state.track.requests.front();
 
-		LVP_Player::trackRequests.pop();
+		LVP_Player::state.track.requests.pop();
 
 		auto mediaType = (AVMediaType)trackRequest.mediaType;
 		bool isAudio   = IS_AUDIO(mediaType);
 		bool isSub     = IS_SUB(mediaType);
 
-		bool isSameAudioTrack = (isAudio && (trackRequest.track == LVP_Player::audioContext->index));
-		bool isSameSubTrack   = (isSub   && (trackRequest.track == LVP_Player::subContext->index));
+		bool isSameAudioTrack = (isAudio && (trackRequest.track == LVP_Player::context->audio->index));
+		bool isSameSubTrack   = (isSub   && (trackRequest.track == LVP_Player::context->subtitle->index));
 
 		if (isSameAudioTrack || isSameSubTrack)
 			continue;
@@ -870,9 +856,9 @@ void MediaPlayer::LVP_Player::handleTrack()
 
 			LVP_Player::closeStream(AVMEDIA_TYPE_AUDIO);
 
-			LVP_Player::audioContext->free();
+			LVP_Player::context->audio->free();
 
-			LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, trackRequest.track, LVP_Player::audioContext);
+			LVP_Media::SetMediaTrackByIndex(LVP_Player::context->format, trackRequest.track, LVP_Player::context->audio);
 
 			try {
 				LVP_Player::openThreadAudio();
@@ -880,7 +866,7 @@ void MediaPlayer::LVP_Player::handleTrack()
 				LVP_Player::CallbackError(e.what());
 			}
 
-			if (!LVP_Player::seekRequested)
+			if (!LVP_Player::state.seek.isRequested)
 				LVP_Player::seekTo(lastProgress);
 
 			if (isPlaying)
@@ -899,11 +885,11 @@ void MediaPlayer::LVP_Player::handleTrack()
 			if (trackRequest.track >= SUB_STREAM_EXTERNAL)
 				LVP_Player::openSubExternal(trackRequest.track);
 			else
-				LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContext, trackRequest.track, LVP_Player::subContext);
+				LVP_Media::SetMediaTrackByIndex(LVP_Player::context->format, trackRequest.track, LVP_Player::context->subtitle);
 
 			LVP_Player::openThreadSub();
 
-			if (!LVP_Player::seekRequested)
+			if (!LVP_Player::state.seek.isRequested)
 				LVP_Player::seekTo(lastProgress);
 
 			break;
@@ -912,7 +898,7 @@ void MediaPlayer::LVP_Player::handleTrack()
 		}
 	}
 
-	LVP_Player::trackRequested = false;
+	LVP_Player::state.track.requested = false;
 
 	LVP_Player::packetLock.unlock();
 }
@@ -950,9 +936,11 @@ void MediaPlayer::LVP_Player::initAudioFilter(AVFrame* frame)
 
 	// https://ffmpeg.org/ffmpeg-resampler.html#Resampler-Options
 
-	auto outChannelLayout = LVP_AudioSpecs::getChannelLayoutName(LVP_AudioSpecs::getChannelLayout(LVP_Player::audioContext->deviceSpecs.channels));
-	auto outSampleFormat  = av_get_sample_fmt_name(LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format));
-	auto outSampleRate    = LVP_AudioSpecs::getSampleRate(LVP_Player::audioContext->deviceSpecs.freq, LVP_Player::state.playbackSpeed);
+	auto deviceSpecs = LVP_Player::context->audio->deviceSpecs;
+
+	auto outChannelLayout = LVP_AudioSpecs::getChannelLayoutName(LVP_AudioSpecs::getChannelLayout(deviceSpecs.channels));
+	auto outSampleFormat  = av_get_sample_fmt_name(LVP_AudioSpecs::getSampleFormat(deviceSpecs.format));
+	auto outSampleRate    = LVP_AudioSpecs::getSampleRate(deviceSpecs.freq, LVP_Player::state.playbackSpeed);
 
 	av_opt_set(filterResample,     "out_chlayout",    outChannelLayout.c_str(), AV_OPT_SEARCH_CHILDREN);
 	av_opt_set(filterResample,     "out_sample_fmt",  outSampleFormat,          AV_OPT_SEARCH_CHILDREN);
@@ -968,21 +956,18 @@ void MediaPlayer::LVP_Player::initAudioFilter(AVFrame* frame)
 	if (avfilter_graph_config(filterGraph, NULL) < 0)
 		throw std::runtime_error("Failed to initialize a valid audio filter.");
 
-	FREE_AVFILTER_GRAPH(LVP_Player::audioContext->filter.filterGraph);
+	FREE_AVFILTER_GRAPH(LVP_Player::context->audio->filter.filterGraph);
 
-	LVP_Player::audioContext->filter.filterGraph  = filterGraph;
-	LVP_Player::audioContext->filter.bufferSource = bufferSource;
-	LVP_Player::audioContext->filter.bufferSink   = bufferSink;
+	LVP_Player::context->audio->filter.filterGraph  = filterGraph;
+	LVP_Player::context->audio->filter.bufferSource = bufferSource;
+	LVP_Player::context->audio->filter.bufferSink   = bufferSink;
 }
 
 bool MediaPlayer::LVP_Player::isHardwarePixelFormat(int frameFormat)
 {
 	auto format = (AVPixelFormat)frameFormat;
 
-	if (format == AV_PIX_FMT_NONE)
-		return false;
-
-	return (format == LVP_Player::videoContext->hwPixelFormat);
+	return ((format != AV_PIX_FMT_NONE) && (format == LVP_Player::context->video->hwPixelFormat));
 }
 
 bool MediaPlayer::LVP_Player::IsMuted()
@@ -1016,18 +1001,27 @@ bool MediaPlayer::LVP_Player::isPacketQueueFull()
 
 bool MediaPlayer::LVP_Player::isPacketQueueFull(AVMediaType streamType)
 {
+	size_t packetsSize;
+	int    streamIndex;
+
 	switch (streamType) {
 	case AVMEDIA_TYPE_AUDIO:
-		return ((LVP_Player::audioContext->index >= 0) && (LVP_Player::audioContext->packets.size() >= MIN_PACKET_QUEUE_SIZE));
-	case AVMEDIA_TYPE_SUBTITLE:
-		return ((LVP_Player::subContext->index >= 0) && (LVP_Player::subContext->packets.size() >= MIN_PACKET_QUEUE_SIZE));
-	case AVMEDIA_TYPE_VIDEO:
-		return ((LVP_Player::videoContext->index >= 0) && (LVP_Player::videoContext->packets.size() >= MIN_PACKET_QUEUE_SIZE));
-	default:
+		streamIndex = LVP_Player::context->audio->index;
+		packetsSize = LVP_Player::context->audio->packets.size();
 		break;
+	case AVMEDIA_TYPE_SUBTITLE:
+		streamIndex = LVP_Player::context->subtitle->index;
+		packetsSize = LVP_Player::context->subtitle->packets.size();
+		break;
+	case AVMEDIA_TYPE_VIDEO:
+		streamIndex = LVP_Player::context->video->index;
+		packetsSize = LVP_Player::context->video->packets.size();
+		break;
+	default:
+		return false;
 	}
 
-	return false;
+	return ((streamIndex >= 0) && (packetsSize >= MIN_PACKET_QUEUE_SIZE));
 }
 
 bool MediaPlayer::LVP_Player::IsStopped()
@@ -1049,7 +1043,7 @@ void MediaPlayer::LVP_Player::logAVError(int result, const std::string& message)
  */
 void MediaPlayer::LVP_Player::Open(const std::string& filePath)
 {
-	if (!LVP_Player::state.openFilePath.empty() || LVP_Player::isOpening)
+	if (!LVP_Player::state.openFilePath.empty() || LVP_Player::state.isOpening)
 		return;
 
 	if (filePath.empty())
@@ -1060,16 +1054,14 @@ void MediaPlayer::LVP_Player::Open(const std::string& filePath)
 
 void MediaPlayer::LVP_Player::open()
 {
-	if (LVP_Player::state.openFilePath.empty() || LVP_Player::isOpening)
+	if (LVP_Player::state.openFilePath.empty() || LVP_Player::state.isOpening)
 		return;
 
-	LVP_Player::isOpening = true;
+	LVP_Player::state.isOpening = true;
 
 	LVP_Player::close();
 
-	LVP_Player::audioContext = new LVP_AudioContext();
-	LVP_Player::subContext   = new LVP_SubtitleContext();
-	LVP_Player::videoContext = new LVP_VideoContext();
+	LVP_Player::context = new LVP_PlayerContext();
 
 	try {
 		LVP_Player::openFormatContext();
@@ -1085,7 +1077,7 @@ void MediaPlayer::LVP_Player::open()
 	}
 
 	LVP_Player::state.openFilePath = "";
-	LVP_Player::isOpening          = false;
+	LVP_Player::state.isOpening    = false;
 }
 
 void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
@@ -1100,14 +1092,14 @@ void MediaPlayer::LVP_Player::openAudioDevice(const std::string& name)
 
 	auto deviceId = (name == "Default" ? SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK : LVP_Player::state.audioDevices[name]);
 		
-	LVP_Player::audioContext->audioStream = SDL_OpenAudioDeviceStream(
+	LVP_Player::context->audio->audioStream = SDL_OpenAudioDeviceStream(
 		deviceId,
-		&LVP_Player::audioContext->deviceSpecs,
+		&LVP_Player::context->audio->deviceSpecs,
 		LVP_Player::threadAudioCallback,
 		NULL
 	);
 
-	auto currentDeviceId = SDL_GetAudioStreamDevice(LVP_Player::audioContext->audioStream);
+	auto currentDeviceId = SDL_GetAudioStreamDevice(LVP_Player::context->audio->audioStream);
 
 	if (currentDeviceId == 0) {
 		LOG("LVP_Player::openAudioDevice(%s) failed: %s\n", name.c_str(), SDL_GetError());
@@ -1128,16 +1120,20 @@ void MediaPlayer::LVP_Player::openFormatContext()
 	if (LVP_Player::state.openFilePath.empty())
 		throw std::invalid_argument("filePath cannot be empty");
 
-	LVP_Player::timeOut = new System::LVP_TimeOut();
+	if (LVP_Player::context->format == NULL)
+	{
+		LVP_Player::context->format = LVP_Media::GetMediaFormatContext(
+			LVP_Player::state.openFilePath,
+			true,
+			LVP_Player::context->timeOut
+		);
+	}
 
-	if (LVP_Player::formatContext == NULL)
-		LVP_Player::formatContext = LVP_Media::GetMediaFormatContext(LVP_Player::state.openFilePath, true, LVP_Player::timeOut);
-
-	auto mediaType    = LVP_Media::GetMediaType(LVP_Player::formatContext);
+	auto mediaType    = LVP_Media::GetMediaType(LVP_Player::context->format);
 	bool isValidMedia = (IS_AUDIO(mediaType) || IS_VIDEO(mediaType));
 
 	if (!isValidMedia) {
-		FREE_AVFORMAT(LVP_Player::formatContext);
+		FREE_AVFORMAT(LVP_Player::context->format);
 		throw std::runtime_error(std::format("Invalid media type: {}", (int)mediaType));
 	}
 
@@ -1150,7 +1146,7 @@ void MediaPlayer::LVP_Player::openFormatContext()
 		isValidMedia = false;
 
 	if (!isValidMedia) {
-		FREE_AVFORMAT(LVP_Player::formatContext);
+		FREE_AVFORMAT(LVP_Player::context->format);
 		throw std::runtime_error("Media is DRM encrypted.");
 	}
 
@@ -1165,57 +1161,57 @@ void MediaPlayer::LVP_Player::openFormatContext()
  */
 void MediaPlayer::LVP_Player::openStreams()
 {
-	LVP_Player::audioContext->index = -1;
-	LVP_Player::subContext->index   = -1;
-	LVP_Player::videoContext->index = -1;
+	LVP_Player::context->audio->index    = -1;
+	LVP_Player::context->subtitle->index = -1;
+	LVP_Player::context->video->index    = -1;
 
 	// AUDIO TRACK
-	LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_AUDIO, LVP_Player::audioContext);
+	LVP_Media::SetMediaTrackBest(LVP_Player::context->format, AVMEDIA_TYPE_AUDIO, LVP_Player::context->audio);
 
-	if (LVP_Player::audioContext->avStream == NULL)
+	if (LVP_Player::context->audio->avStream == NULL)
 		throw std::runtime_error("Failed to find a valid audio track.");
 
-	LVP_Player::state.duration = LVP_Media::GetMediaDuration(LVP_Player::formatContext, LVP_Player::audioContext->avStream);
+	LVP_Player::state.duration = LVP_Media::GetMediaDuration(LVP_Player::context->format, LVP_Player::context->audio->avStream);
 
 	if (IS_VIDEO(LVP_Player::state.mediaType))
 	{
 		// VIDEO TRACK
-		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_VIDEO, LVP_Player::videoContext);
+		LVP_Media::SetMediaTrackBest(LVP_Player::context->format, AVMEDIA_TYPE_VIDEO, LVP_Player::context->video);
 
-		if (LVP_Player::videoContext->avStream == NULL)
+		if (LVP_Player::context->video->avStream == NULL)
 			throw std::runtime_error("Failed to find a valid video track.");
 
 		// SUBTITLE TRACK
-		LVP_Media::SetMediaTrackBest(LVP_Player::formatContext, AVMEDIA_TYPE_SUBTITLE, LVP_Player::subContext);
+		LVP_Media::SetMediaTrackBest(LVP_Player::context->format, AVMEDIA_TYPE_SUBTITLE, LVP_Player::context->subtitle);
 
-		auto protocols = std::string(LVP_Player::formatContext->protocol_whitelist);
+		auto protocols = std::string(LVP_Player::context->format->protocol_whitelist);
 
 		if (protocols.starts_with("file"))
-			LVP_Player::subContext->external = System::LVP_FileSystem::GetSubtitleFilesForVideo(LVP_Player::state.filePath);
+			LVP_Player::context->subtitle->external = System::LVP_FileSystem::GetSubtitleFilesForVideo(LVP_Player::state.filePath);
 
-		if ((LVP_Player::subContext->avStream == NULL) && !LVP_Player::subContext->external.empty())
+		if ((LVP_Player::context->subtitle->avStream == NULL) && !LVP_Player::context->subtitle->external.empty())
 			LVP_Player::openSubExternal();
 	}
 
-	LVP_Player::state.trackCount = LVP_Player::formatContext->nb_streams;
+	LVP_Player::state.track.count = LVP_Player::context->format->nb_streams;
 }
 
 void MediaPlayer::LVP_Player::openSubExternal(int streamIndex)
 {
-	if (LVP_Player::subContext->external.empty() || (streamIndex < SUB_STREAM_EXTERNAL))
+	if (LVP_Player::context->subtitle->external.empty() || (streamIndex < SUB_STREAM_EXTERNAL))
 		return;
 
 	int fileIndex  = ((streamIndex - SUB_STREAM_EXTERNAL) / SUB_STREAM_EXTERNAL);
 	int trackIndex = ((streamIndex - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
 
-	std::string subFile = LVP_Player::subContext->external[fileIndex];
+	std::string subFile = LVP_Player::context->subtitle->external[fileIndex];
 
-	FREE_AVFORMAT(LVP_Player::formatContextExternal);
+	FREE_AVFORMAT(LVP_Player::context->formatExternal);
 
-	LVP_Player::formatContextExternal = LVP_Media::GetMediaFormatContext(subFile, true);
+	LVP_Player::context->formatExternal = LVP_Media::GetMediaFormatContext(subFile, true);
 
-	if (LVP_Player::formatContextExternal != NULL)
-		LVP_Media::SetMediaTrackByIndex(LVP_Player::formatContextExternal, trackIndex, LVP_Player::subContext, fileIndex);
+	if (LVP_Player::context->formatExternal != NULL)
+		LVP_Media::SetMediaTrackByIndex(LVP_Player::context->formatExternal, trackIndex, LVP_Player::context->subtitle, fileIndex);
 }
 
 /**
@@ -1225,10 +1221,10 @@ void MediaPlayer::LVP_Player::openThreads()
 {
 	LVP_Player::openThreadAudio();
 
-	if (LVP_Player::videoContext->avStream != NULL)
+	if (LVP_Player::context->video->avStream != NULL)
 		LVP_Player::openThreadVideo();
 
-	if (LVP_Player::subContext->avStream != NULL)
+	if (LVP_Player::context->subtitle->avStream != NULL)
 		LVP_Player::openThreadSub();
 
 	std::thread(LVP_Player::threadPackets).detach();
@@ -1241,13 +1237,13 @@ void MediaPlayer::LVP_Player::openThreads()
  */
 void MediaPlayer::LVP_Player::openThreadAudio()
 {
-	if (LVP_Player::audioContext->codec == NULL)
+	if (LVP_Player::context->audio->codec == NULL)
 		throw std::runtime_error("Audio stream is missing a valid codec.");
 
-	LVP_Player::audioContext->index = LVP_Player::audioContext->avStream->index;
+	LVP_Player::context->audio->index = LVP_Player::context->audio->avStream->index;
 
-	auto channelCount = LVP_Player::audioContext->codec->ch_layout.nb_channels;
-	auto sampleRate   = LVP_Player::audioContext->codec->sample_rate;
+	auto channelCount = LVP_Player::context->audio->codec->ch_layout.nb_channels;
+	auto sampleRate   = LVP_Player::context->audio->codec->sample_rate;
 
 	if (channelCount <= 0)
 		channelCount = LVP_AudioSpecs::getChannelLayout(2).nb_channels;
@@ -1255,9 +1251,9 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	if ((sampleRate <= 0) || (channelCount <= 0))
 		throw std::runtime_error(std::format("Invalid audio: {} channels, {} bps", channelCount, sampleRate));
 
-	auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->codec->sample_fmt);
+	auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::context->audio->codec->sample_fmt);
 
-	LVP_Player::audioContext->deviceSpecs = {
+	LVP_Player::context->audio->deviceSpecs = {
 		.format   = (SDL_AudioFormat)(sampleFormat > 0 ? sampleFormat : SDL_AUDIO_S16),
 		.channels = (uint8_t)channelCount,
 		.freq     = sampleRate
@@ -1270,7 +1266,7 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 	#if defined _ios && !defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
 		auto sampleCount = DEFAULT_SAMPLE_COUNT;
 	#else
-		auto sampleCount = LVP_Player::audioContext->codec->frame_size;
+		auto sampleCount = LVP_Player::context->audio->codec->frame_size;
 	#endif
 
 	auto samples = (sampleCount > 0 ? sampleCount : DEFAULT_SAMPLE_COUNT);
@@ -1289,8 +1285,8 @@ void MediaPlayer::LVP_Player::openThreadAudio()
 void MediaPlayer::LVP_Player::openThreadSub()
 {
 	#if defined _DEBUG
-		auto extradata = LVP_Player::subContext->codec->extradata;
-		auto header    = LVP_Player::subContext->codec->subtitle_header;
+		auto extradata = LVP_Player::context->subtitle->codec->extradata;
+		auto header    = LVP_Player::context->subtitle->codec->subtitle_header;
 		auto subHeader = (header != NULL ? std::string(reinterpret_cast<char*>(header)) : "");
 
 		if (subHeader.empty())
@@ -1302,15 +1298,15 @@ void MediaPlayer::LVP_Player::openThreadSub()
 	if (!LVP_Player::state.threads[LVP_THREAD_SUBTITLE])
 		std::thread(LVP_Player::threadSub).detach();
 
-	LVP_Player::subContext->formatContext = LVP_Player::formatContext;
+	LVP_Player::context->subtitle->formatContext = LVP_Player::context->format;
 
-	LVP_Player::subContext->videoSize = {
-		LVP_Player::videoContext->codec->width,
-		LVP_Player::videoContext->codec->height
+	LVP_Player::context->subtitle->videoSize = {
+		LVP_Player::context->video->codec->width,
+		LVP_Player::context->video->codec->height
 	};
 
 	#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
-		LVP_SubtitleText::Init(LVP_Player::subContext);
+		LVP_SubtitleText::Init(LVP_Player::context->subtitle);
 	#endif
 }
 
@@ -1319,50 +1315,50 @@ void MediaPlayer::LVP_Player::openThreadSub()
  */
 void MediaPlayer::LVP_Player::openThreadVideo()
 {
-	if (LVP_Player::videoContext->codec == NULL)
+	if (LVP_Player::context->video->codec == NULL)
 		throw std::runtime_error("Video stream is missing a valid codec.");
 
-	int videoWidth  = LVP_Player::videoContext->codec->width;
-	int videoHeight = LVP_Player::videoContext->codec->height;
+	int videoWidth  = LVP_Player::context->video->codec->width;
+	int videoHeight = LVP_Player::context->video->codec->height;
 
 	// SURFACE
 
-	LVP_Player::videoContext->surface = SDL_CreateSurface(videoWidth, videoHeight, SDL_PIXELFORMAT_RGBA32);
+	LVP_Player::context->video->surface = SDL_CreateSurface(videoWidth, videoHeight, SDL_PIXELFORMAT_RGBA32);
 
 	// RENDERER
 
-	LVP_Player::videoContext->isSoftwareRenderer = (LVP_Player::callbackContext.hardwareRenderer == NULL);
+	LVP_Player::context->video->isSoftwareRenderer = (LVP_Player::callback.hardwareRenderer == NULL);
 
-	if (LVP_Player::videoContext->isSoftwareRenderer)
-		LVP_Player::videoContext->renderer = SDL_CreateSoftwareRenderer(LVP_Player::videoContext->surface);
+	if (LVP_Player::context->video->isSoftwareRenderer)
+		LVP_Player::context->video->renderer = SDL_CreateSoftwareRenderer(LVP_Player::context->video->surface);
 	else
-		LVP_Player::videoContext->renderer = LVP_Player::callbackContext.hardwareRenderer;
+		LVP_Player::context->video->renderer = LVP_Player::callback.hardwareRenderer;
 
-	if (LVP_Player::videoContext->renderer == NULL)
+	if (LVP_Player::context->video->renderer == NULL)
 		throw std::runtime_error(std::format("Failed to create a renderer: {}", SDL_GetError()));
 
 	// TEXTURE
 
-	LVP_Player::videoContext->texture = SDL_CreateTexture(
-		LVP_Player::videoContext->renderer,
+	LVP_Player::context->video->texture = SDL_CreateTexture(
+		LVP_Player::context->video->renderer,
 		SDL_PIXELFORMAT_RGBA32,
 		SDL_TEXTUREACCESS_STREAMING,
 		videoWidth,
 		videoHeight
 	);
 
-	SDL_SetTextureBlendMode(LVP_Player::videoContext->texture, SDL_BLENDMODE_NONE);
+	SDL_SetTextureBlendMode(LVP_Player::context->video->texture, SDL_BLENDMODE_NONE);
 
 	// FRAME
 
-	LVP_Player::videoContext->frameHardware = av_frame_alloc();
-	LVP_Player::videoContext->frameSoftware = av_frame_alloc();
+	LVP_Player::context->video->frameHardware = av_frame_alloc();
+	LVP_Player::context->video->frameSoftware = av_frame_alloc();
 
-	if ((LVP_Player::videoContext->frameHardware == NULL) || (LVP_Player::videoContext->frameSoftware == NULL))
+	if ((LVP_Player::context->video->frameHardware == NULL) || (LVP_Player::context->video->frameSoftware == NULL))
 		throw std::runtime_error("Failed to allocate a video context frame.");
 
-	if (LVP_Player::videoContext->frameEncoded != NULL)
-		LVP_Player::videoContext->frameEncoded->linesize[0] = 0;
+	if (LVP_Player::context->video->frameEncoded != NULL)
+		LVP_Player::context->video->frameEncoded->linesize[0] = 0;
 
 	// THREAD
 
@@ -1371,7 +1367,7 @@ void MediaPlayer::LVP_Player::openThreadVideo()
 
 	// STREAM/TRACK
 
-	LVP_Player::videoContext->index = LVP_Player::videoContext->avStream->index;
+	LVP_Player::context->video->index = LVP_Player::context->video->avStream->index;
 }
 
 void MediaPlayer::LVP_Player::Pause()
@@ -1409,45 +1405,49 @@ void MediaPlayer::LVP_Player::Quit()
 
 void MediaPlayer::LVP_Player::renderVideo()
 {
-	if ((LVP_Player::videoContext->index < 0) || (LVP_Player::videoContext->codec == NULL) || (LVP_Player::videoContext->frame == NULL))
-		return;
-
-	if (LVP_Player::videoContext->frameEncoded == NULL)
+	if ((LVP_Player::context->video->index < 0) ||
+		(LVP_Player::context->video->codec == NULL) ||
+		(LVP_Player::context->video->frame == NULL))
 	{
-		LVP_Player::videoContext->frameEncoded = av_frame_alloc();
+		return;
+	}
+
+	if (LVP_Player::context->video->frameEncoded == NULL)
+	{
+		LVP_Player::context->video->frameEncoded = av_frame_alloc();
 
 		auto result = av_image_alloc(
-			LVP_Player::videoContext->frameEncoded->data,
-			LVP_Player::videoContext->frameEncoded->linesize,
-			LVP_Player::videoContext->codec->width,
-			LVP_Player::videoContext->codec->height,
+			LVP_Player::context->video->frameEncoded->data,
+			LVP_Player::context->video->frameEncoded->linesize,
+			LVP_Player::context->video->codec->width,
+			LVP_Player::context->video->codec->height,
 			AV_PIX_FMT_RGBA,
 			1
 		);
 
 		if (result <= 0)
-			FREE_AVFRAME(LVP_Player::videoContext->frameEncoded);
+			FREE_AVFRAME(LVP_Player::context->video->frameEncoded);
 	}
 
-	if (LVP_Player::videoContext->frameEncoded == NULL)
+	if (LVP_Player::context->video->frameEncoded == NULL)
 		return;
 
 	LVP_Player::packetLock.lock();
 
-	auto pixelFormat = (AVPixelFormat)LVP_Player::videoContext->frame->format;
+	auto pixelFormat = (AVPixelFormat)LVP_Player::context->video->frame->format;
 
 	LVP_Player::packetLock.unlock();
 
 	if (pixelFormat == AV_PIX_FMT_NONE)
 		return;
 
-	LVP_Player::videoContext->scaleContext = sws_getCachedContext(
-		LVP_Player::videoContext->scaleContext,
-		LVP_Player::videoContext->codec->width,
-		LVP_Player::videoContext->codec->height,
+	LVP_Player::context->video->scaleContext = sws_getCachedContext(
+		LVP_Player::context->video->scaleContext,
+		LVP_Player::context->video->codec->width,
+		LVP_Player::context->video->codec->height,
 		pixelFormat,
-		LVP_Player::videoContext->codec->width,
-		LVP_Player::videoContext->codec->height,
+		LVP_Player::context->video->codec->width,
+		LVP_Player::context->video->codec->height,
 		AV_PIX_FMT_RGBA,
 		DEFAULT_SCALE_FILTER,
 		NULL,
@@ -1455,15 +1455,15 @@ void MediaPlayer::LVP_Player::renderVideo()
 		NULL
 	);
 
-	if (LVP_Player::videoContext->scaleContext == NULL)
+	if (LVP_Player::context->video->scaleContext == NULL)
 		return;
 
 	LVP_Player::packetLock.lock();
 
 	auto scaleResult = sws_scale_frame(
-		LVP_Player::videoContext->scaleContext,
-		LVP_Player::videoContext->frameEncoded,
-		LVP_Player::videoContext->frame
+		LVP_Player::context->video->scaleContext,
+		LVP_Player::context->video->frameEncoded,
+		LVP_Player::context->video->frame
 	);
 
 	LVP_Player::packetLock.unlock();
@@ -1471,9 +1471,9 @@ void MediaPlayer::LVP_Player::renderVideo()
 	if (scaleResult <= 0)
 		return;
 
-	auto size = (size_t)(scaleResult * LVP_Player::videoContext->frameEncoded->linesize[0]);
+	auto size = (size_t)(scaleResult * LVP_Player::context->video->frameEncoded->linesize[0]);
 
-	std::memcpy(LVP_Player::videoContext->surface->pixels, LVP_Player::videoContext->frameEncoded->data[0], size);
+	std::memcpy(LVP_Player::context->video->surface->pixels, LVP_Player::context->video->frameEncoded->data[0], size);
 }
 
 void MediaPlayer::LVP_Player::Resize()
@@ -1481,16 +1481,16 @@ void MediaPlayer::LVP_Player::Resize()
 	if (LVP_Player::state.isStopped)
 		return;
 
-	LVP_Player::videoContext->isReadyForRender  = true;
-	LVP_Player::videoContext->isReadyForPresent = true;
+	LVP_Player::context->video->isReadyForRender  = true;
+	LVP_Player::context->video->isReadyForPresent = true;
 }
 
 void MediaPlayer::LVP_Player::Run(const SDL_Rect& destination)
 {
-	if (LVP_Player::state.completed || LVP_Player::state.quit)
+	if (LVP_Player::state.isCompleted || LVP_Player::state.quit)
 		LVP_Player::close();
 
-	if (LVP_Player::isStopping)
+	if (LVP_Player::state.isStopping)
 		return;
 
 	if (!LVP_Player::state.openFilePath.empty())
@@ -1502,34 +1502,34 @@ void MediaPlayer::LVP_Player::Run(const SDL_Rect& destination)
 	LVP_Player::handleTrack();
 	LVP_Player::handleSeek();
 
-	if (LVP_Player::videoContext->isReadyForRender)
+	if (LVP_Player::context->video->isReadyForRender)
 	{
-		LVP_Player::videoContext->isReadyForRender = false;
+		LVP_Player::context->video->isReadyForRender = false;
 
 		LVP_Player::renderVideo();
 
 		LVP_SubtitleBitmap::RemoveExpired(LVP_Player::state.progress);
 
-		LVP_SubtitleBitmap::Render(LVP_Player::videoContext->surface, LVP_Player::subContext, LVP_Player::state.progress);
+		LVP_SubtitleBitmap::Render(LVP_Player::context->video->surface, LVP_Player::context->subtitle, LVP_Player::state.progress);
 		
 		#if defined _ENABLE_VIDEO_AV1_AND_SUBS_ASS
-			LVP_SubtitleText::Render(LVP_Player::videoContext->surface, LVP_Player::state.progress);
+			LVP_SubtitleText::Render(LVP_Player::context->video->surface, LVP_Player::state.progress);
 		#endif
 	}
 
-	if (LVP_Player::videoContext->isReadyForPresent && (LVP_Player::videoContext->surface != NULL))
+	if (LVP_Player::context->video->isReadyForPresent && (LVP_Player::context->video->surface != NULL))
 	{
-		LVP_Player::videoContext->isReadyForPresent = false;
+		LVP_Player::context->video->isReadyForPresent = false;
 
-		auto surface = LVP_Player::videoContext->surface;
+		auto surface = LVP_Player::context->video->surface;
 
-		if (!LVP_Player::videoContext->isSoftwareRenderer)
-			SDL_UpdateTexture(LVP_Player::videoContext->texture, NULL, surface->pixels, surface->pitch);
+		if (!LVP_Player::context->video->isSoftwareRenderer)
+			SDL_UpdateTexture(LVP_Player::context->video->texture, NULL, surface->pixels, surface->pitch);
 		else
 			LVP_Player::callbackVideoIsAvailable(surface);
 	}
 
-	if (!LVP_Player::videoContext->isSoftwareRenderer && (LVP_Player::videoContext->texture != NULL))
+	if (!LVP_Player::context->video->isSoftwareRenderer && (LVP_Player::context->video->texture != NULL))
 	{
 		auto scaledDest = LVP_Player::getScaledVideoDestination(destination);
 
@@ -1538,30 +1538,31 @@ void MediaPlayer::LVP_Player::Run(const SDL_Rect& destination)
 			SDL_FRect scaledDestF;
 			SDL_RectToFRect(&scaledDest, &scaledDestF);
 
-			SDL_RenderTexture(LVP_Player::videoContext->renderer, LVP_Player::videoContext->texture, NULL, &scaledDestF);
+			SDL_RenderTexture(LVP_Player::context->video->renderer, LVP_Player::context->video->texture, NULL, &scaledDestF);
 		}
 	}
 }
 
 void MediaPlayer::LVP_Player::SeekBy(int seconds)
 {
-	if (LVP_Player::formatContext == NULL)
+	if (LVP_Player::context->format == NULL)
 		return;
 
 	LVP_Player::packetLock.lock();
 
-	LVP_Player::seekByRequest += seconds;
-	LVP_Player::seekRequested  = true;
+	LVP_Player::state.seek.by += seconds;
+
+	LVP_Player::state.seek.isRequested  = true;
 
 	if (IS_VIDEO(LVP_Player::state.mediaType) && LVP_Player::state.isPaused)
-		LVP_Player::seekRequestedPaused = true;
+		LVP_Player::state.seek.isRequestedPaused = true;
 
 	LVP_Player::packetLock.unlock();
 }
 
 void MediaPlayer::LVP_Player::SeekTo(double percent)
 {
-	if (LVP_Player::formatContext == NULL)
+	if (LVP_Player::context->format == NULL)
 		return;
 
 	auto validPercent = std::max(0.0, std::min(1.0, percent));
@@ -1575,11 +1576,12 @@ void MediaPlayer::LVP_Player::SeekTo(double percent)
 
 void MediaPlayer::LVP_Player::seekTo(double percent)
 {
-	LVP_Player::seekToRequest = percent;
-	LVP_Player::seekRequested = true;
+	LVP_Player::state.seek.to = percent;
+
+	LVP_Player::state.seek.isRequested = true;
 
 	if (IS_VIDEO(LVP_Player::state.mediaType) && LVP_Player::state.isPaused)
-		LVP_Player::seekRequestedPaused = true;
+		LVP_Player::state.seek.isRequestedPaused = true;
 }
 
 void MediaPlayer::LVP_Player::SetAudioDevice(const std::string& name)
@@ -1624,9 +1626,9 @@ void MediaPlayer::LVP_Player::setAudioPacketDuration(AVPacket* packet)
 		return;
 
 	auto packetDuration = ((double)packet->duration / LVP_Player::state.playbackSpeed);
-	auto streamTimeBase = av_q2d(LVP_Player::audioContext->avStream->time_base);
+	auto streamTimeBase = av_q2d(LVP_Player::context->audio->avStream->time_base);
 
-	LVP_Player::audioContext->packetDuration = (packetDuration * streamTimeBase);
+	LVP_Player::context->audio->packetDuration = (packetDuration * streamTimeBase);
 }
 
 void MediaPlayer::LVP_Player::setAudioProgress(AVFrame* frame)
@@ -1637,27 +1639,27 @@ void MediaPlayer::LVP_Player::setAudioProgress(AVFrame* frame)
 	// Save last valid progress
 	
 	if (LVP_Player::state.progress > 0)
-		LVP_Player::audioContext->lastPogress = LVP_Player::state.progress;
+		LVP_Player::context->audio->lastPogress = LVP_Player::state.progress;
 	
 	// Calculate current progress from timestamp (pts) or last progress and packet duration
 
-	LVP_Player::state.progress = LVP_Media::GetAudioPTS(LVP_Player::audioContext, frame);
+	LVP_Player::state.progress = LVP_Media::GetAudioPTS(LVP_Player::context->audio, frame);
 	
 	// Manually calculate packet duration (if not available) based on last progress
 
-	if ((LVP_Player::audioContext->packetDuration <= 0) &&
+	if ((LVP_Player::context->audio->packetDuration <= 0) &&
 		(LVP_Player::state.progress > 0) &&
-		(LVP_Player::audioContext->lastPogress > 0) &&
-		(LVP_Player::state.progress != LVP_Player::audioContext->lastPogress))
+		(LVP_Player::context->audio->lastPogress > 0) &&
+		(LVP_Player::state.progress != LVP_Player::context->audio->lastPogress))
 	{
-		LVP_Player::audioContext->packetDuration = (LVP_Player::state.progress - LVP_Player::audioContext->lastPogress);
-		LVP_Player::audioContext->lastPogress    = LVP_Player::state.progress;
+		LVP_Player::context->audio->packetDuration = (LVP_Player::state.progress - LVP_Player::context->audio->lastPogress);
+		LVP_Player::context->audio->lastPogress    = LVP_Player::state.progress;
 	}
 	
 	// Correct invalid progress when seeking backwards
 
 	if (IS_INVALID_PTS())
-		LVP_Player::seekPTS += LVP_Player::audioContext->packetDuration;
+		LVP_Player::state.seek.pts += LVP_Player::context->audio->packetDuration;
 }
 
 void MediaPlayer::LVP_Player::SetMuted(bool muted)
@@ -1681,14 +1683,14 @@ void MediaPlayer::LVP_Player::SetPlaybackSpeed(double speed)
 
 void MediaPlayer::LVP_Player::SetTrack(const LVP_MediaTrack& track)
 {
-	if (LVP_Player::formatContext == NULL)
+	if (LVP_Player::context->format == NULL)
 		return;
 
 	LVP_Player::packetLock.lock();
 
-	LVP_Player::trackRequests.push(track);
+	LVP_Player::state.track.requests.push(track);
 
-	LVP_Player::trackRequested = true;
+	LVP_Player::state.track.requested = true;
 
 	LVP_Player::packetLock.unlock();
 }
@@ -1716,10 +1718,10 @@ int MediaPlayer::LVP_Player::threadAudio()
 	{
 		while (!LVP_Player::state.quit && (LVP_Player::state.audioDevice.id > 0) && (
 			LVP_Player::state.isPaused ||
-			LVP_Player::seekRequested ||
-			LVP_Player::trackRequested ||
-			LVP_Player::audioContext->packets.empty() ||
-			(LVP_Player::audioContext->frames.size() >= MIN_PACKET_QUEUE_SIZE)))
+			LVP_Player::state.seek.isRequested ||
+			LVP_Player::state.track.requested ||
+			LVP_Player::context->audio->packets.empty() ||
+			(LVP_Player::context->audio->frames.size() >= MIN_PACKET_QUEUE_SIZE)))
 		{
 			SDL_Delay(DELAY_TIME_DEFAULT);
 		}
@@ -1727,7 +1729,7 @@ int MediaPlayer::LVP_Player::threadAudio()
 		if (LVP_Player::state.quit)
 			break;
 
-		auto packet = LVP_Player::getMediaPacket(LVP_Player::audioContext);
+		auto packet = LVP_Player::getMediaPacket(LVP_Player::context->audio);
 
 		if (packet == NULL)
 			continue;
@@ -1741,10 +1743,10 @@ int MediaPlayer::LVP_Player::threadAudio()
 		}
 		else
 		{
-			LVP_Player::audioContext->free();
+			LVP_Player::context->audio->free();
 
-			auto duration = (uint32_t)(LVP_Player::audioContext->packetDuration * ONE_SECOND_MS_D);
-			auto timeBase = av_q2d(LVP_Player::audioContext->avStream->time_base);
+			auto duration = (uint32_t)(LVP_Player::context->audio->packetDuration * ONE_SECOND_MS_D);
+			auto timeBase = av_q2d(LVP_Player::context->audio->avStream->time_base);
 
 			if (packet->pts >= 0)
 				LVP_Player::state.progress = ((double)packet->pts * timeBase);
@@ -1773,38 +1775,38 @@ void MediaPlayer::LVP_Player::threadAudioCallback(void* userData, SDL_AudioStrea
 
 	while (remaining > 0)
 	{
-		if (LVP_Player::audioContext->bufferOffset >= LVP_Player::audioContext->dataSize)
+		if (LVP_Player::context->audio->bufferOffset >= LVP_Player::context->audio->dataSize)
 		{
 			auto dataSize = LVP_Player::decodeAudioFrame();
 
 			if (dataSize < 0)
 			{
-				auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::audioContext->deviceSpecs.format);
-				auto sampleSize   = av_samples_get_buffer_size(NULL, LVP_Player::audioContext->deviceSpecs.channels, 1, sampleFormat, 1);
+				auto sampleFormat = LVP_AudioSpecs::getSampleFormat(LVP_Player::context->audio->deviceSpecs.format);
+				auto sampleSize   = av_samples_get_buffer_size(NULL, LVP_Player::context->audio->deviceSpecs.channels, 1, sampleFormat, 1);
 
-				FREE_POINTER(LVP_Player::audioContext->buffer);
+				FREE_POINTER(LVP_Player::context->audio->buffer);
 
-				LVP_Player::audioContext->dataSize = (512 / sampleSize * sampleSize);
+				LVP_Player::context->audio->dataSize = (512 / sampleSize * sampleSize);
 			} else {
-				LVP_Player::audioContext->dataSize = dataSize;
+				LVP_Player::context->audio->dataSize = dataSize;
 			}
 
-			LVP_Player::audioContext->bufferOffset = 0;
+			LVP_Player::context->audio->bufferOffset = 0;
 		}
 
-		int writeSize = (LVP_Player::audioContext->dataSize - LVP_Player::audioContext->bufferOffset);
+		int writeSize = (LVP_Player::context->audio->dataSize - LVP_Player::context->audio->bufferOffset);
 
 		if (writeSize > remaining)
 			writeSize = remaining;
 
-		auto buffer = (LVP_Player::audioContext->buffer != NULL ? (const uint8_t*)(LVP_Player::audioContext->buffer + LVP_Player::audioContext->bufferOffset) : NULL);
-		auto volume = (!LVP_Player::state.isMuted ? LVP_Player::state.volume : 0.0f);
-
-		if (buffer != NULL)
+		if (LVP_Player::context->audio->buffer != NULL)
 		{
+			auto buffer = (LVP_Player::context->audio->buffer + LVP_Player::context->audio->bufferOffset);
+			auto volume = (!LVP_Player::state.isMuted ? LVP_Player::state.volume : 0.0f);
+
 			if (volume < 1.0f) {
 				std::memset(streamData, 0, writeSize);
-				SDL_MixAudio(streamData, buffer, LVP_Player::audioContext->deviceSpecs.format, writeSize, volume);
+				SDL_MixAudio(streamData, buffer, LVP_Player::context->audio->deviceSpecs.format, writeSize, volume);
 			} else {
 				std::memcpy(streamData, buffer, writeSize);
 			}
@@ -1815,7 +1817,7 @@ void MediaPlayer::LVP_Player::threadAudioCallback(void* userData, SDL_AudioStrea
 		remaining  -= writeSize;
 		streamData += writeSize;
 
-		LVP_Player::audioContext->bufferOffset += writeSize;
+		LVP_Player::context->audio->bufferOffset += writeSize;
 	}
 
 	std::free(streamStart);
@@ -1832,7 +1834,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 	while (!LVP_Player::state.quit)
 	{
-		while (LVP_Player::seekRequested && !LVP_Player::state.quit)
+		while (LVP_Player::state.seek.isRequested && !LVP_Player::state.quit)
 			SDL_Delay(DELAY_TIME_DEFAULT);
 
 		if (LVP_Player::state.quit)
@@ -1850,14 +1852,14 @@ int MediaPlayer::LVP_Player::threadPackets()
 			break;
 		}
 
-		if (LVP_Player::timeOut != NULL)
-			LVP_Player::timeOut->start();
+		if (LVP_Player::context->timeOut != NULL)
+			LVP_Player::context->timeOut->start();
 
 		// Read and fill the packet
 
 		LVP_Player::packetLock.lock();
 
-		auto result = av_read_frame(LVP_Player::formatContext, packet);
+		auto result = av_read_frame(LVP_Player::context->format, packet);
 
 		LVP_Player::packetLock.unlock();
 
@@ -1870,18 +1872,18 @@ int MediaPlayer::LVP_Player::threadPackets()
 		{
 			FREE_AVPACKET(packet);
 
-			if (LVP_Player::timeOut != NULL)
-				LVP_Player::timeOut->stop();
+			if (LVP_Player::context->timeOut != NULL)
+				LVP_Player::context->timeOut->stop();
 
-			while (LVP_Player::state.isPaused && !LVP_Player::seekRequested && !LVP_Player::state.quit)
+			while (LVP_Player::state.isPaused && !LVP_Player::state.seek.isRequested && !LVP_Player::state.quit)
 				SDL_Delay(DELAY_TIME_DEFAULT);
 
-			if (LVP_Player::seekRequested)
+			if (LVP_Player::state.seek.isRequested)
 				continue;
 
 			// Media file has completed (EOF) or an error occured
 
-			if ((result == AVERROR_EOF) || avio_feof(LVP_Player::formatContext->pb))
+			if ((result == AVERROR_EOF) || avio_feof(LVP_Player::context->format->pb))
 			{
 				if (!endOfFile) {
 					endOfFile = true;
@@ -1903,7 +1905,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 			// Wait until all packets have been consumed
 
-			while (!LVP_Player::audioContext->packets.empty() && !LVP_Player::state.quit)
+			while (!LVP_Player::context->audio->packets.empty() && !LVP_Player::state.quit)
 				SDL_Delay(DELAY_TIME_DEFAULT);
 
 			if (LVP_Player::state.quit)
@@ -1924,57 +1926,54 @@ int MediaPlayer::LVP_Player::threadPackets()
 			errorCount = 0;
 		}
 
-		if (LVP_Player::timeOut != NULL)
-			LVP_Player::timeOut->stop();
+		if (LVP_Player::context->timeOut != NULL)
+			LVP_Player::context->timeOut->stop();
 
 		// INTERNAL STREAMS
 
-		bool isSubExternal = (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL);
+		bool isSubExternal = (LVP_Player::context->subtitle->index >= SUB_STREAM_EXTERNAL);
 
-		if (packet->stream_index == LVP_Player::audioContext->index)
+		if (packet->stream_index == LVP_Player::context->audio->index)
 		{
-			LVP_Player::audioContext->packetsLock.lock();
-			LVP_Player::audioContext->packets.push(packet);
-			LVP_Player::audioContext->packetsLock.unlock();
+			LVP_Player::context->audio->packetsLock.lock();
+			LVP_Player::context->audio->packets.push(packet);
+			LVP_Player::context->audio->packetsLock.unlock();
 		}
-		else if (packet->stream_index == LVP_Player::videoContext->index)
+		else if (packet->stream_index == LVP_Player::context->video->index)
 		{
-			LVP_Player::videoContext->packetsLock.lock();
-			LVP_Player::videoContext->packets.push(packet);
-			LVP_Player::videoContext->packetsLock.unlock();
+			LVP_Player::context->video->packetsLock.lock();
+			LVP_Player::context->video->packets.push(packet);
+			LVP_Player::context->video->packetsLock.unlock();
 		}
-		else if ((packet->stream_index == LVP_Player::subContext->index) && !isSubExternal)
+		else if ((packet->stream_index == LVP_Player::context->subtitle->index) && !isSubExternal)
 		{
-			LVP_Player::subContext->packetsLock.lock();
-			LVP_Player::subContext->packets.push(packet);
-			LVP_Player::subContext->packetsLock.unlock();
+			LVP_Player::context->subtitle->packetsLock.lock();
+			LVP_Player::context->subtitle->packets.push(packet);
+			LVP_Player::context->subtitle->packetsLock.unlock();
 		} else {
 			FREE_AVPACKET(packet);
 		}
 
 		// EXTERNAL SUBTITLE FILES
 
-		if (isSubExternal && (LVP_Player::subContext->packets.size() < MIN_PACKET_QUEUE_SIZE))
+		if (isSubExternal && (LVP_Player::context->subtitle->packets.size() < MIN_PACKET_QUEUE_SIZE))
 		{
 			auto packetExternal = av_packet_alloc();
 			
-			if (packetExternal != NULL)
-			{
-				LVP_Player::packetLock.lock();
+			LVP_Player::packetLock.lock();
 
-				auto result = av_read_frame(LVP_Player::formatContextExternal, packetExternal);
+			auto result = av_read_frame(LVP_Player::context->formatExternal, packetExternal);
 
-				LVP_Player::packetLock.unlock();
+			LVP_Player::packetLock.unlock();
 
-				int extSubStream = ((LVP_Player::subContext->index - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
+			int streamExternalIndex = ((LVP_Player::context->subtitle->index - SUB_STREAM_EXTERNAL) % SUB_STREAM_EXTERNAL);
 
-				if ((result >= 0) && (packetExternal->stream_index == extSubStream)) {
-					LVP_Player::subContext->packetsLock.lock();
-					LVP_Player::subContext->packets.push(packetExternal);
-					LVP_Player::subContext->packetsLock.unlock();
-				} else {
-					FREE_AVPACKET(packetExternal);
-				}
+			if ((result >= 0) && (packetExternal->stream_index == streamExternalIndex)) {
+				LVP_Player::context->subtitle->packetsLock.lock();
+				LVP_Player::context->subtitle->packets.push(packetExternal);
+				LVP_Player::context->subtitle->packetsLock.unlock();
+			} else {
+				FREE_AVPACKET(packetExternal);
 			}
 		}
 
@@ -1983,21 +1982,25 @@ int MediaPlayer::LVP_Player::threadPackets()
 
 		// Number of media tracks have changed
 
-		if (LVP_Player::formatContext->nb_streams != LVP_Player::state.trackCount) {
-			LVP_Player::state.trackCount = LVP_Player::formatContext->nb_streams;
+		if (LVP_Player::context->format->nb_streams != LVP_Player::state.track.count)
+		{
+			LVP_Player::state.track.count = LVP_Player::context->format->nb_streams;
+
 			LVP_Player::callbackEvents(LVP_EVENT_MEDIA_TRACKS_UPDATED);
 		}
 
 		// Metadata has changed
 
-		if (LVP_Player::formatContext->event_flags & AVFMT_EVENT_FLAG_METADATA_UPDATED) {
-			LVP_Player::formatContext->event_flags &= ~AVFMT_EVENT_FLAG_METADATA_UPDATED;
+		if (LVP_Player::context->format->event_flags & AVFMT_EVENT_FLAG_METADATA_UPDATED)
+		{
+			LVP_Player::context->format->event_flags &= ~AVFMT_EVENT_FLAG_METADATA_UPDATED;
+
 			LVP_Player::callbackEvents(LVP_EVENT_METADATA_UPDATED);
 		}
 
 		// Wait while packet queues are full
 
-		while (LVP_Player::isPacketQueueFull() && !LVP_Player::seekRequested && !LVP_Player::state.quit)
+		while (LVP_Player::isPacketQueueFull() && !LVP_Player::state.seek.isRequested && !LVP_Player::state.quit)
 			SDL_Delay(DELAY_TIME_DEFAULT);
 	}
 
@@ -2008,7 +2011,7 @@ int MediaPlayer::LVP_Player::threadPackets()
 		else
 			LVP_Player::callbackEvents(LVP_EVENT_MEDIA_COMPLETED);
 
-		LVP_Player::state.completed = true;
+		LVP_Player::state.isCompleted = true;
 	}
 
 	LVP_Player::state.threads[LVP_THREAD_PACKETS] = false;
@@ -2027,11 +2030,11 @@ int MediaPlayer::LVP_Player::threadSub()
 		// Wait until subtitle packets are available
 
 		while (!LVP_Player::state.quit && (
-			(LVP_Player::state.isPaused && !LVP_Player::seekRequestedPaused) ||
-			LVP_Player::seekRequested ||
-			LVP_Player::trackRequested ||
-			(LVP_Player::subContext->index < 0) ||
-			LVP_Player::subContext->packets.empty()
+			(LVP_Player::state.isPaused && !LVP_Player::state.seek.isRequestedPaused) ||
+			LVP_Player::state.seek.isRequested ||
+			LVP_Player::state.track.requested ||
+			(LVP_Player::context->subtitle->index < 0) ||
+			LVP_Player::context->subtitle->packets.empty()
 		)) {
 			SDL_Delay(DELAY_TIME_DEFAULT);
 		}
@@ -2041,17 +2044,17 @@ int MediaPlayer::LVP_Player::threadSub()
 
 		// Get subtitle packet from queue
 
-		auto packet = LVP_Player::getMediaPacket(LVP_Player::subContext);
+		auto packet = LVP_Player::getMediaPacket(LVP_Player::context->subtitle);
 
 		if (packet == NULL)
 			continue;
 
-		auto trackIndex = LVP_Player::subContext->index;
+		auto trackIndex = LVP_Player::context->subtitle->index;
 
 		auto packetPTS = LVP_Media::GetPacketPTS(
 			packet,
-			LVP_Player::subContext->avStream->time_base,
-			LVP_Player::audioContext->avStream->start_time
+			LVP_Player::context->subtitle->avStream->time_base,
+			LVP_Player::context->audio->avStream->start_time
 		);
 
 		// Sub is behind audio, skip packet to catch up.
@@ -2069,10 +2072,15 @@ int MediaPlayer::LVP_Player::threadSub()
 				continue;
 		}
 
-		bool isExternal = (LVP_Player::subContext->index >= SUB_STREAM_EXTERNAL);
+		bool isExternal = (LVP_Player::context->subtitle->index >= SUB_STREAM_EXTERNAL);
 
-		while (isExternal && ((packetPTS.start - LVP_Player::state.progress) > 1.0) && !LVP_Player::seekRequested && !LVP_Player::state.quit)
+		while (isExternal &&
+			((packetPTS.start - LVP_Player::state.progress) > 1.0) &&
+			!LVP_Player::state.seek.isRequested &&
+			!LVP_Player::state.quit)
+		{
 			SDL_Delay(1);
+		}
 
 		if (LVP_Player::state.quit) {
 			FREE_AVPACKET(packet);
@@ -2083,14 +2091,16 @@ int MediaPlayer::LVP_Player::threadSub()
 
 		LVP_Player::packetLock.lock();
 
-		if (LVP_Player::subContext->index != trackIndex) {
+		if (LVP_Player::context->subtitle->index != trackIndex) {
 			FREE_AVPACKET(packet);
 			LVP_Player::packetLock.unlock();
 			continue;
 		}
 
-		int  frameDecoded;
-		auto decodeResult = avcodec_decode_subtitle2(LVP_Player::subContext->codec, &subFrame, &frameDecoded, packet);
+		int  frameDecoded  = 0;
+		auto subtitleCodec = LVP_Player::context->subtitle->codec;
+
+		auto decodeResult = avcodec_decode_subtitle2(subtitleCodec, &subFrame, &frameDecoded, packet);
 
 		LVP_Player::packetLock.unlock();
 
@@ -2103,13 +2113,15 @@ int MediaPlayer::LVP_Player::threadSub()
 		if (LVP_Player::state.quit)
 			break;
 
-		switch (LVP_Player::subContext->codec->codec->id) {
+		auto subStreamTimeBase = LVP_Player::context->subtitle->avStream->time_base;
+
+		switch (subtitleCodec->codec->id) {
 		case AV_CODEC_ID_DVD_SUBTITLE:
-			LVP_SubtitleBitmap::UpdateDVDColorPalette(LVP_Player::subContext->codec->priv_data);
+			LVP_SubtitleBitmap::UpdateDVDColorPalette(subtitleCodec->priv_data);
 			break;
 		case AV_CODEC_ID_HDMV_PGS_SUBTITLE:
 			if (subFrame.num_rects == 0)
-				LVP_SubtitleBitmap::UpdatePGSEndPTS(LVP_Media::GetSubtitlePGSEndPTS(packet, LVP_Player::subContext->avStream->time_base));
+				LVP_SubtitleBitmap::UpdatePGSEndPTS(LVP_Media::GetSubtitlePGSEndPTS(packet, subStreamTimeBase));
 			break;
 		default:
 			break;
@@ -2123,12 +2135,9 @@ int MediaPlayer::LVP_Player::threadSub()
 			continue;
 		}
 
-		auto framePTS = LVP_Media::GetSubtitlePTS(
-			packet,
-			subFrame,
-			LVP_Player::subContext->avStream->time_base,
-			LVP_Player::audioContext->avStream->start_time
-		);
+		auto audioStreamTimeBase = LVP_Player::context->audio->avStream->start_time;
+
+		auto framePTS = LVP_Media::GetSubtitlePTS(packet, subFrame, subStreamTimeBase, audioStreamTimeBase);
 
 		FREE_AVPACKET(packet);
 
@@ -2212,7 +2221,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 	{
 		// Wait until video packets are available
 
-		while ((LVP_Player::videoContext->packets.empty() || LVP_Player::seekRequested) && !LVP_Player::state.quit)
+		while ((LVP_Player::context->video->packets.empty() || LVP_Player::state.seek.isRequested) && !LVP_Player::state.quit)
 			SDL_Delay(DELAY_TIME_DEFAULT);
 
 		if (LVP_Player::state.quit)
@@ -2220,7 +2229,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 		// Get video packet from queue
 
-		auto packet = LVP_Player::getMediaPacket(LVP_Player::videoContext);
+		auto packet = LVP_Player::getMediaPacket(LVP_Player::context->video);
 
 		if (packet == NULL)
 			continue;
@@ -2229,7 +2238,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 		LVP_Player::packetLock.lock();
 
-		auto result = avcodec_send_packet(LVP_Player::videoContext->codec, packet);
+		auto result = avcodec_send_packet(LVP_Player::context->video->codec, packet);
 
 		LVP_Player::packetLock.unlock();
 
@@ -2256,7 +2265,7 @@ int MediaPlayer::LVP_Player::threadVideo()
 		{
 			LVP_Player::packetLock.lock();
 
-			result = avcodec_receive_frame(LVP_Player::videoContext->codec, LVP_Player::videoContext->frameHardware);
+			result = avcodec_receive_frame(LVP_Player::context->video->codec, LVP_Player::context->video->frameHardware);
 
 			LVP_Player::packetLock.unlock();
 
@@ -2273,67 +2282,77 @@ int MediaPlayer::LVP_Player::threadVideo()
 
 			LVP_Player::packetLock.lock();
 
-			if (LVP_Player::isHardwarePixelFormat(LVP_Player::videoContext->frameHardware->format))
+			auto frameHardware = LVP_Player::context->video->frameHardware;
+
+			if (LVP_Player::isHardwarePixelFormat(frameHardware->format))
 			{
-				av_hwframe_transfer_data(LVP_Player::videoContext->frameSoftware, LVP_Player::videoContext->frameHardware, 0);
+				av_hwframe_transfer_data(LVP_Player::context->video->frameSoftware, frameHardware, 0);
 
-				LVP_Player::videoContext->frameSoftware->best_effort_timestamp = LVP_Player::videoContext->frameHardware->best_effort_timestamp;
-				LVP_Player::videoContext->frameSoftware->pts                   = LVP_Player::videoContext->frameHardware->pts;
-				LVP_Player::videoContext->frameSoftware->pkt_dts               = LVP_Player::videoContext->frameHardware->pkt_dts;
+				LVP_Player::context->video->frameSoftware->best_effort_timestamp = frameHardware->best_effort_timestamp;
 
-				LVP_Player::videoContext->frame = LVP_Player::videoContext->frameSoftware;
+				LVP_Player::context->video->frameSoftware->pts     = frameHardware->pts;
+				LVP_Player::context->video->frameSoftware->pkt_dts = frameHardware->pkt_dts;
+
+				LVP_Player::context->video->frame = LVP_Player::context->video->frameSoftware;
 			} else {
-				LVP_Player::videoContext->frame = LVP_Player::videoContext->frameHardware;
+				LVP_Player::context->video->frame = frameHardware;
 			}
 
 			// Calculate video PTS (present time)
 
-			if (IS_AUDIO(LVP_Player::state.mediaType) && (LVP_Player::videoContext->avStream->attached_pic.size > 0))
-				LVP_Player::videoContext->pts = LVP_Player::state.progress;
+			if (IS_AUDIO(LVP_Player::state.mediaType) && (LVP_Player::context->video->avStream->attached_pic.size > 0))
+				LVP_Player::context->video->pts = LVP_Player::state.progress;
 			else
-				LVP_Player::videoContext->pts = LVP_Media::GetVideoPTS(LVP_Player::videoContext, LVP_Player::audioContext->avStream->start_time);
+				LVP_Player::context->video->pts = LVP_Media::GetVideoPTS(LVP_Player::context->video, LVP_Player::context->audio->avStream->start_time);
 
 			LVP_Player::packetLock.unlock();
 
 			// Wait while paused (unless a seek is requested)
 
-			while (LVP_Player::state.isPaused && !LVP_Player::seekRequested && !LVP_Player::seekRequestedPaused && !LVP_Player::state.quit)
+			while (LVP_Player::state.isPaused &&
+				!LVP_Player::state.seek.isRequested &&
+				!LVP_Player::state.seek.isRequestedPaused &&
+				!LVP_Player::state.quit)
+			{
 				SDL_Delay(DELAY_TIME_DEFAULT);
+			}
 
-			if (LVP_Player::seekRequested || LVP_Player::state.quit)
+			if (LVP_Player::state.seek.isRequested || LVP_Player::state.quit)
 				break;
 
 			// Update video if seek was requested while paused
 
-			if (LVP_Player::seekRequestedPaused)
+			if (LVP_Player::state.seek.isRequestedPaused)
 			{
 				// Keep seeking until the video catches up to the audio
 
-				if (LVP_Player::videoContext->getTimeUntilPTS(LVP_Player::state.progress) > ONE_SECOND_MS)
+				if (LVP_Player::context->video->getTimeUntilPTS(LVP_Player::state.progress) > ONE_SECOND_MS)
 					break;
 
-				LVP_Player::seekRequestedPaused = false;
+				LVP_Player::state.seek.isRequestedPaused = false;
 			}
 
 			// Start preparing the video frame for rendering
 
-			LVP_Player::videoContext->isReadyForRender = true;
+			LVP_Player::context->video->isReadyForRender = true;
 
 			// Wait before presenting the video frame
 
-			auto progress = (IS_INVALID_PTS() ? LVP_Player::seekPTS : LVP_Player::state.progress);
+			auto progress = (IS_INVALID_PTS() ? LVP_Player::state.seek.pts : LVP_Player::state.progress);
 
-			while ((LVP_Player::videoContext->getTimeUntilPTS(progress) >= DELAY_TIME_DEFAULT) && !LVP_Player::state.isPaused && !LVP_Player::state.quit)
+			while ((LVP_Player::context->video->getTimeUntilPTS(progress) >= DELAY_TIME_DEFAULT) &&
+				!LVP_Player::state.isPaused &&
+				!LVP_Player::state.quit)
 			{
 				SDL_Delay(DELAY_TIME_DEFAULT);
 
-				progress = (IS_INVALID_PTS() ? LVP_Player::seekPTS : LVP_Player::state.progress);
+				progress = (IS_INVALID_PTS() ? LVP_Player::state.seek.pts : LVP_Player::state.progress);
 			}
 
 			if (!IS_INVALID_PTS())
-				LVP_Player::seekRequestedBack = false;
+				LVP_Player::state.seek.isRequestedBack = false;
 
-			LVP_Player::videoContext->isReadyForPresent = true;
+			LVP_Player::context->video->isReadyForPresent = true;
 		}
 
 		FREE_AVPACKET(packet);
@@ -2367,13 +2386,15 @@ void MediaPlayer::LVP_Player::UpdateAudioDevices()
 	if (isPlaying)
 		LVP_Player::Pause();
 
-	if ((LVP_Player::audioContext != NULL) && (LVP_Player::audioContext->audioStream == NULL))
+	if ((LVP_Player::context != NULL) && (LVP_Player::context->audio != NULL) && (LVP_Player::context->audio->audioStream == NULL))
 		LVP_Player::openAudioDevice(LVP_Player::state.audioDevice.name);
 	else
 		LVP_Player::SetAudioDevices();
 
-	if (!LVP_Player::hasValidAudioDevice()) {
+	if (!LVP_Player::hasValidAudioDevice())
+	{
 		LVP_Player::closeAudioStream();
+
 		LVP_Player::state.audioDevice = {};
 	}
 

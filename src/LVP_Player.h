@@ -11,6 +11,28 @@ namespace LibVoyaPlayer
 {
 	namespace MediaPlayer
 	{
+		struct LVP_PlayerContext
+		{
+			LVP_AudioContext*    audio    = new LVP_AudioContext();
+			LVP_SubtitleContext* subtitle = new LVP_SubtitleContext();
+			System::LVP_TimeOut* timeOut  = new System::LVP_TimeOut();
+			LVP_VideoContext*    video    = new LVP_VideoContext();
+
+			AVFormatContext* format         = NULL;
+			AVFormatContext* formatExternal = NULL;
+
+			~LVP_PlayerContext()
+			{
+				DELETE_POINTER(this->audio);
+				DELETE_POINTER(this->subtitle);
+				DELETE_POINTER(this->timeOut);
+				DELETE_POINTER(this->video);
+
+				FREE_AVFORMAT(this->format);
+				FREE_AVFORMAT(this->formatExternal);
+			}
+		};
+
 		class LVP_Player
 		{
 		private:
@@ -18,25 +40,10 @@ namespace LibVoyaPlayer
 			~LVP_Player() {}
 
 		private:
-			static LVP_AudioContext*          audioContext;
-			static LVP_CallbackContext        callbackContext;
-			static AVFormatContext*           formatContext;
-			static AVFormatContext*           formatContextExternal;
-			static bool                       isStopping;
-			static bool                       isOpening;
-			static std::mutex                 packetLock;
-			static double                     seekPTS;
-			static bool                       seekRequested;
-			static bool                       seekRequestedBack;
-			static bool                       seekRequestedPaused;
-			static int                        seekByRequest;
-			static double                     seekToRequest;
-			static LVP_PlayerState            state;
-			static LVP_SubtitleContext*       subContext;
-			static System::LVP_TimeOut*       timeOut;
-			static bool                       trackRequested;
-			static std::queue<LVP_MediaTrack> trackRequests;
-			static LVP_VideoContext*          videoContext;
+			static LVP_CallbackContext callback;
+			static LVP_PlayerContext*  context;
+			static std::mutex          packetLock;
+			static LVP_PlayerState     state;
 
 		public:
 			static void                          CallbackError(const std::string& errorMessage);
@@ -90,14 +97,12 @@ namespace LibVoyaPlayer
 			static void                          callbackEvents(LVP_EventType type);
 			static void                          callbackVideoIsAvailable(SDL_Surface* surface);
 			static void                          close();
-			static void                          closeAudioContext();
 			static void                          closeAudioStream();
 			static void                          closePackets(LVP_MediaContext* context);
 			static void                          closePackets();
 			static void                          closeStream(AVMediaType streamType);
 			static void                          closeStream(LVP_MediaContext* mediaContext);
 			static void                          closeSubContext();
-			static void                          closeVideoContext();
 			static int                           decodeAudioFrame();
 			static void                          decodeAudioFrames();
 			static void                          decodeAudioPacket(AVPacket* packet);

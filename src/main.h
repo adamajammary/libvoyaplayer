@@ -140,7 +140,7 @@ namespace LibVoyaPlayer
 		#define IS_AUDIO(t)      (t == AVMEDIA_TYPE_AUDIO)
 		#define IS_BYTE_SEEK(i)  (((i->flags & AVFMT_NO_BYTE_SEEK) == 0) && ((i->flags & AVFMT_TS_DISCONT) != 0) && (strcmp("ogg", i->name) != 0))
 		#define IS_FONT(i)       ((i == AV_CODEC_ID_TTF) || (i == AV_CODEC_ID_OTF))
-		#define IS_INVALID_PTS() (LVP_Player::seekRequestedBack && (LVP_Player::state.progress > LVP_Player::seekPTS))
+		#define IS_INVALID_PTS() (LVP_Player::state.seek.isRequestedBack && (LVP_Player::state.progress > LVP_Player::state.seek.pts))
 		#define IS_SUB(t)        (t == AVMEDIA_TYPE_SUBTITLE)
 		#define IS_SUB_BITMAP(t) (t == SUBTITLE_BITMAP)
 		#define IS_VIDEO(t)      (t == AVMEDIA_TYPE_VIDEO)
@@ -162,14 +162,6 @@ namespace LibVoyaPlayer
 		const int    MIN_PACKET_QUEUE_SIZE = 25;
 		const double MIN_SUB_TIME_TO_PTS   = 0.03;
 
-		enum LVP_RGBA
-		{
-			LVP_RGBA_R,
-			LVP_RGBA_G,
-			LVP_RGBA_B,
-			LVP_RGBA_A
-		};
-
 		enum LVP_Threads
 		{
 			LVP_THREAD_AUDIO,
@@ -180,32 +172,12 @@ namespace LibVoyaPlayer
 			LVP_NR_OF_THREADS
 		};
 
-		struct LVP_AudioDevice
+		enum LVP_RGBA
 		{
-			SDL_AudioDeviceID id   = 0;
-			std::string       name = "Default";
-		};
-
-		struct LVP_AudioFilter
-		{
-			AVFilterContext* bufferSink   = NULL;
-			AVFilterContext* bufferSource = NULL;
-			AVFilterGraph*   filterGraph  = NULL;
-		};
-
-		// libavcodec/dvdsubdec.c
-		struct LVP_DVDSubContext
-		{
-			AVClass* av_class;
-			uint32_t palette[16];
-			char*    palette_str;
-			char*    ifo_str;
-			int      has_palette;
-			uint8_t  colormap[4];
-			uint8_t  alpha[256];
-			uint8_t  buf[0x10000];
-			int      buf_size;
-			int      forced_subs_only;
+			LVP_RGBA_R,
+			LVP_RGBA_G,
+			LVP_RGBA_B,
+			LVP_RGBA_A
 		};
 
 		struct LVP_MediaContext
@@ -245,6 +217,8 @@ namespace LibVoyaPlayer
 
 using namespace LibVoyaPlayer;
 
+#include "LVP_TimeOut.h"
+
 #include "LVP_AudioSpecs.h"
 #include "LVP_PlayerState.h"
 
@@ -258,6 +232,5 @@ using namespace LibVoyaPlayer;
 #include "LVP_SubtitleBitmap.h"
 #include "LVP_SubtitleText.h"
 #include "LVP_Text.h"
-#include "LVP_TimeOut.h"
 
 #endif

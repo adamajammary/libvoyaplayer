@@ -16,15 +16,18 @@ namespace LibVoyaPlayer
 			~LVP_VideoContext();
 
 		public:
-			AVFrame*      frame;
-			AVFrame*      frameEncoded;
-			AVFrame*      frameHardware;
-			AVFrame*      frameSoftware;
+			AVFrame* frame;
+			AVFrame* frameEncoded;
+			AVFrame* frameHardware;
+			AVFrame* frameSoftware;
+
 			AVBufferRef*  hwDeviceContext;
 			AVPixelFormat hwPixelFormat;
-			bool          isReadyForRender;
-			bool          isReadyForPresent;
-			bool          isSoftwareRenderer;
+
+			bool isReadyForRender;
+			bool isReadyForPresent;
+			bool isSoftwareRenderer;
+
 			double        pts;
 			SDL_Renderer* renderer;
 			SwsContext*   scaleContext;

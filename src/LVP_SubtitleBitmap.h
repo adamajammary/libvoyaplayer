@@ -9,6 +9,21 @@ namespace LibVoyaPlayer
 {
 	namespace MediaPlayer
 	{
+		// libavcodec/dvdsubdec.c
+		struct LVP_DVDSubContext
+		{
+			AVClass* av_class;
+			uint32_t palette[16];
+			char*    palette_str;
+			char*    ifo_str;
+			int      has_palette;
+			uint8_t  colormap[4];
+			uint8_t  alpha[256];
+			uint8_t  buf[0x10000];
+			int      buf_size;
+			int      forced_subs_only;
+		};
+
 		class LVP_SubtitleBitmap
 		{
 		private:

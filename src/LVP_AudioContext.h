@@ -9,6 +9,13 @@ namespace LibVoyaPlayer
 {
 	namespace MediaPlayer
 	{
+		struct LVP_AudioFilter
+		{
+			AVFilterContext* bufferSink   = NULL;
+			AVFilterContext* bufferSource = NULL;
+			AVFilterGraph*   filterGraph  = NULL;
+		};
+
 		class LVP_AudioContext : public LVP_MediaContext
 		{
 		public:
