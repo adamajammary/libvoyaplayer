@@ -96,7 +96,7 @@ void MediaPlayer::LVP_Player::close()
 
 void MediaPlayer::LVP_Player::closeAudioStream()
 {
-	if ((LVP_Player::context->audio == NULL) || (LVP_Player::context->audio->audioStream == NULL))
+	if ((LVP_Player::context == NULL) || (LVP_Player::context->audio == NULL) || (LVP_Player::context->audio->audioStream == NULL))
 		return;
 
 	SDL_DestroyAudioStream(LVP_Player::context->audio->audioStream);
