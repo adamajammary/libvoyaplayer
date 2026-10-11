@@ -134,6 +134,9 @@ void MediaPlayer::LVP_Player::closeStream(LVP_MediaContext* mediaContext)
 	if (mediaContext == NULL)
 		return;
 
+	if (mediaContext->codec != NULL)
+		avcodec_flush_buffers(mediaContext->codec);
+
 	FREE_AVSTREAM(mediaContext->avStream);
 	FREE_AVCODEC(mediaContext->codec);
 
