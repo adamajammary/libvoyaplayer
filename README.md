@@ -333,7 +333,7 @@ void handleVideoIsAvailable(SDL_Surface* videoSurface, const void* data)
   videoLock.unlock();
 }
 
-void run(SDL_Renderer* renderer, const SDL_Rect& destination)
+void run(SDL_Renderer* renderer, const SDL_FRect& destination)
 {
   videoLock.lock();
 
@@ -353,7 +353,7 @@ void run(SDL_Renderer* renderer, const SDL_Rect& destination)
   }
 
   if (texture)
-    SDL_RenderCopy(renderer, texture, nullptr, &destination);
+    SDL_RenderTexture(renderer, texture, nullptr, &destination);
 
   videoLock.unlock();
 
