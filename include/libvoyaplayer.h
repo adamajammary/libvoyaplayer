@@ -28,21 +28,16 @@
 DLLEXPORT void DLL LVP_Initialize(const LVP_CallbackContext& callbackContext);
 
 /**
- * @brief Tells the player that a new audio device was connected.
- * @param adevice SDL2 audio device event.
+ * @returns the current audio device.
+ * @throws runtime_error
  */
-DLLEXPORT void DLL LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+DLLEXPORT std::string DLL LVP_GetAudioDevice();
 
 /**
  * @returns a list of available audio devices.
- */
-DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
-
-/**
- * @returns a list of chapters in the currently loaded media.
  * @throws runtime_error
  */
-DLLEXPORT std::vector<LVP_MediaChapter> DLL LVP_GetChapters();
+DLLEXPORT std::vector<std::string> DLL LVP_GetAudioDevices();
 
 /**
  * @returns the current audio track index number.
@@ -55,6 +50,12 @@ DLLEXPORT int DLL LVP_GetAudioTrack();
  * @throws runtime_error
  */
 DLLEXPORT std::vector<LVP_MediaTrack> DLL LVP_GetAudioTracks();
+
+/**
+ * @returns a list of chapters in the currently loaded media.
+ * @throws runtime_error
+ */
+DLLEXPORT std::vector<LVP_MediaChapter> DLL LVP_GetChapters();
 
 /**
  * @returns the media duration in milliseconds (one thousandth of a second).
@@ -244,23 +245,17 @@ DLLEXPORT void DLL LVP_Play();
 DLLEXPORT void DLL LVP_Quit();
 
 /**
- * @brief Tells the player that an audio device was disconnected.
- * @param adevice SDL2 audio device event.
+ * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
  */
-DLLEXPORT void DLL LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
+DLLEXPORT void DLL LVP_Resize();
 
 /**
- * @brief Generates and renders a video frame.
+ * @brief Handles playback events (play, pause, stop, seek, track change etc.) and creating/rendering video frames if needed.
  *        If hardware rendering is used, it will copy the texture to the renderer.
  *        If software rendering is used, it will generate a LVP_VideoCallback with an SDL_Surface.
  * @param destination Optional clipping/scaling region used by the hardware renderer.
  */
-DLLEXPORT void DLL LVP_Render(const SDL_Rect& destination = {});
-
-/**
- * @brief Should be called whenever the window resizes to tell the player to recreate the video frame context.
- */
-DLLEXPORT void DLL LVP_Resize();
+DLLEXPORT void DLL LVP_Run(const SDL_Rect& destination = {});
 
 /**
  * @brief Seeks (asynchronously) relatively forwards/backwards by the given time in seconds.
@@ -278,10 +273,10 @@ DLLEXPORT void DLL LVP_SeekTo(double percent);
 
 /**
  * @brief Tries to set the given audio device as the current device if valid.
- * @param device Name of the audio device.
- * @returns true if the audio device is successfully set.
+ * @param name Audio device name.
+ * @throws runtime_error
  */
-DLLEXPORT bool DLL LVP_SetAudioDevice(const std::string& device);
+DLLEXPORT void DLL LVP_SetAudioDevice(const std::string& name);
 
 /**
  * @brief Mutes/unmutes the audio volume.
@@ -328,5 +323,11 @@ DLLEXPORT void DLL LVP_ToggleMute();
  * @throws runtime_error
  */
 DLLEXPORT void DLL LVP_TogglePause();
+
+/**
+ * @brief Tells the player to update the list of available audio devices.
+ * @throws runtime_error
+ */
+DLLEXPORT void DLL LVP_UpdateAudioDevices();
 
 #endif

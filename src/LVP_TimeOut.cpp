@@ -16,12 +16,12 @@ int System::LVP_TimeOut::InterruptCallback(void* data)
 
 bool System::LVP_TimeOut::isTimedOut() const
 {
-	return (this->started && ((SDL_GetTicks64() - this->startTime) >= this->timeOut));
+	return (this->started && ((SDL_GetTicks() - this->startTime) >= this->timeOut));
 }
 
 void System::LVP_TimeOut::start()
 {
-	this->startTime = SDL_GetTicks64();
+	this->startTime = SDL_GetTicks();
 	this->started   = true;
 }
 

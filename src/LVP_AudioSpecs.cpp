@@ -1,6 +1,6 @@
 #include "LVP_AudioSpecs.h"
 
-MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(LibFFmpeg::AVFrame* frame, double playbackSpeed)
+MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(AVFrame* frame, double playbackSpeed)
 {
 	this->playbackSpeed = playbackSpeed;
 	this->channelLayout = frame->ch_layout;
@@ -8,7 +8,7 @@ MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(LibFFmpeg::AVFrame* frame, double pl
 	this->sampleRate    = frame->sample_rate;
 }
 
-MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(LibFFmpeg::AVFrame* frame)
+MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs(AVFrame* frame)
 {
 	this->playbackSpeed = 1.0;
 	this->channelLayout = frame->ch_layout;
@@ -24,7 +24,7 @@ MediaPlayer::LVP_AudioSpecs::LVP_AudioSpecs()
 	this->sampleRate    = 0;
 }
 
-bool MediaPlayer::LVP_AudioSpecs::equals(LibFFmpeg::AVFrame* frame, double playbackSpeed) const
+bool MediaPlayer::LVP_AudioSpecs::equals(AVFrame* frame, double playbackSpeed) const
 {
 	if (!ARE_EQUAL_DOUBLES(playbackSpeed, this->playbackSpeed))
 		return false;
@@ -38,26 +38,26 @@ bool MediaPlayer::LVP_AudioSpecs::equals(LibFFmpeg::AVFrame* frame, double playb
 	if (frame->ch_layout.nb_channels != this->channelLayout.nb_channels)
 		return false;
 
-	if (LibFFmpeg::av_channel_layout_compare(&frame->ch_layout, &this->channelLayout) == 1)
+	if (av_channel_layout_compare(&frame->ch_layout, &this->channelLayout) == 1)
 		return false;
 
 	return true;
 }
 
-LibFFmpeg::AVChannelLayout MediaPlayer::LVP_AudioSpecs::getChannelLayout(int channels)
+AVChannelLayout MediaPlayer::LVP_AudioSpecs::getChannelLayout(int channels)
 {
-	LibFFmpeg::AVChannelLayout layout;
+	AVChannelLayout layout;
 
-	LibFFmpeg::av_channel_layout_default(&layout, channels);
+	av_channel_layout_default(&layout, channels);
 
 	return layout;
 }
 
-std::string MediaPlayer::LVP_AudioSpecs::getChannelLayoutName(const LibFFmpeg::AVChannelLayout& layout)
+std::string MediaPlayer::LVP_AudioSpecs::getChannelLayoutName(const AVChannelLayout& layout)
 {
 	char buffer[DEFAULT_CHAR_BUFFER_SIZE];
 
-	LibFFmpeg::av_channel_layout_describe(&layout, buffer, DEFAULT_CHAR_BUFFER_SIZE);
+	av_channel_layout_describe(&layout, buffer, DEFAULT_CHAR_BUFFER_SIZE);
 
 	auto layoutName = std::string(buffer);
 
@@ -69,39 +69,39 @@ std::string MediaPlayer::LVP_AudioSpecs::getChannelLayoutName(const LibFFmpeg::A
 	return layoutName;
 }
 
-LibFFmpeg::AVSampleFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(SDL_AudioFormat sdlFormat)
+AVSampleFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(SDL_AudioFormat sdlFormat)
 {
 	switch (sdlFormat) {
-		case AUDIO_U8:     return LibFFmpeg::AV_SAMPLE_FMT_U8;
-		case AUDIO_S16SYS: return LibFFmpeg::AV_SAMPLE_FMT_S16;
-		case AUDIO_S32SYS: return LibFFmpeg::AV_SAMPLE_FMT_S32;
-		case AUDIO_F32SYS: return LibFFmpeg::AV_SAMPLE_FMT_FLT;
+		case SDL_AUDIO_U8:  return AV_SAMPLE_FMT_U8;
+		case SDL_AUDIO_S16: return AV_SAMPLE_FMT_S16;
+		case SDL_AUDIO_S32: return AV_SAMPLE_FMT_S32;
+		case SDL_AUDIO_F32: return AV_SAMPLE_FMT_FLT;
 		default: break;
 	}
 
-	return LibFFmpeg::AV_SAMPLE_FMT_NONE;
+	return AV_SAMPLE_FMT_NONE;
 }
 
-SDL_AudioFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(LibFFmpeg::AVSampleFormat avFormat)
+SDL_AudioFormat MediaPlayer::LVP_AudioSpecs::getSampleFormat(AVSampleFormat avFormat)
 {
 	switch (avFormat) {
-		case LibFFmpeg::AV_SAMPLE_FMT_U8:
-		case LibFFmpeg::AV_SAMPLE_FMT_U8P:
-			return AUDIO_U8;
-		case LibFFmpeg::AV_SAMPLE_FMT_S16:
-		case LibFFmpeg::AV_SAMPLE_FMT_S16P:
-			return AUDIO_S16SYS;
-		case LibFFmpeg::AV_SAMPLE_FMT_S32:
-		case LibFFmpeg::AV_SAMPLE_FMT_S32P:
-			return AUDIO_S32SYS;
-		case LibFFmpeg::AV_SAMPLE_FMT_FLT:
-		case LibFFmpeg::AV_SAMPLE_FMT_FLTP:
-			return AUDIO_F32SYS;
+		case AV_SAMPLE_FMT_U8:
+		case AV_SAMPLE_FMT_U8P:
+			return SDL_AUDIO_U8;
+		case AV_SAMPLE_FMT_S16:
+		case AV_SAMPLE_FMT_S16P:
+			return SDL_AUDIO_S16;
+		case AV_SAMPLE_FMT_S32:
+		case AV_SAMPLE_FMT_S32P:
+			return SDL_AUDIO_S32;
+		case AV_SAMPLE_FMT_FLT:
+		case AV_SAMPLE_FMT_FLTP:
+			return SDL_AUDIO_F32;
 		default:
 			break;
 	}
 
-	return 0;
+	return SDL_AUDIO_UNKNOWN;
 }
 
 int MediaPlayer::LVP_AudioSpecs::getSampleRate(int sampleRate, double playbackSpeed)

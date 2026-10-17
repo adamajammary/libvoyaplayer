@@ -2,19 +2,23 @@
 
 MediaPlayer::LVP_VideoContext::LVP_VideoContext()
 {
-	this->frame              = NULL;
-	this->frameEncoded       = NULL;
-	this->frameHardware      = NULL;
-	this->frameSoftware      = NULL;
-	this->hardwareFormat     = LibFFmpeg::AV_PIX_FMT_NONE;
+	this->frame         = NULL;
+	this->frameEncoded  = NULL;
+	this->frameHardware = NULL;
+	this->frameSoftware = NULL;
+
+	this->hwPixelFormat   = AV_PIX_FMT_NONE;
+	this->hwDeviceContext = NULL;
+
 	this->isReadyForRender   = false;
 	this->isReadyForPresent  = false;
 	this->isSoftwareRenderer = false;
-	this->pts                = 0.0;
-	this->renderer           = NULL;
-	this->scaleContext       = NULL;
-	this->surface            = NULL;
-	this->texture            = NULL;
+
+	this->pts          = 0.0;
+	this->renderer     = NULL;
+	this->scaleContext = NULL;
+	this->surface      = NULL;
+	this->texture      = NULL;
 }
 
 MediaPlayer::LVP_VideoContext::~LVP_VideoContext()
@@ -25,8 +29,12 @@ MediaPlayer::LVP_VideoContext::~LVP_VideoContext()
 	FREE_AVFRAME(this->frameEncoded);
 	FREE_AVFRAME(this->frameHardware);
 	FREE_AVFRAME(this->frameSoftware);
-	FREE_SURFACE(this->surface);
+
+	FREE_HW_DEVICE_CTX(this->hwDeviceContext);
+
 	FREE_SWS(this->scaleContext);
+
+	FREE_SURFACE(this->surface);
 	FREE_TEXTURE(this->texture);
 }
 

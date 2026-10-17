@@ -133,10 +133,7 @@ LVP_Strings System::LVP_FileSystem::GetSubtitleFilesForVideo(const std::string& 
 		}
 		catch (const std::exception& e)
 		{
-			#if defined _DEBUG
-				LOG("ERROR: %s\n", e.what());
-			#endif
-
+			LOG("LVP_FileSystem::GetSubtitleFilesForVideo failed: %s\n", e.what());
 			continue;
 		}
 

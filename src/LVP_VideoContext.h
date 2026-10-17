@@ -16,19 +16,23 @@ namespace LibVoyaPlayer
 			~LVP_VideoContext();
 
 		public:
-			LibFFmpeg::AVFrame*      frame;
-			LibFFmpeg::AVFrame*      frameEncoded;
-			LibFFmpeg::AVFrame*      frameHardware;
-			LibFFmpeg::AVFrame*      frameSoftware;
-			LibFFmpeg::AVPixelFormat hardwareFormat;
-			bool                     isReadyForRender;
-			bool                     isReadyForPresent;
-			bool                     isSoftwareRenderer;
-			double                   pts;
-			SDL_Renderer*            renderer;
-			LibFFmpeg::SwsContext*   scaleContext;
-			SDL_Surface*             surface;
-			SDL_Texture*             texture;
+			AVFrame* frame;
+			AVFrame* frameEncoded;
+			AVFrame* frameHardware;
+			AVFrame* frameSoftware;
+
+			AVBufferRef*  hwDeviceContext;
+			AVPixelFormat hwPixelFormat;
+
+			bool isReadyForRender;
+			bool isReadyForPresent;
+			bool isSoftwareRenderer;
+
+			double        pts;
+			SDL_Renderer* renderer;
+			SwsContext*   scaleContext;
+			SDL_Surface*  surface;
+			SDL_Texture*  texture;
 
 		public:
 			int getTimeUntilPTS(double progress) const;

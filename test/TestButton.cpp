@@ -26,7 +26,7 @@ void TestButton::create()
     this->size    = { surface->w, surface->h };
     this->texture = SDL_CreateTextureFromSurface(renderer, surface);
 
-	SDL_FreeSurface(surface);
+	SDL_DestroySurface(surface);
 }
 
 void TestButton::destroy()
@@ -47,6 +47,9 @@ void TestButton::enable(bool enabled)
 
 void TestButton::update(const std::string& label)
 {
+    if (label == this->label)
+        return;
+
     this->label = label;
 
     this->destroy();

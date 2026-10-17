@@ -19,28 +19,17 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 			SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "AVAudioSessionCategoryPlayback");
 		#endif
 
-		SDL_SetHint(SDL_HINT_AUDIO_RESAMPLING_MODE, "3");
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,  "2");
-
-		if ((SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) ||
-			(SDL_AudioInit(NULL) < 0) ||
-			(SDL_InitSubSystem(SDL_INIT_VIDEO) < 0))
-		{
-			throw std::runtime_error(std::format("Failed to initialize SDL2: {}", SDL_GetError()));
-		}
+		if (!SDL_InitSubSystem(SDL_INIT_AUDIO) || !SDL_InitSubSystem(SDL_INIT_VIDEO))
+			throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
 
 		#if defined _DEBUG
-			LibFFmpeg::av_log_set_level(AV_LOG_VERBOSE);
+			av_log_set_level(AV_LOG_VERBOSE);
 		#else
-			LibFFmpeg::av_log_set_level(AV_LOG_QUIET);
+			av_log_set_level(AV_LOG_QUIET);
 		#endif
 
-		if ((LibFFmpeg::av_version_info() == NULL) ||
-			(LibFFmpeg::avcodec_version() == 0) ||
-			(LibFFmpeg::avformat_version() == 0))
-		{
+		if ((av_version_info() == NULL) || (avcodec_version() == 0) || (avformat_version() == 0))
 			throw std::runtime_error("Failed to initialize FFmpeg.");
-		}
 
 		MediaPlayer::LVP_Player::Init(callbackContext);
 
@@ -55,13 +44,19 @@ void LVP_Initialize(const LVP_CallbackContext &callbackContext)
 	}
 }
 
-void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice)
+std::string LVP_GetAudioDevice()
 {
-	MediaPlayer::LVP_Player::AddAudioDevice(adevice);
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	return MediaPlayer::LVP_Player::GetAudioDevice();
 }
 
-std::vector<std::string> LVP_GetAudioDevices()
+LVP_Strings LVP_GetAudioDevices()
 {
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
 	return MediaPlayer::LVP_Player::GetAudioDevices();
 }
 
@@ -404,21 +399,7 @@ void LVP_Quit()
 	MediaPlayer::LVP_Player::Quit();
 
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
-	SDL_AudioQuit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
-}
-
-void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice)
-{
-	MediaPlayer::LVP_Player::RemoveAudioDevice(adevice);
-}
-
-void LVP_Render(const SDL_Rect& destination)
-{
-	if (!isInitialized)
-		throw std::runtime_error(ERROR_NO_INIT);
-
-	MediaPlayer::LVP_Player::Render(destination);
 }
 
 void LVP_Resize()
@@ -427,6 +408,14 @@ void LVP_Resize()
 		throw std::runtime_error(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::Resize();
+}
+
+void LVP_Run(const SDL_Rect& destination)
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::Run(destination);
 }
 
 void LVP_SeekBy(int seconds)
@@ -445,9 +434,12 @@ void LVP_SeekTo(double percent)
 	MediaPlayer::LVP_Player::SeekTo(percent);
 }
 
-bool LVP_SetAudioDevice(const std::string &device)
+void LVP_SetAudioDevice(const std::string& name)
 {
-	return MediaPlayer::LVP_Player::SetAudioDevice(device);
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::SetAudioDevice(name);
 }
 
 void LVP_SetMuted(bool muted)
@@ -504,6 +496,14 @@ void LVP_TogglePause()
 		throw std::runtime_error(ERROR_NO_INIT);
 
 	MediaPlayer::LVP_Player::TogglePause();
+}
+
+void LVP_UpdateAudioDevices()
+{
+	if (!isInitialized)
+		throw std::runtime_error(ERROR_NO_INIT);
+
+	MediaPlayer::LVP_Player::UpdateAudioDevices();
 }
 
 #if defined _windows

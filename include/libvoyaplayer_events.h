@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#ifndef LIB_SDL2_H
-#define LIB_SDL2_H
+#ifndef LIB_SDL_H
+#define LIB_SDL_H
 	extern "C" {
-		#include <SDL2/SDL.h>
+		#include <SDL3/SDL.h>
 	}
 #endif
 

@@ -9,6 +9,13 @@ namespace LibVoyaPlayer
 {
 	namespace MediaPlayer
 	{
+		struct LVP_AudioFilter
+		{
+			AVFilterContext* bufferSink   = NULL;
+			AVFilterContext* bufferSource = NULL;
+			AVFilterGraph*   filterGraph  = NULL;
+		};
+
 		class LVP_AudioContext : public LVP_MediaContext
 		{
 		public:
@@ -16,18 +23,18 @@ namespace LibVoyaPlayer
 			~LVP_AudioContext();
 
 		public:
-			uint8_t*                        buffer;
-			int                             bufferOffset;
-			int                             bufferSize;
-			int                             dataSize;
-			SDL_AudioSpec                   deviceSpecs;
-			SDL_AudioSpec                   deviceSpecsWanted;
-			LVP_AudioFilter                 filter;
-			LVP_AudioSpecs                  filterSpecs;
-			std::queue<LibFFmpeg::AVFrame*> frames;
-			std::mutex                      framesLock;
-			double                          lastPogress;
-			double                          packetDuration;
+			SDL_AudioStream*     audioStream;
+			uint8_t*             buffer;
+			int                  bufferOffset;
+			int                  bufferSize;
+			int                  dataSize;
+			SDL_AudioSpec        deviceSpecs;
+			LVP_AudioFilter      filter;
+			LVP_AudioSpecs       filterSpecs;
+			std::queue<AVFrame*> frames;
+			std::mutex           framesLock;
+			double               lastPogress;
+			double               packetDuration;
 
 		public:
 			void free();

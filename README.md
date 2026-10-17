@@ -18,16 +18,11 @@ Supports most popular video codecs like H.265/HEVC, AV1, DivX, MPEG, Theora, WMV
 
 Library | Version | License
 ------- | ------- | -------
-[SDL2](https://github.com/libsdl-org/SDL) | [2.32.10](https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
-[libass](https://github.com/libass/libass) | [0.17.4](https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
-[fontconfig](https://gitlab.freedesktop.org/fontconfig/fontconfig) | [2.17.1](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.17.1/fontconfig-2.17.1.tar.gz) | [MIT license (Modern Variant)](https://gitlab.freedesktop.org/fontconfig/fontconfig/-/blob/main/COPYING)
-[libexpat](https://github.com/libexpat/libexpat) | [2.7.4](https://github.com/libexpat/libexpat/releases/download/R_2_7_4/expat-2.7.4.tar.gz) | [MIT license](https://github.com/libexpat/libexpat#MIT-1-ov-file)
-[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.2](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-2/freetype-VER-2-14-2.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
-[FriBidi](https://github.com/fribidi/fribidi) | [1.0.16](https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://github.com/fribidi/fribidi#LGPL-2.1-1-ov-file)
-[HarfBuzz](https://github.com/harfbuzz/harfbuzz) | [13.1.1](https://github.com/harfbuzz/harfbuzz/releases/download/13.1.1/harfbuzz-13.1.1.tar.xz) | [MIT license](https://github.com/harfbuzz/harfbuzz#License-1-ov-file)
-[FFmpeg](https://ffmpeg.org/) | [8.0.1](https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
-[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.3](https://code.videolan.org/videolan/dav1d/-/archive/1.5.3/dav1d-1.5.3.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
-[zLib](http://www.zlib.net/) | [1.3.2](https://www.zlib.net/zlib-1.3.2.tar.gz) | [zlib license](http://www.zlib.net/zlib_license.html)
+[FFmpeg](https://ffmpeg.org/) | [9.0.2](https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.gz) | [LGPL v.2.1 (GNU Lesser General Public License)](https://ffmpeg.org/legal.html)
+[dav1d](https://code.videolan.org/videolan/dav1d/) | [1.5.4](https://code.videolan.org/videolan/dav1d/-/archive/1.5.4/dav1d-1.5.4.tar.gz) | [BSD 2-Clause "Simplified" license](https://code.videolan.org/videolan/dav1d/-/blob/master/COPYING)
+[libass](https://github.com/libass/libass) | [0.17.5](https://github.com/libass/libass/releases/download/0.17.5/libass-0.17.5.tar.gz) | [ISC license](https://github.com/libass/libass#ISC-1-ov-file)
+[FreeType](https://gitlab.freedesktop.org/freetype/freetype) | [2.14.3](https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-14-3/freetype-VER-2-14-3.tar.gz) | [GPLv2 (GNU General Public License)](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/LICENSE.TXT)
+[SDL3](https://github.com/libsdl-org/SDL) | [3.4.18](https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz) | [zlib license](https://github.com/libsdl-org/SDL#Zlib-1-ov-file)
 
 ## Platform-dependent Include Headers
 
@@ -77,7 +72,7 @@ Make sure the correct Android SDK path is set as either
 - an environment variable `ANDROID_HOME=/path/to/ANDROID_SDK` or
 - a local property `sdk.dir=/path/to/ANDROID_SDK` in the **android/local.properties** file
 
-> See [Android SDK Command-Line Tools](https://developer.android.com/tools) and [SDL2 Android README](https://wiki.libsdl.org/SDL2/README/android) for more details.
+> See [Android SDK Command-Line Tools](https://developer.android.com/tools) and [SDL Android README](https://wiki.libsdl.org/SDL3/README-android) for more details.
 
 ```bash
 cmake .. -G "Unix Makefiles" \
@@ -119,7 +114,7 @@ make
 
 You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos --show-sdk-path`
 
-> See [SDL2 iOS README](https://wiki.libsdl.org/SDL2/README/ios) for more details.
+> See [SDL iOS README](https://wiki.libsdl.org/SDL3/README-ios) for more details.
 
 ```bash
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
@@ -187,6 +182,30 @@ cmake .. -G "Visual Studio 17 2022" \
 devenv.com voyaplayer.sln -build "Release|x64"
 ```
 
+### CMake options
+
+#### FFmpeg
+
+If your ffmpeg libraries are in a different path, you can add the following option.
+
+```bash
+-D LVP_EXT_FFMPEG_DIR="/path/to/ffmpeg"
+```
+
+If you don't need AV1 video decoding (dav1d) and ASS/SRT subtitle rendering (libass), you can add the following option.
+
+```bash
+-D LVP_ENABLE_VIDEO_AV1_AND_SUBS_ASS=FALSE
+```
+
+#### Test
+
+You can skip building the test project by adding the following option.
+
+```bash
+-D LVP_BUILD_TEST=FALSE
+```
+
 ## Test project
 
 You must call [LVP_Initialize](#lvp_initialize) with your callback handlers before using other *LVP_\** methods, see the *test* project for examples.
@@ -198,8 +217,8 @@ try {
   init();
 
   while (!QUIT) {
-    render();
-    SDL_Delay(16);
+    run();
+    SDL_Delay(33); // 30 fps = 1000 ms / 30 = 33.33 ms
   }
 
   quit();
@@ -213,7 +232,7 @@ try {
 
 The first step is to call [LVP_Initialize](#lvp_initialize) with a [LVP_CallbackContext](#lvp_callbackcontext).
 
-To use hardware rendering set the `.hardwareRenderer` parameter to an instance of an [SDL_Renderer](https://wiki.libsdl.org/SDL2/SDL_CreateRenderer).
+To use hardware rendering set the `.hardwareRenderer` parameter to an instance of an [SDL_Renderer](https://wiki.libsdl.org/SDL3/SDL_CreateRenderer).
 
 Otherwise software rendering will be used (much slower).
 
@@ -246,6 +265,8 @@ void handleError(const std::string& errorMessage, const void* data)
 
 ## Handle Events
 
+Playback events (play, pause, stop, seek, track change etc.) and video rendering are handled asynchronously, so make sure to call [LVP_Run](#lvp_run) every frame.
+
 The library will send player/media events as [LVP_EventType](#lvp_eventtype) to your event handler callback, which must follow the function signature defined by [LVP_EventsCallback](#lvp_eventscallback).
 
 ```cpp
@@ -268,30 +289,30 @@ void handleEvent(LVP_EventType type, const void* data)
 
 For optimal performance, you should render video frames using hardware rendering.
 
-To use hardware rendering, just call [LVP_Render](#lvp_render) with a destination, which will use the `.hardwareRenderer` you passed to [LVP_CallbackContext](#lvp_callbackcontext) during [initialization](#initialize).
+To use hardware rendering, just call [LVP_Run](#lvp_run) with a destination, which will use the `.hardwareRenderer` you passed to [LVP_CallbackContext](#lvp_callbackcontext) during [initialization](#initialize).
 
 ```cpp
-void render(const SDL_Rect& destination)
+void run(const SDL_Rect& destination)
 {
-  LVP_Render(destination);
+  LVP_Run(destination);
 }
 ```
 
 ## Handle Video Frames - Software Rendering (CPU)
 
-If you use software rendering, the library will send the available video frames as an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface) to your video handler callback, which must follow the function signature defined by [LVP_VideoCallback](#lvp_videocallback).
+If you use software rendering, the library will send the available video frames as an [SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface) to your video handler callback, which must follow the function signature defined by [LVP_VideoCallback](#lvp_videocallback).
 
-If you use your own custom [SDL_Renderer](https://wiki.libsdl.org/SDL2/SDL_CreateRenderer), you can copy the pixels from the [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface) (CPU) to an [SDL_Texture](https://wiki.libsdl.org/SDL2/SDL_CreateTexture) (GPU) using [SDL_UpdateTexture](https://wiki.libsdl.org/SDL2/SDL_UpdateTexture) which you can render using your own [SDL_Renderer](https://wiki.libsdl.org/SDL2/SDL_CreateRenderer) with [SDL_RenderCopy](https://wiki.libsdl.org/SDL2/SDL_RenderCopy).
+If you use your own custom [SDL_Renderer](https://wiki.libsdl.org/SDL3/SDL_CreateRenderer), you can copy the pixels from the [SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface) (CPU) to an [SDL_Texture](https://wiki.libsdl.org/SDL3/SDL_CreateTexture) (GPU) using [SDL_UpdateTexture](https://wiki.libsdl.org/SDL3/SDL_UpdateTexture) which you can render using your own [SDL_Renderer](https://wiki.libsdl.org/SDL3/SDL_CreateRenderer) with [SDL_RenderTexture](https://wiki.libsdl.org/SDL3/SDL_RenderTexture).
 
-If you don't use SDL2 for rendering, you need to copy the pixels to a bitmap/image format used by your library/framework.
+If you don't use SDL for rendering, you need to copy the pixels to a bitmap/image format used by your library/framework.
 
-[SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface)
+[SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface)
 
 - The `.pixels` property will contain the pixel buffer as an RGB byte-array
 - The `.w` and `.h` properties will contain the dimensions of the video frame
 - The `.pitch` property will contain the byte size of a row of RGB pixels
 
-> Remember to call [LVP_Render](#lvp_render) without a destination.
+> Remember to call [LVP_Run](#lvp_run) without a destination.
 
 ```cpp
 SDL_Texture* texture          = nullptr;
@@ -312,7 +333,7 @@ void handleVideoIsAvailable(SDL_Surface* videoSurface, const void* data)
   videoLock.unlock();
 }
 
-void render(SDL_Renderer* renderer, const SDL_Rect& destination)
+void run(SDL_Renderer* renderer, const SDL_FRect& destination)
 {
   videoLock.lock();
 
@@ -332,11 +353,11 @@ void render(SDL_Renderer* renderer, const SDL_Rect& destination)
   }
 
   if (texture)
-    SDL_RenderCopy(renderer, texture, nullptr, &destination);
+    SDL_RenderTexture(renderer, texture, nullptr, &destination);
 
   videoLock.unlock();
 
-  LVP_Render();
+  LVP_Run();
 }
 ```
 
@@ -488,17 +509,13 @@ Exceptions
 
 - runtime_error
 
-### LVP_AddAudioDevice
+### LVP_GetAudioDevice
 
 ```cpp
-void LVP_AddAudioDevice(const SDL_AudioDeviceEvent& adevice);
+std::string LVP_GetAudioDevice();
 ```
 
-Tells the player that a new audio device was connected.
-
-Parameters
-
-- **adevice** SDL2 audio device event.
+Returns the current audio device.
 
 ### LVP_GetAudioDevices
 
@@ -507,18 +524,6 @@ std::vector<std::string> LVP_GetAudioDevices();
 ```
 
 Returns a list of available audio devices.
-
-### LVP_GetChapters
-
-```cpp
-std::vector<LVP_MediaChapter> LVP_GetChapters();
-```
-
-Returns a list of chapters in the currently loaded media.
-
-Exceptions
-
-- runtime_error
 
 ### LVP_GetAudioTrack
 
@@ -539,6 +544,18 @@ std::vector<LVP_MediaTrack> LVP_GetAudioTracks();
 ```
 
 Returns a list of audio tracks in the currently loaded media.
+
+Exceptions
+
+- runtime_error
+
+### LVP_GetChapters
+
+```cpp
+std::vector<LVP_MediaChapter> LVP_GetChapters();
+```
+
+Returns a list of chapters in the currently loaded media.
 
 Exceptions
 
@@ -933,33 +950,6 @@ void LVP_Quit();
 
 Cleans up allocated resources.
 
-### LVP_RemoveAudioDevice
-
-```cpp
-void LVP_RemoveAudioDevice(const SDL_AudioDeviceEvent& adevice);
-```
-
-Tells the player that an audio device was disconnected.
-
-Parameters
-
-- **adevice** SDL2 audio device event.
-
-### LVP_Render
-
-```cpp
-void LVP_Render(const SDL_Rect& destination = {});
-```
-
-Generates and renders a video frame.
-
-- If hardware rendering is used, it will copy the texture to the renderer.
-- If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
-
-Parameters
-
-- **destination** Optional clipping/scaling region used by the hardware renderer.
-
 ### LVP_Resize
 
 ```cpp
@@ -967,6 +957,21 @@ void LVP_Resize();
 ```
 
 Should be called whenever the window resizes to tell the player to recreate the video frame context.
+
+### LVP_Run
+
+```cpp
+void LVP_Run(const SDL_Rect& destination = {});
+```
+
+Handles playback events (play, pause, stop, seek, track change etc.) and creating/rendering video frames if needed.
+
+- If hardware rendering is used, it will copy the texture to the renderer.
+- If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface).
+
+Parameters
+
+- **destination** Optional clipping/scaling region used by the hardware renderer.
 
 ### LVP_SeekBy
 
@@ -1003,16 +1008,14 @@ Exceptions
 ### LVP_SetAudioDevice
 
 ```cpp
-bool LVP_SetAudioDevice(const std::string& device);
+void LVP_SetAudioDevice(const std::string& name);
 ```
 
 Tries to set the given audio device as the current device if valid.
 
-Returns true if the audio device is successfully set.
-
 Parameters
 
-- **device** Name of the audio device.
+- **name** Audio device name.
 
 ### LVP_SetMuted
 
@@ -1113,3 +1116,11 @@ Toggles between pausing and playing.
 Exceptions
 
 - runtime_error
+
+### LVP_UpdateAudioDevices
+
+```cpp
+void LVP_UpdateAudioDevices();
+```
+
+Tells the player to update the list of available audio devices.
