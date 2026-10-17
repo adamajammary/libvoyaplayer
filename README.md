@@ -72,7 +72,7 @@ Make sure the correct Android SDK path is set as either
 - an environment variable `ANDROID_HOME=/path/to/ANDROID_SDK` or
 - a local property `sdk.dir=/path/to/ANDROID_SDK` in the **android/local.properties** file
 
-> See [Android SDK Command-Line Tools](https://developer.android.com/tools) and [SDL2 Android README](https://wiki.libsdl.org/SDL2/README/android) for more details.
+> See [Android SDK Command-Line Tools](https://developer.android.com/tools) and [SDL Android README](https://wiki.libsdl.org/SDL3/README-android) for more details.
 
 ```bash
 cmake .. -G "Unix Makefiles" \
@@ -114,7 +114,7 @@ make
 
 You can get the iOS SDK path with the following command: `xcrun --sdk iphoneos --show-sdk-path`
 
-> See [SDL2 iOS README](https://wiki.libsdl.org/SDL2/README/ios) for more details.
+> See [SDL iOS README](https://wiki.libsdl.org/SDL3/README-ios) for more details.
 
 ```bash
 /Applications/CMake.app/Contents/bin/cmake .. -G "Xcode" \
@@ -232,7 +232,7 @@ try {
 
 The first step is to call [LVP_Initialize](#lvp_initialize) with a [LVP_CallbackContext](#lvp_callbackcontext).
 
-To use hardware rendering set the `.hardwareRenderer` parameter to an instance of an [SDL_Renderer](https://wiki.libsdl.org/SDL2/SDL_CreateRenderer).
+To use hardware rendering set the `.hardwareRenderer` parameter to an instance of an [SDL_Renderer](https://wiki.libsdl.org/SDL3/SDL_CreateRenderer).
 
 Otherwise software rendering will be used (much slower).
 
@@ -300,13 +300,13 @@ void run(const SDL_Rect& destination)
 
 ## Handle Video Frames - Software Rendering (CPU)
 
-If you use software rendering, the library will send the available video frames as an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface) to your video handler callback, which must follow the function signature defined by [LVP_VideoCallback](#lvp_videocallback).
+If you use software rendering, the library will send the available video frames as an [SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface) to your video handler callback, which must follow the function signature defined by [LVP_VideoCallback](#lvp_videocallback).
 
-If you use your own custom [SDL_Renderer](https://wiki.libsdl.org/SDL2/SDL_CreateRenderer), you can copy the pixels from the [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface) (CPU) to an [SDL_Texture](https://wiki.libsdl.org/SDL2/SDL_CreateTexture) (GPU) using [SDL_UpdateTexture](https://wiki.libsdl.org/SDL2/SDL_UpdateTexture) which you can render using your own [SDL_Renderer](https://wiki.libsdl.org/SDL2/SDL_CreateRenderer) with [SDL_RenderCopy](https://wiki.libsdl.org/SDL2/SDL_RenderCopy).
+If you use your own custom [SDL_Renderer](https://wiki.libsdl.org/SDL3/SDL_CreateRenderer), you can copy the pixels from the [SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface) (CPU) to an [SDL_Texture](https://wiki.libsdl.org/SDL3/SDL_CreateTexture) (GPU) using [SDL_UpdateTexture](https://wiki.libsdl.org/SDL3/SDL_UpdateTexture) which you can render using your own [SDL_Renderer](https://wiki.libsdl.org/SDL3/SDL_CreateRenderer) with [SDL_RenderTexture](https://wiki.libsdl.org/SDL3/SDL_RenderTexture).
 
-If you don't use SDL2 for rendering, you need to copy the pixels to a bitmap/image format used by your library/framework.
+If you don't use SDL for rendering, you need to copy the pixels to a bitmap/image format used by your library/framework.
 
-[SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface)
+[SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface)
 
 - The `.pixels` property will contain the pixel buffer as an RGB byte-array
 - The `.w` and `.h` properties will contain the dimensions of the video frame
@@ -967,7 +967,7 @@ void LVP_Run(const SDL_Rect& destination = {});
 Handles playback events (play, pause, stop, seek, track change etc.) and creating/rendering video frames if needed.
 
 - If hardware rendering is used, it will copy the texture to the renderer.
-- If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL2/SDL_Surface).
+- If software rendering is used, it will generate a [LVP_VideoCallback](#lvp_videocallback) with an [SDL_Surface](https://wiki.libsdl.org/SDL3/SDL_Surface).
 
 Parameters
 
