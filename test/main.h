@@ -7,8 +7,6 @@
     #include <android/asset_manager_jni.h> // AAsset*, JNI*, j*
 #elif defined _ios
     #include <UIKit/UIKit.h> // UIApplication, UIWindow*
-#elif defined _windows
-    #include <windows.h> // WinMain(x)
 #endif
 
 #include <libvoyaplayer.h>
