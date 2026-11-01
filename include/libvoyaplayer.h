@@ -19,7 +19,7 @@
     #endif
 #endif
 
-#include <libvoyaplayer_events.h>
+#include "libvoyaplayer_events.h"
 
 /**
  * @brief Tries to initialize the library and other dependencies.
